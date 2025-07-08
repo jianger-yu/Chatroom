@@ -1,0 +1,16 @@
+74316:C 08 Jul 2025 16:48:53.418 # oO0OoO0OoO0Oo Redis is starting oO0OoO0OoO0Oo
+74316:C 08 Jul 2025 16:48:53.418 # Redis version=7.0.15, bits=64, commit=00000000, modified=0, pid=74316, just started
+74316:C 08 Jul 2025 16:48:53.418 # Configuration loaded
+74316:M 08 Jul 2025 16:48:53.418 * monotonic clock: POSIX clock_gettime
+74316:M 08 Jul 2025 16:48:53.419 * Running mode=standalone, port=6379.
+74316:M 08 Jul 2025 16:48:53.419 # Server initialized
+74316:M 08 Jul 2025 16:48:53.419 # WARNING Memory overcommit must be enabled! Without it, a background save or replication may fail under low memory condition. Being disabled, it can can also cause failures without low memory condition, see https://github.com/jemalloc/jemalloc/issues/1328. To fix this issue add 'vm.overcommit_memory = 1' to /etc/sysctl.conf and then reboot or run the command 'sysctl vm.overcommit_memory=1' for this to take effect.
+74316:M 08 Jul 2025 16:48:53.421 * Creating AOF base file appendonly.aof.1.base.rdb on server start
+74316:M 08 Jul 2025 16:48:53.422 * Creating AOF incr file appendonly.aof.1.incr.aof on server start
+74316:M 08 Jul 2025 16:48:53.422 * Ready to accept connections
+74316:signal-handler (1751964565) Received SIGINT scheduling shutdown...
+74316:M 08 Jul 2025 16:49:25.628 # User requested shutdown...
+74316:M 08 Jul 2025 16:49:25.628 * Calling fsync() on the AOF file.
+74316:M 08 Jul 2025 16:49:25.628 * Saving the final RDB snapshot before exiting.
+74316:M 08 Jul 2025 16:49:25.630 * DB saved on disk
+74316:M 08 Jul 2025 16:49:25.630 # Redis is now ready to exit, bye bye...

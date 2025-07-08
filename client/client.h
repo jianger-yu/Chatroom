@@ -1,7 +1,14 @@
 #pragma once
 #include <memory>
-
 #include "../socket/socket.h"
+#include "../EpollReactor.hpp"
+#include "../register/readdata.hpp"
+#include "../socket/socket.h"
+#include <algorithm>
+#include "menu.hpp"
+#include <cstring>
+#define CONPORT 4413
+
 
 class  Client {
   public:

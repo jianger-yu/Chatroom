@@ -35,7 +35,7 @@ bool server::acceptConn() {
 
 int main(){
   
-  readctor rct(2100);
+  readctor rct(4413);
   while(1){
     
   }
@@ -43,7 +43,7 @@ int main(){
 }
 
 /*server sv;
-  sv.setListen(2100);
+  sv.setListen(4413);
   sv.acceptConn();
   Socket sk(*sv.getSocket());
   std::string str;

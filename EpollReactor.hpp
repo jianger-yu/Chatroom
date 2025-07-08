@@ -20,7 +20,7 @@
 #include <sys/stat.h>
 
 #include "ThreadPool.hpp"
-#include "server/server.h"
+#include "./server/server.h"
 
 #define MAX_EVENTS 1024     //监听上限数
 #define BUFLEN 4096
@@ -413,7 +413,7 @@ void readctor::readctorinit(unsigned short port){
                 continue;
             
             long duration = now -r_events[chekckpos].last_active;   //计算客户端不活跃的时间
-            if(duration >= 60){
+            if(duration >= 6000){
                 printf("[fd = %d] timeout\n", r_events[chekckpos].fd);
                 pthread_mutex_lock(&event_mutex); // 加锁
                 eventdel(&r_events[chekckpos]);

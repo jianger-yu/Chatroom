@@ -80,7 +80,8 @@ public:
             //std::cerr << "\n验证码发送失败: " << curl_easy_strerror(res) << std::endl;
         } else {
             //std::cout << "\n已发送验证码！" << std::endl;
-            printf("\033[0;32m\n已发送验证码!\n\033[0m");
+            printf("\033[0;32m\n已发送验证码!\033[0m\n");
+            fflush(stdout); // 手动刷新标准输出缓冲区
         }
 
         curl_slist_free_all(recipients);

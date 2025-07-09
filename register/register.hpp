@@ -2,6 +2,7 @@
 #include<iostream>
 #include <fcntl.h>
 #include "../client/client.h"
+#include "../userdata.hpp"
 #include "SendEmail.hpp"
 #include <unistd.h>
 #include <cstring>
@@ -24,6 +25,8 @@ private:
 //注册功能逻辑函数
 void Register::rgst(void * p){
     Client* client = (Client*) p;
+    Socket* sock = client->getSocket();
+
     printf("\033[0;32m\n已选择注册选项(按下ESC可返回上一级菜单)\033[0m\n");
     printf("\033[0;32m请输入您要注册的用户名(仅允许英文字母和数字的组合)\n\033[0m>");
 
@@ -48,12 +51,11 @@ void Register::rgst(void * p){
         if(key) continue;
         //判断是否有重名
         //询问服务器
-        Socket* sock = client->getSocket();
         sock->sendMsg("jrnm:"+std::string(name));//judge_repeat_name
         //sock->sendMsg(name);
         std::string str;
         sock->recvMsg(str);
-        if(strcmp(str.c_str(), "repeat") == 0){
+        if(strcmp(str.c_str(), "norepeat") != 0){
             printf("\033[0;31m用户名已存在，请重新输入。\n\033[0m>");
             continue;
         }
@@ -62,7 +64,7 @@ void Register::rgst(void * p){
 
 
     //输入密码
-    printf("\033[0;32m请输入您要注册的密码\n\033[0m>");
+    printf("\033[0;32m请输入您的密码\n\033[0m>");
     do{
         chu(pwd);
         int ret = enter(pwd, 1);
@@ -114,6 +116,16 @@ void Register::rgst(void * p){
         chu(email);
         int ret = enter(email, 0);
         if(ret == -1) return;
+        //判断邮箱是否已经注册
+        //询问服务器
+        sock->sendMsg("jrem:"+std::string(email));//judge_repeat_email
+        std::string str;
+        sock->recvMsg(str);
+        if(strcmp(str.c_str(), "repeat") == 0){
+            printf("\033[0;31m该邮箱已被注册，请重新输入。\n\033[0m>");
+            continue;
+        }
+        //发送验证码
         printf("\033[0;32m正在为您发送验证码...\033[0m");
         fflush(stdout); // 手动刷新标准输出缓冲区
         if(!emsend.send(email)){
@@ -138,10 +150,25 @@ void Register::rgst(void * p){
     } while(1);
 
     //注册成功，发给服务器，写入数据库
-    printf("user:%s\n",name);
+    UserData user;
+    user.name = name;
+    user.pwd = pwd;
+    user.email = email;
+    user.stat = "offline";
+    user.frd = {};
+    user.group = {};
+    std::string datastr = user.toJson();
+    printf("\033[0;32m输入正确!正在注册账号...\n\033[0m");
+    sock->sendMsg("rgst:"+datastr);
+    std::string rev; 
+    sock->recvMsg(rev);
+    if(rev == "success") printf("\033[0;32m注册成功!\033[0m");
+    else printf("\033[0;31m注册失败，请稍后再试:)\n\033[0m");
+
+    /*printf("user:%s\n",name);
     printf("pwd:%s\n",pwd2);
     printf("hashpwd:%s\n",pwd);
     printf("(pwd,hashpwd):%d\n",hs.verifyPassword(pwd2, pwd));
     printf("email:%s\n",email);
-    sleep(1000);
+    sleep(1000);*/
 }

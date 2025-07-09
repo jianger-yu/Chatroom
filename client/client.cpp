@@ -1,4 +1,5 @@
 #include "client.h"
+#include "../register/register.hpp"
 
 //定义数据通信伪客户端
 Client dataclient;
@@ -34,7 +35,11 @@ void Client::ctlthread(){
     input = charget();
     switch(input){
       case '1':break;
-      case '2':break;
+      case '2':{
+        Register r;
+        r.rgst(this);
+        break;
+      }
       case '3':break;
       default:continue;
     }

@@ -1,5 +1,5 @@
 #include "../socket/socket.h"
-#include "../EpollReactor.hpp"
+#include "EpollReactor.hpp"
 
 server::server()
     : listenfd_(socket(AF_INET, SOCK_STREAM, 0)), socket_(nullptr) {

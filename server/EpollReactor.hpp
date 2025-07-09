@@ -1,11 +1,8 @@
 #include <signal.h>
-#include <netinet/in.h>
 #include <stdio.h>
-#include <sys/socket.h>
 #include <errno.h>
 #include <arpa/inet.h>
 #include <unistd.h>
-#include <string.h>
 #include <stdlib.h>
 #include <pthread.h>
 #include <fcntl.h>
@@ -21,6 +18,7 @@
 
 #include "ThreadPool.hpp"
 #include "./server/server.h"
+#include "handle.hpp"
 
 #define MAX_EVENTS 1024     //监听上限数
 #define BUFLEN 4096
@@ -194,59 +192,14 @@ void readctor::acceptconn(int lfd,int tmp, void * arg){
     return;
 }
 
-bool send_all(int sockfd,const void * buf,size_t len){
-  const char*p = static_cast<const char*>(buf);
-  while(len > 0){
-    int n = send(sockfd,p,len,0);
-    if(n <= 0) return false;
-    p += n;
-    len -= n;
-  }
-  return true;
-}
-
-bool recv_all(int sockfd,void * buf,size_t len){
-  char* p = static_cast<char*>(buf);
-  int n;
-  while(len > 0){
-    do {
-        n = recv(sockfd,p,len,0);
-        if (n > 0) { p += n; len -= n; }
-        else if (n == 0) {
-            len = 0;
-            break; // 对端关闭
-        }
-        else if (errno != EAGAIN && errno != EWOULDBLOCK) return false;
-        if(len == 0) break;
-    }
-    while(n > 0);
-    //if(!(errno == EAGAIN || errno == EWOULDBLOCK)) return false; 
-  }
-  return true;
-}
-
-int sendMsg(std::string msg,int sockfd_) {
-  uint32_t len = htonl(msg.size());
-  if(!send_all(sockfd_,&len,sizeof len)) return -1;
-  if(!send_all(sockfd_,msg.data(),msg.size())) return -1;
-  return 0;
-}
-
-int recvMsg(std::string& msg,int sockfd_) {
-  uint32_t len, slen;
-  if(!recv_all(sockfd_,&len,sizeof len)) return -1;
-  slen = ntohl(len);
-  msg.clear();
-  msg.resize(slen);
-  if(!recv_all(sockfd_,msg.data(),slen)) return -1;
-  return 0;
-}
-
 
 //处理回调
 void readctor::senddata(int fd,int tmp, void * arg){
     event * ev = (event*)arg;
     printf("处理回调被执行,ev->buf:%s\n",ev->buf);
+
+    handler hand(ev->buf, fd);
+    hand.handle();
     
     printf("senddata 准备抢 event_mutex\n");
     pthread_mutex_lock(&event_mutex); // 修改红黑树公共区域，加事件锁

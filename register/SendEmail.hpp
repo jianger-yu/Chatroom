@@ -12,7 +12,6 @@ private:
     std::string sender_user = "3299956263@qq.com";
     std::string sender_pass = "vqcxmenfclxjcjgf";
 
-    char code[10];
 
     static size_t payload_source(void* ptr, size_t size, size_t nmemb, void* userp) {
         std::string* payload = (std::string*)userp;
@@ -36,6 +35,7 @@ private:
     }
 
 public:
+    char code[10];
     bool send(const std::string& receiver_email) {
         getcode();
         std::string to = "<" + receiver_email + ">";
@@ -76,9 +76,11 @@ public:
         bool success = (res == CURLE_OK);
 
         if (!success) {
-            std::cerr << "验证码发送失败: " << curl_easy_strerror(res) << std::endl;
+            printf("\033[0;31m\n验证码发送失败: %s\n\033[0m",curl_easy_strerror(res));
+            //std::cerr << "\n验证码发送失败: " << curl_easy_strerror(res) << std::endl;
         } else {
-            std::cout << "已发送验证码！" << std::endl;
+            //std::cout << "\n已发送验证码！" << std::endl;
+            printf("\033[0;32m\n已发送验证码!\n\033[0m");
         }
 
         curl_slist_free_all(recipients);

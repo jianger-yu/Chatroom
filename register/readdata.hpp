@@ -26,11 +26,11 @@ int enter(char *arr, int key){
     for (i = 0; i < 20; i++){
         arr[i] = charget();
         if(arr[i] == 27) return -1;
-        if (arr[i] == '\r'){
+        if (arr[i] == '\n'){
             arr[i] = '\0';
             break;
         }
-        else if (arr[i] == '\b'){
+        else if (arr[i] == '\b'||arr[i] == 127){
             if (i>0){
                 i--;
                 printf("\b \b");

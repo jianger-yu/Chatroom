@@ -2,10 +2,10 @@
 #include<iostream>
 #include<string>
 #include<vector>
-#include "../userdata.hpp"
+#include "../user.hpp"
 #include "../Redis.hpp"
 
-class user{
+class userdata{
 private:
 redisContext * redis;
 std::string name;
@@ -17,10 +17,10 @@ std::vector<std::string> group; //存储群聊的gid
 
 public:
 
-    user():redis(connectRedis()){
+    userdata():redis(connectRedis()){
     }
-    //根据json字符串注册用户
-    bool newuser(std::string);
+    //根据json字符串注册用户,返回uid或fail
+    std::string newuser(std::string);
     //获取一个未使用的uid
     std::string newuid(void);
     //根据用户名返回用户id，若用户不存在则返回“norepeat”
@@ -37,13 +37,14 @@ public:
     std::string GetUserStat(std::string );
 };
 
-bool user::newuser(std::string str){
+
+std::string userdata::newuser(std::string str){
     //拿到用户数据
     int i = 0;
     while(str[i] != ':') i++;
     std::string s = str.c_str() + i + 1;
     printf("拿到json:%s\n",s.c_str());
-    UserData ud = UserData::fromJson(s);  
+    user ud = user::fromJson(s);  
     //生成用户uid
     std::string nuid = newuid();
     //写入用户名->uid的键值对
@@ -55,17 +56,14 @@ bool user::newuser(std::string str){
     //将邮箱写入集合
     reply = (redisReply*)redisCommand(redis, "SADD email %s", ud.email.c_str());
     freeReplyObject(reply);
-    return true;
+    return nuid;
 }
 
-std::string user::newuid(){
+std::string userdata::newuid(){
     int i;
     redisReply* reply = NULL;
-    for(i = 1001; i < 1000000; i++){
-        reply = (redisReply*)redisCommand(redis, "GET user:%d", i);
-        if(reply->type == REDIS_REPLY_NIL) break;
-        else freeReplyObject(reply);
-    }
+    reply = (redisReply*)redisCommand(redis, "INCR newuid");
+    i = reply->integer;
     char buf[20];
     sprintf(buf, "%d", i);
     if(reply != NULL)
@@ -73,7 +71,7 @@ std::string user::newuid(){
     return buf;
 }
 
-bool user::RepeatEmail(const char * buf){
+bool userdata::RepeatEmail(const char * buf){
     int i = 0;
     while(buf[i] != ':') i++;
     std::string s = buf + i + 1;
@@ -86,7 +84,7 @@ bool user::RepeatEmail(const char * buf){
 }
 
 //根据用户名返回用户id，若用户不存在则返回“norepeat”
-std::string user::Getuid(const char * buf){
+std::string userdata::Getuid(const char * buf){
     int i = 0;
     while(buf[i] != ':') i++;
     std::string s = buf + i + 1;

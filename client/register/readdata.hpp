@@ -1,5 +1,6 @@
 #pragma once
 #include <iostream>
+#include <cstring>
 #include <termios.h>  // 用于配置终端I/O
 #include <unistd.h>   // 提供Unix标准API
 

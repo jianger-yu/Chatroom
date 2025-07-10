@@ -1,11 +1,11 @@
 #pragma once
 #include<iostream>
 
-void logmenu(void);
+void startmenu(void);
 
 
 
-void logmenu(void){
+void startmenu(void){
   printf("\033[0;36m==========================================================\033[0m\n");
   printf("           \033[0;33m欢迎进入聊天室,请选择要进行的操作\033[0m\n");
   printf("       \033[0;32m------------1.登录------------\033[0m\n");

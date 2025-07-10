@@ -2,15 +2,15 @@
 #include<iostream>
 #include<cstring>
 #include<string>
-#include "user.hpp"
+#include "userdata.hpp"
 #include "sendrecv.hpp"
-#include "../userdata.hpp"
+#include "../user.hpp"
 
 class handler{
 private:
     std::string str;
     int sockfd;
-    user u;
+    userdata u;
     //处理是否重名的请求
     void jrnm();
     //处理邮箱是否注册过的请求
@@ -41,10 +41,8 @@ void handler::jrnm(){
 }
 
 void handler::torgst(){
-    if(u.newuser(str))
-        sendMsg("success", sockfd);
-    else
-        sendMsg("fail", sockfd);
+    //发送用户uid或fail
+    sendMsg(u.newuser(str), sockfd);
 }
 
 void handler::jrem(){

@@ -5,7 +5,7 @@
 
 using json = nlohmann::json;
 
-struct UserData {
+struct user {
     std::string name;
     std::string email;
     std::string pwd;
@@ -26,9 +26,9 @@ struct UserData {
     }
 
     //从JSON字符串构造对象
-    static UserData fromJson(const std::string& s) {
+    static user fromJson(const std::string& s) {
         json j = json::parse(s);
-        UserData data;
+        user data;
         data.name = j["name"];
         data.email = j["email"];
         data.pwd = j["pwd"];

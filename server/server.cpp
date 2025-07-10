@@ -34,7 +34,13 @@ bool server::acceptConn() {
 }
 
 int main(){
-  
+  redisContext* redis = connectRedis();
+  redisReply* reply = (redisReply*)redisCommand(redis, "EXISTS newuid");
+  if (reply->integer == 0) {
+      freeReplyObject(reply);
+      reply = (redisReply*)redisCommand(redis, "SET newuid 1000");
+  }
+  freeReplyObject(reply);
   readctor rct(4413);
   while(1){
     

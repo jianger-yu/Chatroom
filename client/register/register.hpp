@@ -1,8 +1,8 @@
 #pragma once
 #include<iostream>
 #include <fcntl.h>
-#include "../client/client.h"
-#include "../userdata.hpp"
+#include "../client.h"
+#include "../../user.hpp"
 #include "SendEmail.hpp"
 #include <unistd.h>
 #include <cstring>
@@ -27,7 +27,8 @@ void Register::rgst(void * p){
     Client* client = (Client*) p;
     Socket* sock = client->getSocket();
 
-    printf("\033[0;32m\n已选择注册选项(按下ESC可返回上一级菜单)\033[0m\n");
+    system("clear");
+    printf("\033[0;32m已选择注册选项(按下ESC可返回上一级菜单)\033[0m\n");
     printf("\033[0;32m请输入您要注册的用户名(仅允许英文字母和数字的组合)\n\033[0m>");
 
     //输入用户名
@@ -150,20 +151,30 @@ void Register::rgst(void * p){
     } while(1);
 
     //注册成功，发给服务器，写入数据库
-    UserData user;
-    user.name = name;
-    user.pwd = pwd;
-    user.email = email;
-    user.stat = "offline";
-    user.frd = {};
-    user.group = {};
-    std::string datastr = user.toJson();
+    user u;
+    u.name = name;
+    u.pwd = pwd;
+    u.email = email;
+    u.stat = "offline";
+    u.frd = {};
+    u.group = {};
+    std::string datastr = u.toJson();
     printf("\033[0;32m输入正确!正在注册账号...\n\033[0m");
     sock->sendMsg("rgst:"+datastr);
     std::string rev; 
     sock->recvMsg(rev);
-    if(rev == "success") printf("\033[0;32m注册成功!\033[0m");
-    else printf("\033[0;31m注册失败，请稍后再试:)\n\033[0m");
+    system("clear");
+    if(rev == "fail") printf("\033[0;31m注册失败，请稍后再试:)\n\033[0m");
+    else{
+        printf("\033[0;32m注册成功!\n\033[0m");
+        printf("\033[0;32m以下为您的基本信息:\n\033[0m");
+        printf("\033[0;32m用户名:\033[0m%s\n",name);
+        printf("\033[0;32m电子邮箱:\033[0m%s\n",email);
+        printf("\033[0;32muid:\033[0m%s\n",rev.c_str());
+    }
+    printf("\033[0;32m请按任意键继续...\033[0m");
+    char rub;
+    rub = charget();
 
     /*printf("user:%s\n",name);
     printf("pwd:%s\n",pwd2);

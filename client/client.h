@@ -2,12 +2,13 @@
 #include <memory>
 #include "../socket/socket.h"
 #include "../server/EpollReactor.hpp"
-#include "../register/readdata.hpp"
+#include "./register/readdata.hpp"
 #include "../socket/socket.h"
-#include "../register/hashpwd.hpp"
+#include "./register/hashpwd.hpp"
 #include <algorithm>
 #include "menu.hpp"
 #include <cstring>
+#include <stdlib.h>
 #define CONPORT 4413
 
 

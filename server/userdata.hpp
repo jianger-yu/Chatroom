@@ -25,16 +25,16 @@ public:
     std::string newuid(void);
     //根据用户名返回用户id，若用户不存在则返回“norepeat”
     std::string Getuid(const char *);
+    //根据email返回用户id，若用户不存在则返回“norepeat”
+    std::string EmailGetuid(const char *);
     //判断电子邮箱是否已存在，返回true已存在，返回false不存在
     bool RepeatEmail(const char *);
-    //根据用户uid拿到用户名称
-    std::string GetUserName(std::string );
-    //根据用户uid拿到用户邮箱
-    std::string GetUserEmail(std::string );
-    //根据用户uid拿到用户密码（哈希值）
-    std::string GetUserPwd(std::string );
-    //根据用户uid拿到用户状态
-    std::string GetUserStat(std::string );
+    //根据用户uid返回用户结构体
+    user GetUesr(std::string);
+    //根据用户uid删除用户结构体
+    bool DELUesr(std::string);
+    //仅存入user:uid -> json的键值对
+    bool setutoj(std::string, std::string);
 };
 
 
@@ -49,6 +49,9 @@ std::string userdata::newuser(std::string str){
     std::string nuid = newuid();
     //写入用户名->uid的键值对
     redisReply* reply = (redisReply*)redisCommand(redis, "SET username:%s %s", ud.name.c_str(), nuid.c_str());
+    freeReplyObject(reply);
+    //写入邮箱->uid的键值对
+    reply = (redisReply*)redisCommand(redis, "SET email:%s %s", ud.email.c_str(), nuid.c_str());
     freeReplyObject(reply);
     //写入json字符串
     reply = (redisReply*)redisCommand(redis, "SET user:%s %s", nuid.c_str(), s.c_str());
@@ -85,11 +88,8 @@ bool userdata::RepeatEmail(const char * buf){
 
 //根据用户名返回用户id，若用户不存在则返回“norepeat”
 std::string userdata::Getuid(const char * buf){
-    int i = 0;
-    while(buf[i] != ':') i++;
-    std::string s = buf + i + 1;
-    printf("拿到username:%s\n",s.c_str());
-    redisReply* reply = (redisReply*)redisCommand(redis, "GET username:%s", s.c_str());
+    printf("拿到username:%s\n",buf);
+    redisReply* reply = (redisReply*)redisCommand(redis, "GET username:%s", buf);
     if(reply->type == REDIS_REPLY_NIL){
         freeReplyObject(reply);
         return "norepeat";
@@ -98,4 +98,41 @@ std::string userdata::Getuid(const char * buf){
         freeReplyObject(reply);
         return ret;
     }
+}
+
+std::string userdata::EmailGetuid(const char * buf){
+    printf("拿到email:%s\n",buf);
+    redisReply* reply = (redisReply*)redisCommand(redis, "GET email:%s", buf);
+    if(reply->type == REDIS_REPLY_NIL){
+        freeReplyObject(reply);
+        return "norepeat";
+    } else {
+        std::string ret = reply->str;
+        freeReplyObject(reply);
+        return ret;
+    }
+}
+
+
+user userdata::GetUesr(std::string buf){
+    redisReply* reply = (redisReply*)redisCommand(redis, "GET user:%s", buf.c_str());
+    //if(reply == NULL || reply->type == REDIS_REPLY_NIL || reply->type != REDIS_REPLY_STRING)
+    user ret = user::fromJson(reply->str);
+    freeReplyObject(reply);
+    return ret;
+}
+
+bool userdata::DELUesr(std::string uid){
+    redisReply* reply = (redisReply*)redisCommand(redis, "DEL user:%s", uid.c_str());
+    bool ret = false;
+    if (reply->type == REDIS_REPLY_INTEGER && reply->integer > 0)
+        ret = true;
+    freeReplyObject(reply);
+    return ret;
+}
+
+bool userdata::setutoj(std::string nuid, std::string s){
+    redisReply*reply = (redisReply*)redisCommand(redis, "SET user:%s %s", nuid.c_str(), s.c_str());
+    freeReplyObject(reply);
+    return true;
 }

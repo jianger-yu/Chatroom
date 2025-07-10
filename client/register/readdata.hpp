@@ -20,7 +20,7 @@ char charget(void){
   return ch;
 }
 
-//key为0显式输入，否则隐式输入,返回读取字符的长度，返回-1说明用户需要ESC
+//key为0显式输入，为1隐式输入,返回读取字符的长度，返回-1说明用户需要ESC
 int enter(char *arr, int key){
     char a = 0;
     int i;
@@ -55,6 +55,7 @@ int enter(char *arr, int key){
 }
 
 //初始化数组内元素
-void chu(char* arr){
-    memset(arr, 0, sizeof arr);
+template <size_t N>
+void chu(char (&arr)[N]) {
+    memset(arr, 0, N);
 }

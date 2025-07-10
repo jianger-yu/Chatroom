@@ -18,3 +18,12 @@ void startmenu(void){
   fflush(stdout); // 手动刷新标准输出缓冲区
 }
 
+
+void logmenu(){
+    printf("\033[0;32m已选择登录选项(按下ESC可返回上一级菜单)\033[0m\n");
+    printf("\033[0;32m请选择您的登录方式:\n\033[0m");
+    printf("\033[0;33m1.用户名、密码登录\n\033[0m");
+    printf("\033[0;33m2.邮箱、验证码登录\n\033[0m");
+    printf("\033[0;32m请输入要选择的序号:>\033[0m");
+    fflush(stdout); // 手动刷新标准输出缓冲区
+}

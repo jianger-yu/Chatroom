@@ -43,7 +43,10 @@ void Client::ctlthread(){
         r.rgst(this);
         break;
       }
-      case '3':break;
+      case '3':
+        login f;
+        f.findpwd(this);
+        break;
       case '4':{
         system("clear");
         return;

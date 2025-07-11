@@ -11,8 +11,8 @@ private:
     char pwd[256];
     char email[256];
     void* clientp;
-    void pwdlog();
-    void emaillog();
+    int pwdlog();
+    int emaillog();
 public:
 
     void lgin(void*p);
@@ -31,11 +31,11 @@ void login::lgin(void*p){
         input = charget();
         switch(input){
         case '1':{
-            pwdlog();
+            if(pwdlog() == -1) return;
             break;
         }
         case '2':{
-            emaillog();
+            if(emaillog() == -1) return;
             break;
         }
         case 27:{
@@ -47,7 +47,7 @@ void login::lgin(void*p){
     }
 }
 
-void login::pwdlog(){
+int login::pwdlog(){
     Client* c = (Client*)clientp;
     Socket* sock = c->getSocket();
     system("clear");
@@ -58,10 +58,11 @@ void login::pwdlog(){
         chu(name);
         chu(pwd);
         printf("\033[0;32m请输入您的用户名:\n\033[0m>");
-        if(enter(name, 0) == -1) return; 
+        if(enter(name, 0) == -1) return 0; 
         printf("\033[0;32m请输入您的密码:\n\033[0m>");
-        if(enter(pwd, 1) == -1) return;
+        if(enter(pwd, 1) == -1) return 0;
         printf("\033[0;32m登录中...\033[0m");
+        fflush(stdout); // 手动刷新标准输出缓冲区
         //账号密码给服务器处理
         chu(buf);
         sprintf(buf, "pwlg:%s:%s", name, pwd);
@@ -69,15 +70,16 @@ void login::pwdlog(){
         sock->recvMsg(red);
         if(red == "pwdright") {
             userfuc uf;
-            uf.mainfuc();
+            if(uf.mainfuc(c) == -2) return -1;
         } else{
             printf("\033[0;31m\n用户名或密码错误，请重新输入。\033[0m\n");
             continue;
         }
     }
+    return 0;
 }
 
-void login::emaillog(){
+int login::emaillog(){
     Client* c = (Client*)clientp;
     Socket* sock = c->getSocket();
     EmailSender emsend;
@@ -90,7 +92,7 @@ void login::emaillog(){
     while(1){
         chu(email);
         chu(pwd);
-        if(enter(email, 0) == -1) return; 
+        if(enter(email, 0) == -1) return 0; 
         //判断邮箱是否已经注册
         //询问服务器
         sock->sendMsg("jrem:"+std::string(email));//judge_repeat_email
@@ -112,17 +114,18 @@ void login::emaillog(){
         do{
             chu(pwd);
             int ret = enter(pwd, 0);
-            if(ret == -1) return;
+            if(ret == -1) return 0;
             if(strcmp(pwd, emsend.code) != 0){
                 printf("\033[0;31m验证码错误，请检查并重新输入。\n\033[0m>");
                 continue;
             } else {
                 userfuc uf;
-                uf.mainfuc();
+                if(uf.mainfuc(c) == -2) return -1;
             }
             break;
         } while(1);
     }
+    return 0;
 }
 
 void login::findpwd(void*p){

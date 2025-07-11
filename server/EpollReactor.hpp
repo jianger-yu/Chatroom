@@ -366,7 +366,7 @@ void readctor::readctorinit(unsigned short port){
                 continue;
             
             long duration = now -r_events[chekckpos].last_active;   //计算客户端不活跃的时间
-            if(duration >= 6000){
+            if(duration >= 600){
                 printf("[fd = %d] timeout\n", r_events[chekckpos].fd);
                 pthread_mutex_lock(&event_mutex); // 加锁
                 eventdel(&r_events[chekckpos]);

@@ -17,7 +17,7 @@ bool send_all(int sockfd,const void * buf,size_t len){
   return true;
 }
 
-bool recv_all(int sockfd,void * buf,size_t len){
+int recv_all(int sockfd,void * buf,size_t len){
   char* p = static_cast<char*>(buf);
   int n;
   while(len > 0){
@@ -25,8 +25,9 @@ bool recv_all(int sockfd,void * buf,size_t len){
         n = recv(sockfd,p,len,0);
         if (n > 0) { p += n; len -= n; }
         else if (n == 0) {
+            //对端关闭
             len = 0;
-            break; // 对端关闭
+            return 10;
         }
         else if (errno != EAGAIN && errno != EWOULDBLOCK) return false;
         if(len == 0) break;
@@ -46,10 +47,22 @@ int sendMsg(std::string msg,int sockfd_) {
 
 int recvMsg(std::string& msg,int sockfd_) {
   uint32_t len, slen;
-  if(!recv_all(sockfd_,&len,sizeof len)) return -1;
+  int ret = recv_all(sockfd_,&len,sizeof len);
+  if(!ret) return -1;
+  else if(ret == 10){
+    std::string uid = socket_to_uid[sockfd_];
+    msg = "rvlg:" + uid;
+    return 0;
+  }
   slen = ntohl(len);
   msg.clear();
   msg.resize(slen);
-  if(!recv_all(sockfd_,msg.data(),slen)) return -1;
+  ret = recv_all(sockfd_,msg.data(),slen);
+  if(!ret) return -1;
+  else if(ret == 10){
+    std::string uid = socket_to_uid[sockfd_];
+    msg = "rvlg:" + uid;
+    return 0;
+  }
   return 0;
 }

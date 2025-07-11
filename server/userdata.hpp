@@ -8,12 +8,14 @@
 class userdata{
 private:
 redisContext * redis;
+std::string uid;
 std::string name;
 std::string email;
 std::string pwd;
 std::string stat;
-std::vector<std::string> frd;//存储好友的uid
-std::vector<std::string> group; //存储群聊的gid
+std::vector<std::string> friendlist;//存储好友的uid
+std::vector<std::string> grouplist; //存储群聊的gid
+std::vector<std::string> shieldlist; //存储黑名单的uid
 
 public:
 
@@ -35,6 +37,10 @@ public:
     bool DELUesr(std::string);
     //仅存入user:uid -> json的键值对
     bool setutoj(std::string, std::string);
+    //将uid1放在uid2的好友申请表内（uid1加uid2）
+    bool AddFrd(std::string uid1, std::string uid2);
+    //判断传入的uid是否存在，存在返回true，不存在返回false
+    bool jguid(std::string uid);
 };
 
 
@@ -47,6 +53,7 @@ std::string userdata::newuser(std::string str){
     user ud = user::fromJson(s);  
     //生成用户uid
     std::string nuid = newuid();
+    ud.uid = nuid;
     //写入用户名->uid的键值对
     redisReply* reply = (redisReply*)redisCommand(redis, "SET username:%s %s", ud.name.c_str(), nuid.c_str());
     freeReplyObject(reply);
@@ -54,7 +61,7 @@ std::string userdata::newuser(std::string str){
     reply = (redisReply*)redisCommand(redis, "SET email:%s %s", ud.email.c_str(), nuid.c_str());
     freeReplyObject(reply);
     //写入json字符串
-    reply = (redisReply*)redisCommand(redis, "SET user:%s %s", nuid.c_str(), s.c_str());
+    reply = (redisReply*)redisCommand(redis, "SET user:%s %s", nuid.c_str(), ud.toJson().c_str());
     freeReplyObject(reply);
     //将邮箱写入集合
     reply = (redisReply*)redisCommand(redis, "SADD email %s", ud.email.c_str());
@@ -135,4 +142,19 @@ bool userdata::setutoj(std::string nuid, std::string s){
     redisReply*reply = (redisReply*)redisCommand(redis, "SET user:%s %s", nuid.c_str(), s.c_str());
     freeReplyObject(reply);
     return true;
+}
+
+bool userdata::AddFrd(std::string uid1, std::string uid2){
+    redisReply*reply = (redisReply*)redisCommand(redis, "SADD friend:apply:%s %s", uid2.c_str(), uid1.c_str());
+    freeReplyObject(reply);
+    return true;
+}
+
+bool userdata::jguid(std::string uid){
+    redisReply* reply = (redisReply*)redisCommand(redis, "EXISTS user:%s", uid.c_str());
+    bool ret = false;
+    if (reply && reply->type == REDIS_REPLY_INTEGER && reply->integer == 1)
+        ret = true;
+    if (reply) freeReplyObject(reply);
+    return ret;
 }

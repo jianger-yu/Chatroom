@@ -199,13 +199,17 @@ void readctor::senddata(int fd,int tmp, void * arg){
     printf("处理回调被执行,ev->buf:%s\n",ev->buf);
 
     handler hand(ev->buf, fd);
-    hand.handle();
-    
+    int ret = hand.handle();
     printf("senddata 准备抢 event_mutex\n");
     pthread_mutex_lock(&event_mutex); // 修改红黑树公共区域，加事件锁
     printf("senddata 抢到 event_mutex\n");
-   
+
     eventdel(ev);
+    if(ret == 1) {
+        close(fd);
+        pthread_mutex_unlock(&event_mutex); // 解锁
+        return;
+    }
     
     memset(ev->buf, 0, sizeof ev->buf);
     eventset(ev,fd,&readctor::recvdata,ev);
@@ -213,7 +217,6 @@ void readctor::senddata(int fd,int tmp, void * arg){
 
     pthread_mutex_unlock(&event_mutex); // 解锁
     printf("senddata 解除 event_mutex\n");
-
 }
 
 

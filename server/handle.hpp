@@ -12,6 +12,8 @@ private:
     std::string str;
     int sockfd;
     userdata u;
+    //判断一个uid是否存在
+    void jrud();
     //处理是否重名的请求
     void jrnm();
     //处理邮箱是否注册过的请求
@@ -32,25 +34,51 @@ private:
     std::string lgok(std::string);
     //利用用户名处理用户下线的请求
     void unlg(std::string);
+    //利用uid处理用户下线的请求
+    void uulg(std::string);
+    //处理客户端突然断开后的rvlg指令，即让其下线
+    void rvlg();
+
+
+    //处理添加好友的请求
+    void adfr();
 public:
     handler(std::string buf, int fd):str(buf),sockfd(fd){
     }
 
     //处理用户传来的请求
-    void handle();
+    int handle();
 };
 
 //处理用户传来的请求
-void handler::handle(void){
+int handler::handle(void){
     if(str[0] == 'j' && str[1] == 'r' && str[2] == 'n' && str[3] == 'm') jrnm();
     else if(str[0] == 'r' && str[1] == 'g' && str[2] == 's' && str[3] == 't') torgst();
+    else if(str[0] == 'j' && str[1] == 'r' && str[2] == 'u' && str[3] == 'd') jrud();
     else if(str[0] == 'j' && str[1] == 'r' && str[2] == 'e' && str[3] == 'm') jrem();
     else if(str[0] == 'j' && str[1] == 'r' && str[2] == 'n' && str[3] == 'e') jrne();
     else if(str[0] == 'p' && str[1] == 'w' && str[2] == 'l' && str[3] == 'g') pwlg();
     else if(str[0] == 'f' && str[1] == 'd' && str[2] == 'p' && str[3] == 'd') fdpd();
     else if(str[0] == 'e' && str[1] == 'm' && str[2] == 'l' && str[3] == 'g') emlg();
     else if(str[0] == 'u' && str[1] == 'n' && str[2] == 'l' && str[3] == 'g') unlg(str);
+    else if(str[0] == 'u' && str[1] == 'u' && str[2] == 'l' && str[3] == 'g') uulg(str);
+    else if(str[0] == 'r' && str[1] == 'v' && str[2] == 'l' && str[3] == 'g') {
+        rvlg();
+        return 1;
+    }
+    else if(str[0] == 'a' && str[1] == 'd' && str[2] == 'f' && str[3] == 'r') adfr();
+
+    return 0;
 }
+
+void handler::jrud(){
+    int i = 0;
+    while(str[i] != ':') i++;
+    std::string uid = str.c_str() + i + 1;
+    if(u.jguid(uid)) sendMsg("repeat", sockfd);
+    else sendMsg("norepeat", sockfd);
+}
+
 
 void handler::jrnm(){
     //根据用户名发送用户id，若用户不存在则返回“norepeat”
@@ -182,6 +210,10 @@ void handler::unlg(std::string buf){
     //拿到uid
     std::string uid = u.Getuid(name.c_str());
     if(uid == "norepeat") return;
+    uulg(uid);
+}
+
+void handler::uulg(std::string uid){
     //拿到用户信息
     user ud = u.GetUesr(uid);
     ud.stat = "offline";
@@ -191,4 +223,29 @@ void handler::unlg(std::string buf){
     //获取json字符串
     std::string js = ud.toJson();
     u.setutoj(uid, js);
+}
+
+void handler::rvlg(){
+    //拿到uid字符串
+    int i = 0;
+    while(str[i] != ':') i++;
+    std::string uid = str.c_str() + i + 1;
+    if(!uid.size()) return;
+    uulg(uid);
+}
+
+void handler::adfr(){
+    //拿到uid1要加uid2的信息
+    std::string uid1,uid2;
+    int i = 0;
+    while(str[i] != ':') i++;
+    int j = i + 1;
+    while(str[j] != ':') {
+        uid1.push_back(str[j]);
+        j++;
+    }
+    for(int t = j + 1; t < str.size(); t++) uid2.push_back(str[t]);
+    //若1不在2的屏蔽表中，发送申请
+    u.AddFrd(uid1, uid2);
+    sendMsg("right",sockfd);
 }

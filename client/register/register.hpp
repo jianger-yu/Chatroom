@@ -152,12 +152,14 @@ void Register::rgst(void * p){
 
     //注册成功，发给服务器，写入数据库
     user u;
+    u.uid = "0";
     u.name = name;
     u.pwd = pwd;
     u.email = email;
     u.stat = "offline";
-    u.frd = {};
-    u.group = {};
+    u.friendlist = {};
+    u.grouplist = {};
+    u.shieldlist = {};
     std::string datastr = u.toJson();
     printf("\033[0;32m输入正确!正在注册账号...\n\033[0m");
     sock->sendMsg("rgst:"+datastr);

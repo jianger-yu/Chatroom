@@ -1,11 +1,10 @@
 #pragma once
-#include<iostream>
-#include <fcntl.h>
-#include "../client.h"
-#include "../../user.hpp"
-#include "../register/SendEmail.hpp"
-#include <unistd.h>
-#include <cstring>
+
+#include "allfucs/friendfucs.hpp"
+#include "allfucs/groupfucs.hpp"
+#include "allfucs/recordfuc.hpp"
+#include "allfucs/recordfuc.hpp"
+#include "allfucs/setupfuc.hpp"
 
 class userfuc{
 private:
@@ -29,12 +28,11 @@ public:
 int userfuc::mainfuc(void * p){
     clientp = p;
     //Socket* sock = client->getSocket();
-
     char input = 0;
     while(1){
         system("clear");
         fflush(stdout); // 手动刷新标准输出缓冲区
-        usermainmenu();
+        usermainmenu(u);
         input = charget();
         switch(input){
         case '1':{
@@ -64,6 +62,7 @@ int userfuc::mainfuc(void * p){
 
 int userfuc::friendfuc(void){
     char input = 0;
+    friendfucs f(u, clientp);
     while(1){
         system("clear");
         fflush(stdout); // 手动刷新标准输出缓冲区
@@ -71,7 +70,7 @@ int userfuc::friendfuc(void){
         input = charget();
         switch(input){
         case '1':{
-            
+            f.addfriend();
             break;
         }
         case '2':{

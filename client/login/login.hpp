@@ -68,8 +68,8 @@ int login::pwdlog(){
         sprintf(buf, "pwlg:%s:%s", name, pwd);
         sock->sendMsg(buf);
         sock->recvMsg(red);
-        if(red == "pwdright") {
-            userfuc uf;
+        if(red != "pwdfalse") {
+            userfuc uf(red);
             if(uf.mainfuc(c) == -2) return -1;
         } else{
             printf("\033[0;31m\n用户名或密码错误，请重新输入。\033[0m\n");
@@ -119,8 +119,17 @@ int login::emaillog(){
                 printf("\033[0;31m验证码错误，请检查并重新输入。\n\033[0m>");
                 continue;
             } else {
-                userfuc uf;
-                if(uf.mainfuc(c) == -2) return -1;
+                str.clear();
+                str = "emlg:";
+                sock->sendMsg(str+std::string(email));
+                sock->recvMsg(str);
+                if(str != "false"){
+                    userfuc uf(str);
+                    if(uf.mainfuc(c) == -2) return -1;
+                } else {
+                    printf("\033[0;31m数据异常，请重试。\n\033[0m>");
+                    continue;
+                }
             }
             break;
         } while(1);

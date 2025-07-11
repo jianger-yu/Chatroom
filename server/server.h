@@ -1,6 +1,7 @@
 #pragma once
 #include <memory>
 #include "../socket/socket.h"
+#include <unordered_map>
 
 class server {
   public:
@@ -38,3 +39,6 @@ class server {
   // 通信类对象
   std::unique_ptr<Socket> socket_;
 };
+
+std::unordered_map<std::string, int> uid_to_socket;
+std::unordered_map<int, std::string> socket_to_uid;

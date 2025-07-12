@@ -1,5 +1,4 @@
 #pragma once
-#include "allfucs.h"
 
 class setupfucs{
 private:

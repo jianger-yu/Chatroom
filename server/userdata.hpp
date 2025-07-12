@@ -4,6 +4,7 @@
 #include<vector>
 #include "../user.hpp"
 #include "../Redis.hpp"
+#include "report.hpp"
 
 class userdata{
 private:
@@ -23,6 +24,8 @@ public:
     }
     //根据json字符串注册用户,返回uid或fail
     std::string newuser(std::string);
+    //根据uid和json字符串存储report
+    bool svreport(std::string uid, std::string js);
     //获取一个未使用的uid
     std::string newuid(void);
     //根据用户名返回用户id，若用户不存在则返回“norepeat”
@@ -41,6 +44,8 @@ public:
     bool AddFrd(std::string uid1, std::string uid2);
     //判断传入的uid是否存在，存在返回true，不存在返回false
     bool jguid(std::string uid);
+    //根据uid获取用户的report(json字符串)，成功返回json，失败返回none
+    std::string u_report(std::string uid);
 };
 
 
@@ -145,8 +150,12 @@ bool userdata::setutoj(std::string nuid, std::string s){
 }
 
 bool userdata::AddFrd(std::string uid1, std::string uid2){
-    redisReply*reply = (redisReply*)redisCommand(redis, "SADD friend:apply:%s %s", uid2.c_str(), uid1.c_str());
-    freeReplyObject(reply);
+    std::string js = u_report(uid);
+    report rpt;
+    if(js != "none") 
+        rpt = report::fromJson(js);
+    rpt.friendapply.push_back(uid1);
+    svreport(uid2, rpt.toJson());
     return true;
 }
 
@@ -157,4 +166,25 @@ bool userdata::jguid(std::string uid){
         ret = true;
     if (reply) freeReplyObject(reply);
     return ret;
+}
+
+std::string userdata::u_report(std::string uid){
+    redisReply* reply = (redisReply*)redisCommand(redis, "GET report:%s",uid.c_str());
+    printf("\033[0;31mGET uid:%s\033[0m\n", uid.c_str());
+
+    if(reply == NULL || reply->type == REDIS_REPLY_NIL || reply->type != REDIS_REPLY_STRING){
+        freeReplyObject(reply);
+        printf("\033[0;31mreturn none, reply->str:%s\033[0m\n", reply->str);
+        return "none";
+    }
+    std::string ret = reply->str;
+    freeReplyObject(reply);
+    return ret;
+}
+
+bool userdata::svreport(std::string uid, std::string js){
+    //写入json字符串
+    redisReply* reply = (redisReply*)redisCommand(redis, "SET report:%s %s", uid.c_str(), js.c_str());
+    freeReplyObject(reply);
+    return true;
 }

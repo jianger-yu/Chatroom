@@ -38,6 +38,8 @@ private:
     void uulg(std::string);
     //处理客户端突然断开后的rvlg指令，即让其下线
     void rvlg();
+    //处理用户获取report(json字符串)的请求
+    void gtrp();
 
 
     //处理添加好友的请求
@@ -67,6 +69,7 @@ int handler::handle(void){
         return 1;
     }
     else if(str[0] == 'a' && str[1] == 'd' && str[2] == 'f' && str[3] == 'r') adfr();
+    else if(str[0] == 'g' && str[1] == 't' && str[2] == 'r' && str[3] == 'p') gtrp();
 
     return 0;
 }
@@ -249,3 +252,14 @@ void handler::adfr(){
     u.AddFrd(uid1, uid2);
     sendMsg("right",sockfd);
 }
+
+void handler::gtrp(){
+    //拿到uid字符串
+    int i = 0;
+    while(str[i] != ':') i++;
+    std::string uid = str.c_str() + i + 1;
+    //拿到json/none
+    std::string js = u.u_report(uid);
+    sendMsg(js, sockfd);
+}
+

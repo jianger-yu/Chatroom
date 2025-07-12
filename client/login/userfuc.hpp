@@ -1,10 +1,7 @@
 #pragma once
 
-#include "allfucs/friendfucs.hpp"
-#include "allfucs/groupfucs.hpp"
-#include "allfucs/recordfuc.hpp"
-#include "allfucs/recordfuc.hpp"
-#include "allfucs/setupfuc.hpp"
+#include "../menu.hpp"
+
 
 class userfuc{
 private:
@@ -32,7 +29,7 @@ int userfuc::mainfuc(void * p){
     while(1){
         system("clear");
         fflush(stdout); // 手动刷新标准输出缓冲区
-        usermainmenu(u);
+        usermainmenu(u, clientp);
         input = charget();
         switch(input){
         case '1':{
@@ -209,7 +206,7 @@ int userfuc::reportfuc(void){
     while(1){
         system("clear");
         fflush(stdout); // 手动刷新标准输出缓冲区
-        reportmenu();
+        reportmenu( u, clientp);
         input = charget();
         switch(input){
         case '1':{

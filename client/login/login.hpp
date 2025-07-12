@@ -92,7 +92,12 @@ int login::emaillog(){
     while(1){
         chu(email);
         chu(pwd);
-        if(enter(email, 0) == -1) return 0; 
+        int tmp = enter(email, 0);
+        if(tmp == -1) return 0; 
+        if(tmp <= 7){
+            printf("\033[0;31m该电子邮箱无效，请检查并重新输入。\n\033[0m>");
+            continue;
+        }
         //判断邮箱是否已经注册
         //询问服务器
         sock->sendMsg("jrem:"+std::string(email));//judge_repeat_email
@@ -170,6 +175,10 @@ void login::findpwd(void*p){
         chu(email);
         int ret = enter(email, 0);
         if(ret == -1) return;
+        if(ret <= 7){
+            printf("\033[0;31m该电子邮箱无效，请检查并重新输入。\n\033[0m>");
+            continue;
+        }
         //判断邮箱是否已经注册
         //询问服务器
         std::string str = "jrem:";

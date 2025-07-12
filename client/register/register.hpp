@@ -29,7 +29,7 @@ void Register::rgst(void * p){
 
     system("clear");
     printf("\033[0;32m已选择注册选项(按下ESC可返回上一级菜单)\033[0m\n");
-    printf("\033[0;32m请输入您要注册的用户名(仅允许英文字母和数字的组合)\n\033[0m>");
+    printf("\033[0;32m请输入您要注册的用户名(仅允许英文字母、数字和汉字的组合)\n\033[0m>");
 
     //输入用户名
     do{
@@ -37,6 +37,20 @@ void Register::rgst(void * p){
         chu(name);
         int ret = enter(name, 0);
         if(ret == -1) return;
+        //检测空格
+        int key = 0;
+        for(int i = 0; i < ret; i++){
+            if(name[i] == ' ') {
+                key = 1;
+                break;
+            }
+        }
+        if(key == 1){
+            key = 0;
+            printf("\033[0;31m用户名仅允许英文字母、数字和汉字，请重新输入。\n\033[0m>");
+            continue;
+        }
+        //判断用户名合法性
         int tmp = is_valid_username(name);
         if(tmp == -1){
             printf("\033[0;31m用户名仅允许英文字母、数字和汉字，请重新输入。\n\033[0m>");

@@ -34,6 +34,10 @@ void friendfucs::addfriend(){
     while(1){
         chu(uid);
         if(enter(uid, 0) == -1) return ; 
+        if(strlen(uid) <= 3){
+            printf("\033[0;31m该uid无效，请重新输入。\033[0m\n>");
+            continue;
+        }
         if(uid == u.uid){
             printf("\033[0;31m不能添加自己为好友，请重新输入。\033[0m\n>");
             continue;

@@ -7,3 +7,5 @@
 #include "../../register/readdata.hpp"
 #include <unistd.h>
 #include <cstring>
+#include <vector>
+#include <string>

@@ -37,19 +37,15 @@ void Register::rgst(void * p){
         chu(name);
         int ret = enter(name, 0);
         if(ret == -1) return;
-        if(ret<=3) {
+        int tmp = is_valid_username(name);
+        if(tmp == -1){
+            printf("\033[0;31m用户名仅允许英文字母、数字和汉字，请重新输入。\n\033[0m>");
+            continue;
+        }
+        if(tmp <= 3) {
             printf("\033[0;31m用户名至少为4位，请重新输入。\n\033[0m>");
             continue;
         }
-        int key = 0;
-        for(int i = 0; i < ret; i++){
-            if(!((name[i] >= 'a' && name[i] <= 'z')||(name[i] >= 'A' && name[i] <= 'Z')||(name[i] >= '0' && name[i] <= '9'))){
-                printf("\033[0;31m用户名仅允许英文字母和数字，请重新输入。\n\033[0m>");
-                key = 1;
-                break;
-            }
-        }
-        if(key) continue;
         //判断是否有重名
         //询问服务器
         sock->sendMsg("jrnm:"+std::string(name));//judge_repeat_name

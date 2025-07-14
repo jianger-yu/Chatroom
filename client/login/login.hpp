@@ -67,7 +67,7 @@ int login::pwdlog(){
         chu(buf);
         sprintf(buf, "pwlg:%s:%s", name, pwd);
         sock->sendMsg(buf);
-        sock->recvMsg(red);
+        red = EchoMsgQueue.wait_and_pop();
         if(red != "pwdfalse") {
             userfuc uf(red);
             if(uf.mainfuc(c) == -2) return -1;
@@ -102,7 +102,7 @@ int login::emaillog(){
         //询问服务器
         sock->sendMsg("jrem:"+std::string(email));//judge_repeat_email
         std::string str;
-        sock->recvMsg(str);
+        str = EchoMsgQueue.wait_and_pop();
         if(strcmp(str.c_str(), "repeat") != 0){
             printf("\033[0;31m该邮箱未被注册，请重新输入。\n\033[0m>");
             continue;
@@ -127,7 +127,7 @@ int login::emaillog(){
                 str.clear();
                 str = "emlg:";
                 sock->sendMsg(str+std::string(email));
-                sock->recvMsg(str);
+                str = EchoMsgQueue.wait_and_pop();
                 if(str != "false"){
                     userfuc uf(str);
                     if(uf.mainfuc(c) == -2) return -1;
@@ -184,7 +184,7 @@ void login::findpwd(void*p){
         std::string str = "jrem:";
         for(int i = 0; i < strlen(email); i++) str.push_back(email[i]);
         sock->sendMsg(str);//judge_repeat_email
-        sock->recvMsg(str);
+        str = EchoMsgQueue.wait_and_pop();
         if(strcmp(str.c_str(), "repeat") != 0){
             printf("\033[0;31m该邮箱未被注册，请重新输入。\n\033[0m>");
             continue;
@@ -277,7 +277,7 @@ void login::findpwd(void*p){
         str += ':';
         for(int i = 0;i<strlen(pwd);i++)str.push_back(pwd[i]);
         sock->sendMsg(str);
-        sock->recvMsg(str);
+        str = EchoMsgQueue.wait_and_pop();
         if(str == "right"){
             printf("\033[0;32m设置成功！\n请按任意键继续...\033[0m");
             char rub = charget();

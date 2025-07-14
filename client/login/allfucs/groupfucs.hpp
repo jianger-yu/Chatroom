@@ -1,4 +1,5 @@
 #pragma once
+#include "../MessageQueue.hpp"
 
 class groupfucs{
 private:

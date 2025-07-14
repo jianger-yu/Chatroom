@@ -1,4 +1,5 @@
 #pragma once
+#include "../MessageQueue.hpp"
 
 class friendfucs{
 private:
@@ -53,7 +54,7 @@ void friendfucs::addfriend(){
         //判断此人是否存在
         sprintf(buf, "jrud:%s", uid);
         sock->sendMsg(buf);
-        sock->recvMsg(red);
+        red = EchoMsgQueue.wait_and_pop();
         if(red == "norepeat"){
             printf("\033[0;31m该uid无效，请重新输入。\033[0m\n>");
             continue;
@@ -66,7 +67,7 @@ void friendfucs::addfriend(){
         chu(buf);
         sprintf(buf, "adfr:%s:%s",u.uid.c_str(), uid);
         sock->sendMsg(buf);
-        sock->recvMsg(red);
+        red = EchoMsgQueue.wait_and_pop();
         if(red == "right") {
             printf("\033[0;32m好友申请发送成功，请按任意键继续...\n\033[0m");
             char rub;

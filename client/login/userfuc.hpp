@@ -7,6 +7,7 @@ class userfuc{
 private:
     user u;
     void* clientp;
+    std::thread recvThread;
 
 public:
     userfuc(std::string js):u(user::fromJson(js)){
@@ -26,30 +27,45 @@ int userfuc::mainfuc(void * p){
     clientp = p;
     //Socket* sock = client->getSocket();
     char input = 0;
+    system("clear");
+    fflush(stdout); // 手动刷新标准输出缓冲区
+    usermainmenu(u, clientp);
+    std::string msg;
+    bool flag = false;
     while(1){
-        system("clear");
-        fflush(stdout); // 手动刷新标准输出缓冲区
-        usermainmenu(u, clientp);
-        input = charget();
+        if(ReptMsgQueue.try_pop(msg) || flag){
+            flag = false;
+            system("clear");
+            fflush(stdout); // 手动刷新标准输出缓冲区
+            usermainmenu(u, clientp);
+            fflush(stdout); // 手动刷新标准输出缓冲区
+        }
+        input = tm_charget(200);
+        if(input == -1) continue;
         switch(input){
         case '1':{
             friendfuc();
+            flag = true;
             break;
         }
         case '2':{
             groupfuc();
+            flag = true;
             break;
         }
         case '3':{
             recordfuc();
+            flag = true;
             break;
         }
         case '4':{
             reportfuc();
+            flag = true;
             break;
         }
         case '5':{
             if(setupfuc() == -1) return -2;
+            flag = true;
         }
         default:continue;
         }
@@ -60,14 +76,25 @@ int userfuc::mainfuc(void * p){
 int userfuc::friendfuc(void){
     char input = 0;
     friendfucs f(u, clientp);
+    std::string msg;
+    system("clear");
+    fflush(stdout); // 手动刷新标准输出缓冲区
+    friendmenu(u, clientp);
+    bool flag = false;
     while(1){
-        system("clear");
-        fflush(stdout); // 手动刷新标准输出缓冲区
-        friendmenu();
-        input = charget();
+        if(ReptMsgQueue.try_pop(msg) || flag){
+            flag = false;
+            system("clear");
+            fflush(stdout); // 手动刷新标准输出缓冲区
+            friendmenu(u, clientp);
+            fflush(stdout); // 手动刷新标准输出缓冲区
+        }
+        input = tm_charget(200);
+        if(input == -1) continue;
         switch(input){
         case '1':{
             f.addfriend();
+            flag = true;
             break;
         }
         case '2':{
@@ -97,11 +124,21 @@ int userfuc::friendfuc(void){
 
 int userfuc::groupfuc(void){
     char input = 0;
+    std::string msg;
+    system("clear");
+    fflush(stdout); // 手动刷新标准输出缓冲区
+    groupmenu(u, clientp);
+    bool flag = false;
     while(1){
-        system("clear");
-        fflush(stdout); // 手动刷新标准输出缓冲区
-        groupmenu();
-        input = charget();
+        if(ReptMsgQueue.try_pop(msg)){
+            flag = false;
+            system("clear");
+            fflush(stdout); // 手动刷新标准输出缓冲区
+            groupmenu(u, clientp);
+            fflush(stdout); // 手动刷新标准输出缓冲区
+        }
+        input = tm_charget(200);
+        if(input == -1) continue;
         switch(input){
         case '1':{
             
@@ -134,11 +171,19 @@ int userfuc::groupfuc(void){
 
 int userfuc::recordfuc(void){
     char input = 0;
+    std::string msg;
+    system("clear");
+    fflush(stdout); // 手动刷新标准输出缓冲区
+    recordmenu(u, clientp);
     while(1){
-        system("clear");
-        fflush(stdout); // 手动刷新标准输出缓冲区
-        recordmenu();
-        input = charget();
+        if(ReptMsgQueue.try_pop(msg)){
+            system("clear");
+            fflush(stdout); // 手动刷新标准输出缓冲区
+            recordmenu(u, clientp);
+            fflush(stdout); // 手动刷新标准输出缓冲区
+        }
+        input = tm_charget(200);
+        if(input == -1) continue;
         switch(input){
         case '1':{
             
@@ -173,11 +218,21 @@ int userfuc::setupfuc(void){
     Client * cp = (Client*)clientp;
     Socket* sock = cp->getSocket();
     char input = 0;
+    std::string msg;
+    system("clear");
+    setupmenu(u, clientp);
+    fflush(stdout); // 手动刷新标准输出缓冲区
+    bool flag = false;
     while(1){
-        system("clear");
-        fflush(stdout); // 手动刷新标准输出缓冲区
-        setupmenu();
-        input = charget();
+        if(ReptMsgQueue.try_pop(msg)){
+            flag = false;
+            system("clear");
+            fflush(stdout); // 手动刷新标准输出缓冲区
+            setupmenu(u, clientp);
+            fflush(stdout); // 手动刷新标准输出缓冲区
+        }
+        input = tm_charget(200);
+        if(input == -1) continue;
         switch(input){
         case '1':{
             
@@ -201,13 +256,24 @@ int userfuc::setupfuc(void){
 }
 
 int userfuc::reportfuc(void){
-    
     char input = 0;
+    std::string msg;
+    system("clear");
+    fflush(stdout); // 手动刷新标准输出缓冲区
+    reportfucs rpf(u, clientp);
+    bool ret = rpf.Getrpt();
+    reportmenu( u, rpf.rpt, ret);
+    bool flag = false;
     while(1){
-        system("clear");
-        fflush(stdout); // 手动刷新标准输出缓冲区
-        reportmenu( u, clientp);
-        input = charget();
+        if(ReptMsgQueue.try_pop(msg) || flag){
+            system("clear");
+            fflush(stdout); // 手动刷新标准输出缓冲区
+            bool ret = rpf.Getrpt();
+            reportmenu( u, rpf.rpt, ret);
+            fflush(stdout); // 手动刷新标准输出缓冲区
+        }
+        input = tm_charget(200);
+        if(input == -1) continue;
         switch(input){
         case '1':{
             

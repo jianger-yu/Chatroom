@@ -20,6 +20,46 @@ char charget(void){
   return ch;
 }
 
+// 等待用户输入一个字符，最多等待 timeout_ms 毫秒
+// 成功读取返回字符值，超时返回 -1
+int tm_charget(int timeout_ms) {
+    struct termios oldt, newt;
+    int ch;
+
+    // 获取当前终端配置
+    tcgetattr(STDIN_FILENO, &oldt);
+    newt = oldt;
+    // 设置非规范模式，无回显
+    newt.c_lflag &= ~(ICANON | ECHO);
+    tcsetattr(STDIN_FILENO, TCSANOW, &newt);
+
+    // 设置select等待输入的时间
+    fd_set rfds;
+    FD_ZERO(&rfds);
+    FD_SET(STDIN_FILENO, &rfds);
+
+    struct timeval tv;
+    tv.tv_sec = timeout_ms / 1000;
+    tv.tv_usec = (timeout_ms % 1000) * 1000;
+
+    int retval = select(STDIN_FILENO + 1, &rfds, NULL, NULL, &tv);
+    if (retval == -1) {
+        // select 出错
+        ch = -1;
+    } else if (retval) {
+        // 有输入可读
+        ch = getchar();
+    } else {
+        // 超时
+        ch = -1;
+    }
+    // 恢复原来的终端配置
+    tcsetattr(STDIN_FILENO, TCSANOW, &oldt);
+    return ch;
+}
+
+
+
 // 判断 UTF-8 首字节，获取字符字节长度
 int utf8_char_length(unsigned char c) {
     if ((c & 0x80) == 0x00) return 1;

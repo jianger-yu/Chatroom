@@ -5,6 +5,7 @@
 #include "../../../user.hpp"
 #include <unistd.h>
 #include <cstring>
+#include "../MessageQueue.hpp"
 
 class reportfucs{
 private:
@@ -17,6 +18,7 @@ public:
     reportfucs(user arg1, void*p):u(arg1),clientp(p){
     };
 
+    void friendreport();
     bool Getrpt();
 };
 
@@ -26,8 +28,12 @@ bool reportfucs::Getrpt(){
     sock->sendMsg("gtrp:"+u.uid);
     //读取json字符串
     std::string js;
-    sock->recvMsg(js);
+    js = EchoMsgQueue.wait_and_pop();
     if(js == "none") return false;
     rpt = report::fromJson(js);
     return true;
+}
+
+void reportfucs::friendreport(){
+
 }

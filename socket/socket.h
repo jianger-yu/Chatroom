@@ -42,6 +42,10 @@ class Socket {
    */
   int recvMsg(std::string& msg);
 
+  void mshutdown(){
+    shutdown(sockfd_, SHUT_RDWR);
+  }
+
   private:
   /**
    * @brief 忙轮询保证发送数据

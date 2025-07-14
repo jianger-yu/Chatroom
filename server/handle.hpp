@@ -78,8 +78,8 @@ void handler::jrud(){
     int i = 0;
     while(str[i] != ':') i++;
     std::string uid = str.c_str() + i + 1;
-    if(u.jguid(uid)) sendMsg("repeat", sockfd);
-    else sendMsg("norepeat", sockfd);
+    if(u.jguid(uid)) sendMsg("echo:repeat", sockfd);
+    else sendMsg("echo:norepeat", sockfd);
 }
 
 
@@ -88,18 +88,18 @@ void handler::jrnm(){
     int i = 0;
     while(str[i] != ':') i++;
     std::string buf = str.c_str() + i + 1;
-    sendMsg(u.Getuid(buf.c_str()), sockfd);
+    sendMsg("echo:"+u.Getuid(buf.c_str()), sockfd);
 }
 
 void handler::torgst(){
     //发送用户uid或fail
-    sendMsg(u.newuser(str), sockfd);
+    sendMsg("echo:"+u.newuser(str), sockfd);
 }
 
 void handler::jrem(){
     if(u.RepeatEmail(str.c_str()))
-        sendMsg("repeat", sockfd);
-    else sendMsg("norepeat", sockfd);
+        sendMsg("echo:repeat", sockfd);
+    else sendMsg("echo:norepeat", sockfd);
 }
 
 void handler::jrne(){
@@ -117,8 +117,8 @@ void handler::jrne(){
     //获得用户数据
     user U = u.GetUesr(usuid);
 
-    if(email == U.email) sendMsg("right", sockfd);
-    else sendMsg("false", sockfd);
+    if(email == U.email) sendMsg("echo:right", sockfd);
+    else sendMsg("echo:false", sockfd);
 }
 
 void handler::pwlg(){
@@ -137,7 +137,7 @@ void handler::pwlg(){
     std::string usuid = u.Getuid(name.c_str());
     //若该用户不存在
     if(usuid == "norepeat"){
-        sendMsg("pwdfalse", sockfd);
+        sendMsg("echo:pwdfalse", sockfd);
         return;
     }
     //获得用户数据
@@ -147,10 +147,10 @@ void handler::pwlg(){
         //用户名密码正确
         //发送json序列
         std::string js = lgok(usuid);
-        sendMsg( js , sockfd);
+        sendMsg("echo:"+ js , sockfd);
     } else{
         //用户名密码错误
-        sendMsg("pwdfalse", sockfd);
+        sendMsg("echo:pwdfalse", sockfd);
     }
 }
 
@@ -174,7 +174,7 @@ void handler::fdpd(){
     us.pwd = pwd;
     std::string js = us.toJson();
     u.setutoj(id, js);
-    sendMsg("right", sockfd);
+    sendMsg("echo:right", sockfd);
 }
 
 void handler::emlg(){
@@ -184,11 +184,11 @@ void handler::emlg(){
     std::string argu = u.EmailGetuid(buf.c_str());
     if(argu == "norepeat"){
         printf("emlg argu is norepeat!\n");
-        sendMsg("false", sockfd);
+        sendMsg("echo:false", sockfd);
         return;
     }
     //发送json序列
-    sendMsg(lgok(argu), sockfd);
+    sendMsg("echo:"+lgok(argu), sockfd);
 }
 
 std::string handler::lgok(std::string uid){
@@ -250,7 +250,11 @@ void handler::adfr(){
     for(int t = j + 1; t < str.size(); t++) uid2.push_back(str[t]);
     //若1不在2的屏蔽表中，发送申请
     u.AddFrd(uid1, uid2);
-    sendMsg("right",sockfd);
+    sendMsg("echo:right",sockfd);
+    uid_to_socket[uid2];
+    if (uid_to_socket.count(uid2)) {
+        sendMsg("rept:"+uid1, uid_to_socket[uid2]);
+    }
 }
 
 void handler::gtrp(){
@@ -260,6 +264,6 @@ void handler::gtrp(){
     std::string uid = str.c_str() + i + 1;
     //拿到json/none
     std::string js = u.u_report(uid);
-    sendMsg(js, sockfd);
+    sendMsg("echo:"+js, sockfd);
 }
 

@@ -23,7 +23,8 @@ bool Socket::recv_all(int sockfd,void * buf,size_t len){
     int n = recv(sockfd,p,len,0);
     if(n < 0) return false;
     if(n == 0){
-      printf("对端已断开连接\n");
+      printf("已断开连接\n");
+      //return false;
       exit(1);
     }
     p += n;

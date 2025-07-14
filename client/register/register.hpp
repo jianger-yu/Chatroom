@@ -3,6 +3,7 @@
 #include <fcntl.h>
 #include "../client.h"
 #include "../../user.hpp"
+#include "../login/MessageQueue.hpp"
 #include "SendEmail.hpp"
 #include <unistd.h>
 #include <cstring>
@@ -65,7 +66,7 @@ void Register::rgst(void * p){
         sock->sendMsg("jrnm:"+std::string(name));//judge_repeat_name
         //sock->sendMsg(name);
         std::string str;
-        sock->recvMsg(str);
+        str = EchoMsgQueue.wait_and_pop();
         if(strcmp(str.c_str(), "norepeat") != 0){
             printf("\033[0;31m用户名已存在，请重新输入。\n\033[0m>");
             continue;
@@ -131,7 +132,7 @@ void Register::rgst(void * p){
         //询问服务器
         sock->sendMsg("jrem:"+std::string(email));//judge_repeat_email
         std::string str;
-        sock->recvMsg(str);
+        str = EchoMsgQueue.wait_and_pop();
         if(strcmp(str.c_str(), "repeat") == 0){
             printf("\033[0;31m该邮箱已被注册，请重新输入。\n\033[0m>");
             continue;
@@ -174,7 +175,7 @@ void Register::rgst(void * p){
     printf("\033[0;32m输入正确!正在注册账号...\n\033[0m");
     sock->sendMsg("rgst:"+datastr);
     std::string rev; 
-    sock->recvMsg(rev);
+    rev = EchoMsgQueue.wait_and_pop();
     system("clear");
     if(rev == "fail") printf("\033[0;31m注册失败，请稍后再试:)\n\033[0m");
     else{

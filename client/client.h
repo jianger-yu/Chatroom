@@ -33,7 +33,6 @@ class  Client {
   //客户端运行应有功能
   void ctlthread(void);
 
-
   private:
   // 通信套接字
   int fd_;

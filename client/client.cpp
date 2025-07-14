@@ -68,9 +68,22 @@ int main(){
     printf("正在重新连接...\n");
     sleep(1);
   }
+  recv_running = true;
+  std::thread recvThread = std::thread(recv_thread, client.getSocket());
   client.ctlthread();
 
 
+  //设置标志位为 false，让 recv_thread 自行退出
+  recv_running = false;
+  //关闭 socket，让阻塞的 recvMsg 返回
+  (client.getSocket())->mshutdown();  // 确保这个函数内部会关闭连接
+  //等待线程退出
+  if (recvThread.joinable()) {
+      recvThread.join();
+  }
+  fflush(stdout);
+  system("clear");
+  fflush(stdout);
   return 0;
 }
 

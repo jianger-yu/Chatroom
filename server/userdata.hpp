@@ -154,7 +154,7 @@ bool userdata::AddFrd(std::string uid1, std::string uid2){
     report rpt;
     if(js != "none") 
         rpt = report::fromJson(js);
-    rpt.friendapply.push_back(uid1);
+    rpt.friendapply.insert(uid1);
     svreport(uid2, rpt.toJson());
     return true;
 }

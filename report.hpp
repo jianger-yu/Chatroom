@@ -7,10 +7,10 @@
 using json = nlohmann::json;
 
 struct report {
-    std::set<std::string> friendapply;                 //好友申请消息表    redis存friend:apply:uid         值为申请人uid
-    std::unordered_map<std::string, int> chatfriend;   //未读好友消息表    redis存chat:friend:uid          值为发消息人uid
-    std::unordered_map<std::string, int> chatgroup;    //未读群聊消息表    redis存chat:group:uid (set)     值为有信息群的组gid
-    std::set<std::string> groupapply;                  //未读群聊邀请表    redis存gourp:applt:uid          值为发来邀请群的gid
+    std::set<std::string> friendapply;                 //好友申请消息表    redis存friend:apply:uid         值为申请人名字
+    std::unordered_map<std::string, int> chatfriend;   //未读好友消息表    redis存chat:friend:uid          值为发消息人名字
+    std::unordered_map<std::string, int> chatgroup;    //未读群聊消息表    redis存chat:group:uid (set)     值为有信息群的组名字
+    std::set<std::string> groupapply;                  //未读群聊邀请表    redis存gourp:applt:uid          值为发来邀请群的名字
     std::vector<std::string> notice;                   //各种事务通知表    redis存notice:uid               值为notice:id
 
     // JSON 序列化

@@ -173,12 +173,11 @@ int userfuc::recordfuc(void){
     char input = 0;
     std::string msg;
     system("clear");
-    fflush(stdout); // 手动刷新标准输出缓冲区
     recordmenu(u, clientp);
+    fflush(stdout); // 手动刷新标准输出缓冲区
     while(1){
         if(ReptMsgQueue.try_pop(msg)){
             system("clear");
-            fflush(stdout); // 手动刷新标准输出缓冲区
             recordmenu(u, clientp);
             fflush(stdout); // 手动刷新标准输出缓冲区
         }
@@ -266,6 +265,7 @@ int userfuc::reportfuc(void){
     bool flag = false;
     while(1){
         if(ReptMsgQueue.try_pop(msg) || flag){
+            flag = false;
             system("clear");
             fflush(stdout); // 手动刷新标准输出缓冲区
             bool ret = rpf.Getrpt();
@@ -276,7 +276,8 @@ int userfuc::reportfuc(void){
         if(input == -1) continue;
         switch(input){
         case '1':{
-            
+            rpf.friendreport();
+            flag = true;
             break;
         }
         case '2':{

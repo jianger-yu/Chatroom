@@ -60,6 +60,12 @@ void recv_thread(Socket* sock) {
             EchoMsgQueue.push(msg.c_str() + 5);    // 放入队列
         else if(msg[0] == 'r' && msg[1] == 'e' && msg[2] == 'p' && msg[3] == 't' && msg[4] == ':')
             ReptMsgQueue.push(msg.c_str() + 5);    // 放入队列
+        else if(msg[0] == 'l' && msg[1] == 'g' && msg[2] == 'e' && msg[3] == 'x' && msg[4] == ':'){
+            system("clear");
+            fflush(stdout);
+            printf("\033[0;31m您的账号在别处登录!\033[0m\n");
+            exit(1);
+        }
         else {
             std::cerr << "连接断开\n";
             break;

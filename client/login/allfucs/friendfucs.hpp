@@ -42,15 +42,6 @@ void friendfucs::addfriend(){
             printf("\033[0;31m不能添加自己为好友，请重新输入。\033[0m\n>");
             continue;
         }
-        int ctn = 0;
-        for(int i = 0; i < u.friendlist.size(); i++){
-            if(uid == u.friendlist[i]){
-                printf("\033[0;31m您与%s用户已为好友，无需添加，请重新输入。\033[0m\n>", uid);
-                ctn = 1;
-                break;
-            }
-        }
-        if(ctn) continue;
         //判断此人是否存在
         sprintf(buf, "jrud:%s", uid);
         sock->sendMsg(buf);
@@ -59,6 +50,16 @@ void friendfucs::addfriend(){
             printf("\033[0;31m该uid无效，请重新输入。\033[0m\n>");
             continue;
         }
+        //判断是否已为好友
+        chu(buf);
+        sprintf(buf, "jrfd:%s:%s", uid, u.uid.c_str());
+        sock->sendMsg(buf);
+        red = EchoMsgQueue.wait_and_pop();
+        if(red == "right"){
+            printf("\033[0;31m您与%s用户已为好友，无需添加，请重新输入。\033[0m\n>", uid);
+            continue;
+        }
+        
         chu(buf);
         red.clear();
         printf("\033[0;32m正在发送好友申请...\n\033[0m");

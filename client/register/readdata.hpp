@@ -82,13 +82,12 @@ int enter(char *arr, int key) {
 
     while (1) {
         ch = charget();
-        if(i >= 20 && ch != '\b' && ch != 127 && ch != '\n') continue;
+        if(i >= 20 && ch != '\b' && ch != 127 && ch != '\n' && ch != 27) continue;
         if (ch == 27) return -1;  // ESC
         if (ch == '\n') {
             arr[i] = '\0';
             break;
         }
-
         // 回退：退格或DEL
         if (ch == '\b' || ch == 127) {
             if (i == 0) continue;

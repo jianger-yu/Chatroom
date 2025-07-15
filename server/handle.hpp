@@ -20,6 +20,8 @@ private:
     void jrem();
     //处理用户名和邮箱是否是同一组的请求
     void jrne();
+    //处理两个uid是否为好友的请求
+    void jrfd();
     //处理找回密码的请求
     void fdpd();
     //处理向邮箱集合中增加元素的请求
@@ -44,6 +46,8 @@ private:
 
     //处理添加好友的请求
     void adfr();
+    //处理同意/拒绝好友的请求
+    void adfok();
 public:
     handler(std::string buf, int fd):str(buf),sockfd(fd){
     }
@@ -59,6 +63,7 @@ int handler::handle(void){
     else if(str[0] == 'j' && str[1] == 'r' && str[2] == 'u' && str[3] == 'd') jrud();
     else if(str[0] == 'j' && str[1] == 'r' && str[2] == 'e' && str[3] == 'm') jrem();
     else if(str[0] == 'j' && str[1] == 'r' && str[2] == 'n' && str[3] == 'e') jrne();
+    else if(str[0] == 'j' && str[1] == 'r' && str[2] == 'f' && str[3] == 'd') jrfd();
     else if(str[0] == 'p' && str[1] == 'w' && str[2] == 'l' && str[3] == 'g') pwlg();
     else if(str[0] == 'f' && str[1] == 'd' && str[2] == 'p' && str[3] == 'd') fdpd();
     else if(str[0] == 'e' && str[1] == 'm' && str[2] == 'l' && str[3] == 'g') emlg();
@@ -69,6 +74,7 @@ int handler::handle(void){
         return 1;
     }
     else if(str[0] == 'a' && str[1] == 'd' && str[2] == 'f' && str[3] == 'r') adfr();
+    else if(str[0] == 'a' && str[1] == 'd' && str[2] == 'f' && str[3] == '(') adfok();
     else if(str[0] == 'g' && str[1] == 't' && str[2] == 'r' && str[3] == 'p') gtrp();
 
     return 0;
@@ -194,6 +200,10 @@ void handler::emlg(){
 std::string handler::lgok(std::string uid){
     //拿到用户信息
     user ud = u.GetUesr(uid);
+    if(ud.stat == "online"){
+        //顶号
+        sendMsg("lgex:"+ uid, uid_to_socket[uid]);
+    }
     //切换在线状态
     ud.stat = "online";
     //获取json序列
@@ -249,9 +259,9 @@ void handler::adfr(){
     }
     for(int t = j + 1; t < str.size(); t++) uid2.push_back(str[t]);
     //若1不在2的屏蔽表中，发送申请
-    u.AddFrd(uid1, uid2);
+    user ud = u.GetUesr(uid1);
+    u.AddFrd(ud.name, uid2);
     sendMsg("echo:right",sockfd);
-    uid_to_socket[uid2];
     if (uid_to_socket.count(uid2)) {
         sendMsg("rept:"+uid1, uid_to_socket[uid2]);
     }
@@ -267,3 +277,76 @@ void handler::gtrp(){
     sendMsg("echo:"+js, sockfd);
 }
 
+void handler::jrfd(){
+    std::string uid1,uid2;
+    int i = 0;
+    while(str[i] != ':') i++;
+    int j = i + 1;
+    while(str[j] != ':') {
+        uid1.push_back(str[j]);
+        j++;
+    }
+    for(int t = j + 1; t < str.size(); t++) uid2.push_back(str[t]);
+    user ud1 = u.GetUesr(uid1);
+    if(ud1.friendlist.count(uid2)) sendMsg("echo:right", sockfd);
+    else sendMsg("echo:false", sockfd);
+}
+
+
+
+void handler::adfok(){
+    int i = 0;
+    while(str[i] != '(') i++;
+    //获取同意/拒绝标志
+    char flag = str[i+1];
+    //获取用户名1和uid2
+    std::string name1,uid2,uid1,js;
+    while(str[i] != ':') i++;
+    int j = i + 1;
+    while(str[j] != ':') {
+        name1.push_back(str[j]);
+        j++;
+    }
+    for(int t = j + 1; t < str.size(); t++) uid2.push_back(str[t]);
+    //清理ud2的report，并保存
+    js = u.u_report(uid2);
+    if(js == "none"){
+        printf("In fuc adfok uid2:%s report return none\n", uid2.c_str());
+        sendMsg("echo:false", sockfd);
+    }
+    report rpt2 = report::fromJson(js);
+    rpt2.friendapply.erase(name1);
+    u.svreport(uid2, rpt2.toJson());
+    //拿到uid1和ud2
+    uid1 = u.Getuid(name1.c_str());
+    user ud2 = u.GetUesr(uid2);
+    if(flag == 'y'){
+        //获取u1和u2的用户数据
+        user ud1 = u.GetUesr(uid1);
+        ud1.friendlist.insert(uid2);
+        ud2.friendlist.insert(uid1);
+        //保存ud1、ud2
+        u.setutoj(uid1, ud1.toJson());
+        u.setutoj(uid2, ud2.toJson());        
+    }
+    sendMsg("echo:right", sockfd);
+    //获取u1的report
+    js = u.u_report(uid1);
+    if(js == "none"){
+        printf("In fuc adfok uid1:%s report return none\n", uid1.c_str());
+        return;
+    }
+    report rpt1 = report::fromJson(js);
+    //若用户2对用户1有好友申请，清除
+    if(rpt1.friendapply.count(ud2.name)) rpt1.friendapply.erase(ud2.name);
+    //给u1发成功添加好友的notice
+    if(flag == 'y')
+        rpt1.notice.push_back("adfok:" + ud2.name);
+    else    
+        rpt1.notice.push_back("adfno:" + ud2.name);
+    //保存rpt1
+    u.svreport(uid1, rpt1.toJson());
+    //若uid1在线，发通知
+    if(uid_to_socket.count(uid1)) sendMsg("rept:"+uid2, uid_to_socket[uid1]);
+
+}

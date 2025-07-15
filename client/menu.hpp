@@ -40,13 +40,13 @@ void usermainmenu(user u, void *p){
     if(rpf.rpt.friendapply.size())
   printf("           \033[0;34m[new] 有%ld条未处理的好友申请\033[0m\n", rpf.rpt.friendapply.size());
     if(rpf.rpt.chatfriend.size())
-  printf("           \033[0;34m[new] 有%ld条未处理的好友申请\033[0m\n", rpf.rpt.chatfriend.size());
+  printf("           \033[0;34m[new] 有%ld个未读的好友消息\033[0m\n", rpf.rpt.chatfriend.size());
     if(rpf.rpt.chatgroup.size())
-  printf("           \033[0;34m[new] 有%ld条未处理的好友申请\033[0m\n", rpf.rpt.chatgroup.size());
+  printf("           \033[0;34m[new] 有%ld个未读的群聊消息\033[0m\n", rpf.rpt.chatgroup.size());
     if(rpf.rpt.groupapply.size())
-  printf("           \033[0;34m[new] 有%ld条未处理的好友申请\033[0m\n", rpf.rpt.groupapply.size());
+  printf("           \033[0;34m[new] 有%ld条未处理的群聊邀请\033[0m\n", rpf.rpt.groupapply.size());
     if(rpf.rpt.notice.size())
-  printf("           \033[0;34m[new] 有%ld条未处理的好友申请\033[0m\n", rpf.rpt.notice.size());
+  printf("           \033[0;34m[new] 有%ld条未读的通知\033[0m\n", rpf.rpt.notice.size());
   }
   printf("\033[0;32m[1] 好友功能\033[0m\n");
   printf("\033[0;32m[2] 群聊功能\033[0m\n");
@@ -73,13 +73,13 @@ void friendmenu(user u, void *p){
     if(rpf.rpt.friendapply.size())
   printf("           \033[0;34m[new] 有%ld条未处理的好友申请\033[0m\n", rpf.rpt.friendapply.size());
     if(rpf.rpt.chatfriend.size())
-  printf("           \033[0;34m[new] 有%ld条未处理的好友申请\033[0m\n", rpf.rpt.chatfriend.size());
+  printf("           \033[0;34m[new] 有%ld个未读的好友消息\033[0m\n", rpf.rpt.chatfriend.size());
     if(rpf.rpt.chatgroup.size())
-  printf("           \033[0;34m[new] 有%ld条未处理的好友申请\033[0m\n", rpf.rpt.chatgroup.size());
+  printf("           \033[0;34m[new] 有%ld个未读的群聊消息\033[0m\n", rpf.rpt.chatgroup.size());
     if(rpf.rpt.groupapply.size())
-  printf("           \033[0;34m[new] 有%ld条未处理的好友申请\033[0m\n", rpf.rpt.groupapply.size());
+  printf("           \033[0;34m[new] 有%ld条未处理的群聊邀请\033[0m\n", rpf.rpt.groupapply.size());
     if(rpf.rpt.notice.size())
-  printf("           \033[0;34m[new] 有%ld条未处理的好友申请\033[0m\n", rpf.rpt.notice.size());
+  printf("           \033[0;34m[new] 有%ld条未读的通知\033[0m\n", rpf.rpt.notice.size());
   }
   printf("\033[0;32m[1] 添加好友\033[0m\n");
   printf("\033[0;32m[2] 删除好友\033[0m\n");
@@ -108,13 +108,13 @@ void groupmenu(user u, void *p){
     if(rpf.rpt.friendapply.size())
   printf("           \033[0;34m[new] 有%ld条未处理的好友申请\033[0m\n", rpf.rpt.friendapply.size());
     if(rpf.rpt.chatfriend.size())
-  printf("           \033[0;34m[new] 有%ld条未处理的好友申请\033[0m\n", rpf.rpt.chatfriend.size());
+  printf("           \033[0;34m[new] 有%ld个未读的好友消息\033[0m\n", rpf.rpt.chatfriend.size());
     if(rpf.rpt.chatgroup.size())
-  printf("           \033[0;34m[new] 有%ld条未处理的好友申请\033[0m\n", rpf.rpt.chatgroup.size());
+  printf("           \033[0;34m[new] 有%ld个未读的群聊消息\033[0m\n", rpf.rpt.chatgroup.size());
     if(rpf.rpt.groupapply.size())
-  printf("           \033[0;34m[new] 有%ld条未处理的好友申请\033[0m\n", rpf.rpt.groupapply.size());
+  printf("           \033[0;34m[new] 有%ld条未处理的群聊邀请\033[0m\n", rpf.rpt.groupapply.size());
     if(rpf.rpt.notice.size())
-  printf("           \033[0;34m[new] 有%ld条未处理的好友申请\033[0m\n", rpf.rpt.notice.size());
+  printf("           \033[0;34m[new] 有%ld条未读的通知\033[0m\n", rpf.rpt.notice.size());
   }
   printf("\033[0;32m[1] 创建群组\033[0m\n");
   printf("\033[0;32m[2] 加入群组\033[0m\n");
@@ -145,13 +145,13 @@ void recordmenu(user u, void *p){
     if(rpf.rpt.friendapply.size())
   printf("           \033[0;34m[new] 有%ld条未处理的好友申请\033[0m\n", rpf.rpt.friendapply.size());
     if(rpf.rpt.chatfriend.size())
-  printf("           \033[0;34m[new] 有%ld条未处理的好友申请\033[0m\n", rpf.rpt.chatfriend.size());
+  printf("           \033[0;34m[new] 有%ld个未读的好友消息\033[0m\n", rpf.rpt.chatfriend.size());
     if(rpf.rpt.chatgroup.size())
-  printf("           \033[0;34m[new] 有%ld条未处理的好友申请\033[0m\n", rpf.rpt.chatgroup.size());
+  printf("           \033[0;34m[new] 有%ld个未读的群聊消息\033[0m\n", rpf.rpt.chatgroup.size());
     if(rpf.rpt.groupapply.size())
-  printf("           \033[0;34m[new] 有%ld条未处理的好友申请\033[0m\n", rpf.rpt.groupapply.size());
+  printf("           \033[0;34m[new] 有%ld条未处理的群聊邀请\033[0m\n", rpf.rpt.groupapply.size());
     if(rpf.rpt.notice.size())
-  printf("           \033[0;34m[new] 有%ld条未处理的好友申请\033[0m\n", rpf.rpt.notice.size());
+  printf("           \033[0;34m[new] 有%ld条未读的通知\033[0m\n", rpf.rpt.notice.size());
   }
   printf("\033[0;32m[1] 查看与某好友的聊天记录\033[0m\n");
   printf("\033[0;32m[2] 查看某群组的聊天记录\033[0m\n");
@@ -210,13 +210,13 @@ void  setupmenu(user u, void *p){
     if(rpf.rpt.friendapply.size())
   printf("           \033[0;34m[new] 有%ld条未处理的好友申请\033[0m\n", rpf.rpt.friendapply.size());
     if(rpf.rpt.chatfriend.size())
-  printf("           \033[0;34m[new] 有%ld条未处理的好友申请\033[0m\n", rpf.rpt.chatfriend.size());
+  printf("           \033[0;34m[new] 有%ld个未读的好友消息\033[0m\n", rpf.rpt.chatfriend.size());
     if(rpf.rpt.chatgroup.size())
-  printf("           \033[0;34m[new] 有%ld条未处理的好友申请\033[0m\n", rpf.rpt.chatgroup.size());
+  printf("           \033[0;34m[new] 有%ld个未读的群聊消息\033[0m\n", rpf.rpt.chatgroup.size());
     if(rpf.rpt.groupapply.size())
-  printf("           \033[0;34m[new] 有%ld条未处理的好友申请\033[0m\n", rpf.rpt.groupapply.size());
+  printf("           \033[0;34m[new] 有%ld条未处理的群聊邀请\033[0m\n", rpf.rpt.groupapply.size());
     if(rpf.rpt.notice.size())
-  printf("           \033[0;34m[new] 有%ld条未处理的好友申请\033[0m\n", rpf.rpt.notice.size());
+  printf("           \033[0;34m[new] 有%ld条未读的通知\033[0m\n", rpf.rpt.notice.size());
   }
   printf("\033[0;32m[1] 修改密码\033[0m\n");
   printf("\033[0;32m[2] 注销账号\033[0m\n");

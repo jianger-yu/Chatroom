@@ -149,12 +149,12 @@ bool userdata::setutoj(std::string nuid, std::string s){
     return true;
 }
 
-bool userdata::AddFrd(std::string uid1, std::string uid2){
+bool userdata::AddFrd(std::string name1, std::string uid2){
     std::string js = u_report(uid);
     report rpt;
     if(js != "none") 
         rpt = report::fromJson(js);
-    rpt.friendapply.insert(uid1);
+    rpt.friendapply.insert(name1);
     svreport(uid2, rpt.toJson());
     return true;
 }

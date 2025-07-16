@@ -98,7 +98,8 @@ int userfuc::friendfuc(void){
             break;
         }
         case '2':{
-            
+            f.delfriend();
+            flag = true;
             break;
         }
         case '3':{

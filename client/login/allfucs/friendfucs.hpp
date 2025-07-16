@@ -16,8 +16,10 @@ public:
     void list(char);
     //添加好友
     void addfriend();
-    //删除好友
+    //选定删除好友
     void delfriend();
+    //处理删除功能
+    void handledel(char);
     //查看好友列表
     void listfriend();
     //私聊
@@ -135,6 +137,7 @@ void friendfucs::list(char c){
 
 void friendfucs::listfriend(){
     system("clear");
+    page = 0;
     list('0');
     fflush(stdout); // 手动刷新标准输出缓冲区
     bool flag = false;
@@ -175,4 +178,104 @@ void friendfucs::listfriend(){
         }
     }
     return ;
+}
+
+void friendfucs::handledel(char c){
+    Client * cp = (Client*)clientp;
+    Socket * sock = cp->getSocket();
+    system("clear");
+    //找到对应消息
+    int i = 5*page + c - '0' - 1, j = 0;
+    if(i >= u.friendlist.size()) return;
+    std::string sd;
+    for(std::string str : u.friendlist){
+        if(j == i){
+            sd = str;
+            break;
+        }
+        j++;
+    }
+    sock->sendMsg("gtnm:"+sd);
+    std::string nm = EchoMsgQueue.wait_and_pop(), rev;
+    printf("\033[0;32m确定要删除好友\033[0m \033[0;31m%s\033[0m \033[0;32m？（Y/N）\033[0m\n", nm.c_str());
+    fflush(stdout);
+    char input;
+    while(1){
+        input = charget();
+        if(input == 27) return;
+        if(input != 'Y' && input != 'N' && input != 'y' && input != 'n') continue;
+        if(input == 'Y' || input == 'y') break;
+        else return;
+        break;
+    }
+    //确定删除该好友,uid1删uid2
+    sock->sendMsg("rmfd:"+u.uid+":"+sd);
+    rev = EchoMsgQueue.wait_and_pop();
+    if(rev != "right"){
+        printf("\033[0;31m数据异常，请稍后再试。\033[0m\n");
+        printf("\033[0;31m请按任意键继续...\033[0m");
+        input = charget();
+        return ;
+    }
+    //删除本地列表中的uid2
+    u.friendlist.erase(sd);
+}
+
+
+void friendfucs::delfriend(){
+    system("clear");
+    page = 0;
+    list('0');
+    printf("\033[0;32m请选择您要删除的好友:>\033[0m");
+    fflush(stdout); // 手动刷新标准输出缓冲区
+    bool flag = false;
+    std::string msg;
+    while(1){
+        //判断用户信息是否变动
+        if(UserMsgQueue.try_pop(msg)){
+            page = 0;
+            u = user::fromJson(msg);
+            flag = true;
+        }
+        //判断是否有新通知
+        if(ReptMsgQueue.try_pop(msg) || flag){
+            flag = false;
+            system("clear");
+            list('p');
+            printf("\033[0;32m请选择您要删除的好友:>\033[0m");
+            fflush(stdout); // 手动刷新标准输出缓冲区
+        }
+        char input = tm_charget(200);
+        if(input == -1) continue;
+        switch(input){
+        case '1':
+        case '2':
+        case '3':
+        case '4':
+        case '5':{
+            handledel(input);
+            flag = true;
+            break;
+        }
+        case '[':{
+            system("clear");
+            list('[');
+            fflush(stdout); // 手动刷新标准输出缓冲区
+            break;
+        }
+        case ']':{
+            system("clear");
+            list(']');
+            fflush(stdout); // 手动刷新标准输出缓冲区
+            break;
+        }
+        case 27:{
+            return ;
+        }
+        default:continue;
+        }
+    }
+    return ;
+
+
 }

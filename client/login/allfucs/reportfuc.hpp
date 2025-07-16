@@ -154,6 +154,7 @@ void reportfucs::handleapply(char c){
     sd = "adf(";
     while(1){
         input = charget();
+        if(input == 27) return;
         if(input != 'Y' && input != 'N' && input != 'y' && input != 'n') continue;
         if(input == 'Y' || input == 'y') sd.push_back('y');
         else sd.push_back('n');

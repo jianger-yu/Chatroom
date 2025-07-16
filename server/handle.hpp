@@ -46,6 +46,8 @@ private:
     void gtus();
     //根据用户名获取uid的请求
     void gtud();
+    //根据uid获取用户名的请求
+    void gtnm();
 
     //处理添加好友的请求
     void adfr();
@@ -55,7 +57,8 @@ private:
     void rdnt();
     //处理删除通知的请求
     void rmnt();
-
+    //处理删除好友的请求
+    void rmfd();
 
 public:
     handler(std::string buf, int fd):str(buf),sockfd(fd){
@@ -87,8 +90,10 @@ int handler::handle(void){
     else if(str[0] == 'g' && str[1] == 't' && str[2] == 'r' && str[3] == 'p') gtrp();
     else if(str[0] == 'g' && str[1] == 't' && str[2] == 'u' && str[3] == 's') gtus();
     else if(str[0] == 'g' && str[1] == 't' && str[2] == 'u' && str[3] == 'd') gtud();
+    else if(str[0] == 'g' && str[1] == 't' && str[2] == 'n' && str[3] == 'm') gtnm();
     else if(str[0] == 'r' && str[1] == 'd' && str[2] == 'n' && str[3] == 't') rdnt();
     else if(str[0] == 'r' && str[1] == 'm' && str[2] == 'n' && str[3] == 't') rmnt();
+    else if(str[0] == 'r' && str[1] == 'm' && str[2] == 'f' && str[3] == 'd') rmfd();
 
     return 0;
 }
@@ -433,6 +438,30 @@ void handler::rmnt(){
     sendMsg("echo:right", sockfd);
 }
 
+//uid1删uid2
+void handler::rmfd(){
+    //拿到数据
+    std::string uid1,uid2;
+    int i = 0;
+    while(str[i] != ':') i++;
+    int j = i + 1;
+    while(str[j] != ':') {
+        uid1.push_back(str[j]);
+        j++;
+    }
+    for(int t = j + 1; t < str.size(); t++) uid2.push_back(str[t]);
+    //获取user
+    user ud1 = u.GetUesr(uid1), ud2 = u.GetUesr(uid2);
+    ud1.friendlist.erase(uid2);
+    ud2.friendlist.erase(uid1);
+    std::string js = ud2.toJson();
+    u.setutoj(uid1, ud1.toJson());
+    u.setutoj(uid2, js);
+    if(uid_to_socket.count(uid2)) sendMsg("user:"+ js, uid_to_socket[uid2]);
+    sendMsg("echo:right", sockfd);
+}
+
+
 void handler::gtud(){
     int i = 0;
     while(str[i] != ':') i++;
@@ -440,4 +469,12 @@ void handler::gtud(){
     std::string sd = u.Getuid(name.c_str());
     if(sd == "norepeat") sendMsg("echo:false", sockfd);
     else sendMsg("echo:"+sd, sockfd);
+}
+
+void handler::gtnm(){
+    int i = 0;
+    while(str[i] != ':') i++;
+    std::string uid = str.c_str() + i + 1;
+    user ud = u.GetUesr(uid);
+    sendMsg("echo:"+ud.name, sockfd);
 }

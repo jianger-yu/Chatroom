@@ -1,15 +1,19 @@
 #pragma once
 #include "../MessageQueue.hpp"
+#include "reportfuc.hpp"
 
 class friendfucs{
 private:
-    user u;
+    user &u;
     void* clientp;
+    int page = 0;
 
 public:
 
-    friendfucs(user arg1, void*p):u(arg1),clientp(p){
+    friendfucs(user &arg1, void*p):u(arg1),clientp(p){
     };
+    //仅展示好友列表
+    void list(char);
     //添加好友
     void addfriend();
     //删除好友
@@ -81,4 +85,94 @@ void friendfucs::addfriend(){
     }
     return ;
 
+}
+
+void friendfucs::list(char c){
+    reportfucs rpf(u, clientp);
+    bool ret = rpf.Getrpt();
+    Client* cp = (Client*) clientp;
+    Socket* sock = cp->getSocket();
+    if(!u.friendlist.size()){
+        printf("\033[0;32m当前没有好友。\n\033[0m");
+        printf("\033[0;32m请按ESC返回...\033[0m");
+        return;
+    }
+    int cnt = 0;
+    cnt = u.friendlist.size();
+    int maxpage = cnt / 5, i = 0;
+    if(cnt % 5 != 0) maxpage++;
+    if(c == '[' && page == 0) ;
+    else if(c == '[') page --;
+    if(c == ']' && page+1 >= maxpage) ;
+    else if(c == ']') page ++;
+    printf("\033[0;36m==========================================================\033[0m\n");
+    reportfucs::newreport(u, clientp);
+    printf("\033[0;32m以下为您的好友\033[0m\n");
+    printf("\033[0;34m%-6s %-15s %-13s %-12s\033[0m\n", "序号", "用户名", "UID", "在线状态");
+    for(std::string str : u.friendlist){
+        if(i >= 5*page && i < 5*(page+1)){
+            sock->sendMsg("gtus:"+str);
+            std::string red = EchoMsgQueue.wait_and_pop();
+            user ud = user::fromJson(red);
+            std::string name = ud.name, status;
+            if(ud.stat == "online") status = "在线";
+            else if(ud.stat == "offline") status = "离线";
+            else if(ud.stat == "deleted") status = "该账户已注销";
+
+            // 如果是在线，颜色绿色；否则灰色
+            const char *color = (status == "在线") ? "\033[0;32m" : "\033[0;90m";
+
+            printf("%s[%d]  %-12s %-14s %-12s\033[0m\n",
+                    color, i - 5 * page + 1,
+                    name.c_str(), ud.uid.c_str(), status.c_str());
+        }
+        i++;
+    }
+    printf("                     \033[0;32m(tip:按[和]按键可控制翻页)\n\033[0m");
+    printf("                                \033[0;32m[%d/%d]\033[0m\n",page+1,maxpage);
+    printf("\033[0;36m==========================================================\033[0m\n");
+}
+
+void friendfucs::listfriend(){
+    system("clear");
+    list('0');
+    fflush(stdout); // 手动刷新标准输出缓冲区
+    bool flag = false;
+    std::string msg;
+    while(1){
+        //判断用户信息是否变动
+        if(UserMsgQueue.try_pop(msg)){
+            page = 0;
+            u = user::fromJson(msg);
+            flag = true;
+        }
+        //判断是否有新通知
+        if(ReptMsgQueue.try_pop(msg) || flag){
+            flag = false;
+            system("clear");
+            list('p');
+            fflush(stdout); // 手动刷新标准输出缓冲区
+        }
+        char input = tm_charget(200);
+        if(input == -1) continue;
+        switch(input){
+        case '[':{
+            system("clear");
+            list('[');
+            fflush(stdout); // 手动刷新标准输出缓冲区
+            break;
+        }
+        case ']':{
+            system("clear");
+            list(']');
+            fflush(stdout); // 手动刷新标准输出缓冲区
+            break;
+        }
+        case 27:{
+            return ;
+        }
+        default:continue;
+        }
+    }
+    return ;
 }

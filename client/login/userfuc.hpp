@@ -102,7 +102,8 @@ int userfuc::friendfuc(void){
             break;
         }
         case '3':{
-            
+            f.listfriend();
+            flag = true;
             break;
         }
         case '4':{
@@ -214,6 +215,7 @@ int userfuc::recordfuc(void){
 }
 
 int userfuc::setupfuc(void){
+    setupfucs stf(u, clientp);
     Client * cp = (Client*)clientp;
     Socket* sock = cp->getSocket();
     char input = 0;
@@ -223,7 +225,7 @@ int userfuc::setupfuc(void){
     fflush(stdout); // 手动刷新标准输出缓冲区
     bool flag = false;
     while(1){
-        if(ReptMsgQueue.try_pop(msg)){
+        if(ReptMsgQueue.try_pop(msg) || flag){
             flag = false;
             system("clear");
             fflush(stdout); // 手动刷新标准输出缓冲区
@@ -242,6 +244,11 @@ int userfuc::setupfuc(void){
             break;
         }
         case '3':{
+            stf.ViewAccountInformation();
+            flag = true;
+            break;
+        }
+        case '4':{
             sock->sendMsg("unlg:"+u.name);
             return -1;
         }
@@ -293,7 +300,8 @@ int userfuc::reportfuc(void){
             break;
         }
         case '5':{
-            
+            rpf.notice();
+            flag = true;
             break;
         }
         case 27:{

@@ -26,28 +26,15 @@ void logmenu(){
     fflush(stdout); // 手动刷新标准输出缓冲区
 }
 
-void usermainmenu(user u, void *p){
-  reportfucs rpf(u, p);
+void usermainmenu(user &u, void *p){
   system("clear");
   fflush(stdout); // 手动刷新标准输出缓冲区
   printf("\033[0;32m数据请求中...\033[0m\n");
-  bool ret = rpf.Getrpt();
   fflush(stdout); // 手动刷新标准输出缓冲区
   system("clear");
   printf("\033[0;36m==========================================================\033[0m\n");
   printf("                \033[0;33m用户%s,欢迎使用聊天室\033[0m\n", u.name.c_str());
-  if(ret){
-    if(rpf.rpt.friendapply.size())
-  printf("           \033[0;34m[new] 有%ld条未处理的好友申请\033[0m\n", rpf.rpt.friendapply.size());
-    if(rpf.rpt.chatfriend.size())
-  printf("           \033[0;34m[new] 有%ld个未读的好友消息\033[0m\n", rpf.rpt.chatfriend.size());
-    if(rpf.rpt.chatgroup.size())
-  printf("           \033[0;34m[new] 有%ld个未读的群聊消息\033[0m\n", rpf.rpt.chatgroup.size());
-    if(rpf.rpt.groupapply.size())
-  printf("           \033[0;34m[new] 有%ld条未处理的群聊邀请\033[0m\n", rpf.rpt.groupapply.size());
-    if(rpf.rpt.notice.size())
-  printf("           \033[0;34m[new] 有%ld条未读的通知\033[0m\n", rpf.rpt.notice.size());
-  }
+  reportfucs::newreport(u, p);
   printf("\033[0;32m[1] 好友功能\033[0m\n");
   printf("\033[0;32m[2] 群聊功能\033[0m\n");
   printf("\033[0;32m[3] 聊天记录\033[0m\n");
@@ -59,28 +46,15 @@ void usermainmenu(user u, void *p){
   fflush(stdout); // 手动刷新标准输出缓冲区
 }
 
-void friendmenu(user u, void *p){
-  reportfucs rpf(u, p);
+void friendmenu(user &u, void *p){
   system("clear");
   fflush(stdout); // 手动刷新标准输出缓冲区
   printf("\033[0;32m数据请求中...\033[0m\n");
-  bool ret = rpf.Getrpt();
   fflush(stdout); // 手动刷新标准输出缓冲区
   system("clear");
   printf("\033[0;36m==========================================================\033[0m\n");
   printf("                \033[0;33m好友功能\033[0m\n");
-  if(ret){
-    if(rpf.rpt.friendapply.size())
-  printf("           \033[0;34m[new] 有%ld条未处理的好友申请\033[0m\n", rpf.rpt.friendapply.size());
-    if(rpf.rpt.chatfriend.size())
-  printf("           \033[0;34m[new] 有%ld个未读的好友消息\033[0m\n", rpf.rpt.chatfriend.size());
-    if(rpf.rpt.chatgroup.size())
-  printf("           \033[0;34m[new] 有%ld个未读的群聊消息\033[0m\n", rpf.rpt.chatgroup.size());
-    if(rpf.rpt.groupapply.size())
-  printf("           \033[0;34m[new] 有%ld条未处理的群聊邀请\033[0m\n", rpf.rpt.groupapply.size());
-    if(rpf.rpt.notice.size())
-  printf("           \033[0;34m[new] 有%ld条未读的通知\033[0m\n", rpf.rpt.notice.size());
-  }
+  reportfucs::newreport(u, p);
   printf("\033[0;32m[1] 添加好友\033[0m\n");
   printf("\033[0;32m[2] 删除好友\033[0m\n");
   printf("\033[0;32m[3] 查看好友列表\033[0m\n");
@@ -94,28 +68,15 @@ void friendmenu(user u, void *p){
   fflush(stdout); // 手动刷新标准输出缓冲区
 }
 
-void groupmenu(user u, void *p){
-  reportfucs rpf(u, p);
+void groupmenu(user& u, void *p){
   system("clear");
   fflush(stdout); // 手动刷新标准输出缓冲区
   printf("\033[0;32m数据请求中...\033[0m\n");
-  bool ret = rpf.Getrpt();
   fflush(stdout); // 手动刷新标准输出缓冲区
   system("clear");
   printf("\033[0;36m==========================================================\033[0m\n");
   printf("                \033[0;33m群聊功能\033[0m\n");
-  if(ret){
-    if(rpf.rpt.friendapply.size())
-  printf("           \033[0;34m[new] 有%ld条未处理的好友申请\033[0m\n", rpf.rpt.friendapply.size());
-    if(rpf.rpt.chatfriend.size())
-  printf("           \033[0;34m[new] 有%ld个未读的好友消息\033[0m\n", rpf.rpt.chatfriend.size());
-    if(rpf.rpt.chatgroup.size())
-  printf("           \033[0;34m[new] 有%ld个未读的群聊消息\033[0m\n", rpf.rpt.chatgroup.size());
-    if(rpf.rpt.groupapply.size())
-  printf("           \033[0;34m[new] 有%ld条未处理的群聊邀请\033[0m\n", rpf.rpt.groupapply.size());
-    if(rpf.rpt.notice.size())
-  printf("           \033[0;34m[new] 有%ld条未读的通知\033[0m\n", rpf.rpt.notice.size());
-  }
+  reportfucs::newreport(u, p);
   printf("\033[0;32m[1] 创建群组\033[0m\n");
   printf("\033[0;32m[2] 加入群组\033[0m\n");
   printf("\033[0;32m[3] 查看已加入群组\033[0m\n");
@@ -131,28 +92,15 @@ void groupmenu(user u, void *p){
   fflush(stdout); // 手动刷新标准输出缓冲区
 }
 
-void recordmenu(user u, void *p){
-  reportfucs rpf(u, p);
+void recordmenu(user& u, void *p){
   system("clear");
   fflush(stdout); // 手动刷新标准输出缓冲区
   printf("\033[0;32m数据请求中...\033[0m\n");
-  bool ret = rpf.Getrpt();
   fflush(stdout); // 手动刷新标准输出缓冲区
   system("clear");
   printf("\033[0;36m==========================================================\033[0m\n");
   printf("                \033[0;33m聊天记录\033[0m\n");
-  if(ret){
-    if(rpf.rpt.friendapply.size())
-  printf("           \033[0;34m[new] 有%ld条未处理的好友申请\033[0m\n", rpf.rpt.friendapply.size());
-    if(rpf.rpt.chatfriend.size())
-  printf("           \033[0;34m[new] 有%ld个未读的好友消息\033[0m\n", rpf.rpt.chatfriend.size());
-    if(rpf.rpt.chatgroup.size())
-  printf("           \033[0;34m[new] 有%ld个未读的群聊消息\033[0m\n", rpf.rpt.chatgroup.size());
-    if(rpf.rpt.groupapply.size())
-  printf("           \033[0;34m[new] 有%ld条未处理的群聊邀请\033[0m\n", rpf.rpt.groupapply.size());
-    if(rpf.rpt.notice.size())
-  printf("           \033[0;34m[new] 有%ld条未读的通知\033[0m\n", rpf.rpt.notice.size());
-  }
+  reportfucs::newreport(u, p);
   printf("\033[0;32m[1] 查看与某好友的聊天记录\033[0m\n");
   printf("\033[0;32m[2] 查看某群组的聊天记录\033[0m\n");
   printf("                    \033[0;33m(tip:ESC可返回上一级菜单)\033[0m\n");
@@ -161,7 +109,7 @@ void recordmenu(user u, void *p){
   printf("\033[0;32m请输入要选择功能的序号:>\033[0m");
 }
 
-void reportmenu(user u, report rpt, bool ret){
+void reportmenu(user& u, report rpt, bool ret){
   
   fflush(stdout); // 手动刷新标准输出缓冲区
   system("clear");
@@ -185,7 +133,10 @@ void reportmenu(user u, report rpt, bool ret){
   else printf("\n");
 
   printf("\033[0;32m[5] 查看事务通知      \033[0m");
-  if(ret && rpt.notice.size()) printf("\033[0;31m(%ld)\033[0m\n", rpt.notice.size());
+  int cnt = 0;
+  for(int i = 0; i < rpt.notice.size(); i++)
+    if(rpt.notice[i][5] == 'n') cnt++;
+  if(ret && cnt) printf("\033[0;31m(%d)\033[0m\n", cnt);
   else printf("\n");
 
   printf("                    \033[0;33m(tip:ESC可返回上一级菜单)\033[0m\n");
@@ -196,31 +147,19 @@ void reportmenu(user u, report rpt, bool ret){
 
 }
 
-void  setupmenu(user u, void *p){
-  reportfucs rpf(u, p);
+void setupmenu(user& u, void *p){
   system("clear");
   fflush(stdout); // 手动刷新标准输出缓冲区
   printf("\033[0;32m数据请求中...\033[0m\n");
-  bool ret = rpf.Getrpt();
   fflush(stdout); // 手动刷新标准输出缓冲区
   system("clear");
   printf("\033[0;36m==========================================================\033[0m\n");
   printf("                \033[0;33m设置与退出\033[0m\n");
-  if(ret){
-    if(rpf.rpt.friendapply.size())
-  printf("           \033[0;34m[new] 有%ld条未处理的好友申请\033[0m\n", rpf.rpt.friendapply.size());
-    if(rpf.rpt.chatfriend.size())
-  printf("           \033[0;34m[new] 有%ld个未读的好友消息\033[0m\n", rpf.rpt.chatfriend.size());
-    if(rpf.rpt.chatgroup.size())
-  printf("           \033[0;34m[new] 有%ld个未读的群聊消息\033[0m\n", rpf.rpt.chatgroup.size());
-    if(rpf.rpt.groupapply.size())
-  printf("           \033[0;34m[new] 有%ld条未处理的群聊邀请\033[0m\n", rpf.rpt.groupapply.size());
-    if(rpf.rpt.notice.size())
-  printf("           \033[0;34m[new] 有%ld条未读的通知\033[0m\n", rpf.rpt.notice.size());
-  }
+  reportfucs::newreport(u, p);
   printf("\033[0;32m[1] 修改密码\033[0m\n");
   printf("\033[0;32m[2] 注销账号\033[0m\n");
-  printf("\033[0;32m[3] 退出登录\033[0m\n");
+  printf("\033[0;32m[3] 查看账户信息\033[0m\n");
+  printf("\033[0;32m[4] 退出登录\033[0m\n");
   printf("                    \033[0;33m(tip:ESC可返回上一级菜单)\033[0m\n");
   printf("\033[0;36m==========================================================\033[0m\n");
 

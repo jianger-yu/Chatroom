@@ -71,6 +71,9 @@ std::string userdata::newuser(std::string str){
     //将邮箱写入集合
     reply = (redisReply*)redisCommand(redis, "SADD email %s", ud.email.c_str());
     freeReplyObject(reply);
+    //生成report数据
+    report rpt;
+    svreport(nuid, rpt.toJson());
     return nuid;
 }
 

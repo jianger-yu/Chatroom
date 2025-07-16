@@ -42,12 +42,21 @@ private:
     void rvlg();
     //处理用户获取report(json字符串)的请求
     void gtrp();
-
+    //处理用户获取 user (json字符串)的请求
+    void gtus();
+    //根据用户名获取uid的请求
+    void gtud();
 
     //处理添加好友的请求
     void adfr();
     //处理同意/拒绝好友的请求
     void adfok();
+    //处理已读通知的请求
+    void rdnt();
+    //处理删除通知的请求
+    void rmnt();
+
+
 public:
     handler(std::string buf, int fd):str(buf),sockfd(fd){
     }
@@ -76,6 +85,10 @@ int handler::handle(void){
     else if(str[0] == 'a' && str[1] == 'd' && str[2] == 'f' && str[3] == 'r') adfr();
     else if(str[0] == 'a' && str[1] == 'd' && str[2] == 'f' && str[3] == '(') adfok();
     else if(str[0] == 'g' && str[1] == 't' && str[2] == 'r' && str[3] == 'p') gtrp();
+    else if(str[0] == 'g' && str[1] == 't' && str[2] == 'u' && str[3] == 's') gtus();
+    else if(str[0] == 'g' && str[1] == 't' && str[2] == 'u' && str[3] == 'd') gtud();
+    else if(str[0] == 'r' && str[1] == 'd' && str[2] == 'n' && str[3] == 't') rdnt();
+    else if(str[0] == 'r' && str[1] == 'm' && str[2] == 'n' && str[3] == 't') rmnt();
 
     return 0;
 }
@@ -277,6 +290,17 @@ void handler::gtrp(){
     sendMsg("echo:"+js, sockfd);
 }
 
+void handler::gtus(){
+    //拿到uid字符串
+    int i = 0;
+    while(str[i] != ':') i++;
+    std::string uid = str.c_str() + i + 1;
+    //拿到json/none
+    user us = u.GetUesr(uid);
+    sendMsg("echo:"+us.toJson(), sockfd);
+}
+
+
 void handler::jrfd(){
     std::string uid1,uid2;
     int i = 0;
@@ -319,10 +343,9 @@ void handler::adfok(){
     u.svreport(uid2, rpt2.toJson());
     //拿到uid1和ud2
     uid1 = u.Getuid(name1.c_str());
-    user ud2 = u.GetUesr(uid2);
+    user ud1 = u.GetUesr(uid1), ud2 = u.GetUesr(uid2);
     if(flag == 'y'){
         //获取u1和u2的用户数据
-        user ud1 = u.GetUesr(uid1);
         ud1.friendlist.insert(uid2);
         ud2.friendlist.insert(uid1);
         //保存ud1、ud2
@@ -334,6 +357,7 @@ void handler::adfok(){
     js = u.u_report(uid1);
     if(js == "none"){
         printf("In fuc adfok uid1:%s report return none\n", uid1.c_str());
+        sendMsg("echo:false", sockfd);
         return;
     }
     report rpt1 = report::fromJson(js);
@@ -341,12 +365,79 @@ void handler::adfok(){
     if(rpt1.friendapply.count(ud2.name)) rpt1.friendapply.erase(ud2.name);
     //给u1发成功添加好友的notice
     if(flag == 'y')
-        rpt1.notice.push_back("adfok:" + ud2.name);
+        rpt1.notice.push_back("adfy(n)" + ud2.name);
     else    
-        rpt1.notice.push_back("adfno:" + ud2.name);
+        rpt1.notice.push_back("adfn(n)" + ud2.name);
     //保存rpt1
     u.svreport(uid1, rpt1.toJson());
     //若uid1在线，发通知
-    if(uid_to_socket.count(uid1)) sendMsg("rept:"+uid2, uid_to_socket[uid1]);
+    if(uid_to_socket.count(uid1)) {
+        sendMsg("rept:"+uid2, uid_to_socket[uid1]);
+        sendMsg("user:"+ud1.toJson(), uid_to_socket[uid1]);
+    }
 
+}
+
+
+void handler::rdnt(){
+    std::string uid,notice;
+    int i = 0;
+    while(str[i] != ':') i++;
+    int j = i + 1;
+    while(str[j] != ':') {
+        uid.push_back(str[j]);
+        j++;
+    }
+    for(int t = j + 1; t < str.size(); t++) notice.push_back(str[t]);
+    std::string js = u.u_report(uid);
+    if(js == "none"){
+        printf("In fuc adfok uid1:%s report return none\n", uid.c_str());
+        sendMsg("echo:false", sockfd);
+        return;
+    }
+    report rpt = report::fromJson(js);
+    for(i = 0; i < rpt.notice.size();i++)
+        if(rpt.notice[i] == notice){
+            rpt.notice[i][5] = 'y';
+            break;
+        }
+    u.svreport(uid, rpt.toJson());
+    sendMsg("echo:right", sockfd);
+
+}
+
+
+void handler::rmnt(){
+    std::string uid,notice;
+    int i = 0;
+    while(str[i] != ':') i++;
+    int j = i + 1;
+    while(str[j] != ':') {
+        uid.push_back(str[j]);
+        j++;
+    }
+    for(int t = j + 1; t < str.size(); t++) notice.push_back(str[t]);
+    std::string js = u.u_report(uid);
+    if(js == "none"){
+        printf("In fuc adfok uid1:%s report return none\n", uid.c_str());
+        sendMsg("echo:false", sockfd);
+        return;
+    }
+    report rpt = report::fromJson(js);
+    for(i = 0; i < rpt.notice.size();i++)
+        if(rpt.notice[i] == notice){
+            rpt.notice.erase(rpt.notice.begin() + i);
+            break;
+        }
+    u.svreport(uid, rpt.toJson());
+    sendMsg("echo:right", sockfd);
+}
+
+void handler::gtud(){
+    int i = 0;
+    while(str[i] != ':') i++;
+    std::string name = str.c_str() + i + 1;
+    std::string sd = u.Getuid(name.c_str());
+    if(sd == "norepeat") sendMsg("echo:false", sockfd);
+    else sendMsg("echo:"+sd, sockfd);
 }

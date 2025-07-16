@@ -368,10 +368,13 @@ void readctor::readctorinit(unsigned short port){
             if(r_events[chekckpos].status != 1)      //不在红黑树上，继续循环
                 continue;
             
-            long duration = now -r_events[chekckpos].last_active;   //计算客户端不活跃的时间
-            if(duration >= 600){
+            long duration = now - r_events[chekckpos].last_active;   //计算客户端不活跃的时间
+            if(duration >= 600){//超时，断连
                 printf("[fd = %d] timeout\n", r_events[chekckpos].fd);
                 pthread_mutex_lock(&event_mutex); // 加锁
+                std::string uid = socket_to_uid[r_events[chekckpos].fd];
+                handler hd({}, r_events[chekckpos].fd);
+                hd.uulg(uid);
                 eventdel(&r_events[chekckpos]);
                 close(r_events[chekckpos].fd);
                 pthread_mutex_unlock(&event_mutex); // 加锁

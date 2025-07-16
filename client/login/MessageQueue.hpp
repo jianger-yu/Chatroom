@@ -67,6 +67,7 @@ void recv_thread(Socket* sock) {
             system("clear");
             fflush(stdout);
             printf("\033[0;31m您的账号在别处登录!\033[0m\n");
+            sock->~Socket();
             exit(1);
         }
         else {

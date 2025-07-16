@@ -46,6 +46,10 @@ public:
     bool jguid(std::string uid);
     //根据uid获取用户的report(json字符串)，成功返回json，失败返回none
     std::string u_report(std::string uid);
+    //根据uid1、uid2、消息条数、拉取顺序获取消息列表，fg为0拉最新消息，为1拉最早消息
+    std::vector<std::string> lrange(std::string uid1, std::string uid2, int cnt, int fg);
+    //根据uid1、uid2获取消息总量
+    int llen(std::string uid1, std::string uid2);
 };
 
 
@@ -190,4 +194,38 @@ bool userdata::svreport(std::string uid, std::string js){
     redisReply* reply = (redisReply*)redisCommand(redis, "SET report:%s %s", uid.c_str(), js.c_str());
     freeReplyObject(reply);
     return true;
+}
+int userdata::llen(std::string uid1, std::string uid2){
+    // 先获取list长度
+    std::string chat_key = "chat:" + uid1 + ":" + uid2;
+    redisReply* reply_len = (redisReply*)redisCommand(redis, "LLEN %s", chat_key.c_str());
+    if (!reply_len || reply_len->type != REDIS_REPLY_INTEGER) {
+        if(reply_len) freeReplyObject(reply_len);
+        return 0; // 失败返回空
+    }
+    int len = (int)reply_len->integer;
+    freeReplyObject(reply_len);
+    return len;
+}
+
+
+std::vector<std::string> userdata::lrange(std::string uid1, std::string uid2, int start, int stop){
+    std::vector<std::string> result;
+    std::string chat_key = "chat:" + uid1 + ":" + uid2;
+    int len = 0;
+    if (len == llen(uid1, uid2)) return result; // 无消息直接返回
+
+    redisReply* reply = (redisReply*)redisCommand(redis, "LRANGE %s %d %d", chat_key.c_str(), start, stop);
+    if (!reply || reply->type != REDIS_REPLY_ARRAY) {
+        if(reply) freeReplyObject(reply);
+        return result;
+    }
+
+    for (int i = 0; i < reply->elements; i++) {
+        if(reply->element[i]->type == REDIS_REPLY_STRING)
+            result.push_back(reply->element[i]->str);
+    }
+    freeReplyObject(reply);
+
+    return result;
 }

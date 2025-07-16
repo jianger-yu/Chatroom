@@ -1,13 +1,15 @@
 #pragma once
 #include "../MessageQueue.hpp"
 #include "reportfuc.hpp"
+#include "../../../message.hpp"
 
 class friendfucs{
 private:
     user &u;
     void* clientp;
     int page = 0;
-
+    int ctpage = 0;
+    messages save;
 public:
 
     friendfucs(user &arg1, void*p):u(arg1),clientp(p){
@@ -22,8 +24,12 @@ public:
     void handledel(char);
     //查看好友列表
     void listfriend();
-    //私聊
+    //选定私聊页面
     void chatfriend();
+    //输出聊天页面
+    void chatmenu(char c, user& u2);
+    //处理私聊功能
+    void handlechat(char);
     //屏蔽/解除屏蔽好友
     void shieldfriend();
 };
@@ -276,6 +282,169 @@ void friendfucs::delfriend(){
         }
     }
     return ;
+}
 
+void friendfucs::chatmenu(char c, user& ud2){
+    reportfucs rpf(u, clientp);
+    bool ret = rpf.Getrpt();
+    Client* cp = (Client*) clientp;
+    Socket* sock = cp->getSocket();
+    int cnt = 0;
+    cnt = save.data.size();
+    int maxpage = cnt / 7, i = 0;
+    if(cnt % 7 != 0) maxpage++;
+    if(maxpage == 0) maxpage = 1;
+    if(c == '[' && ctpage == 0) ;
+    else if(c == '[') ctpage --;
+    if(c == ']' && ctpage+1 >= maxpage) ;
+    else if(c == ']') ctpage ++;
+    printf("\033[0;36m=============================聊天页面=============================\033[0m\n");
+    reportfucs::newreport(u, clientp);
+    if(ud2.stat == "online") printf("\033[0;32m                             %s (在线)\033[0m\n", ud2.name.c_str());
+    else                     printf("\033[0;90m                             %s (离线)\033[0m\n", ud2.name.c_str());
+
+    for(std::string str : save.data){
+        if(i >= 7*ctpage && i < 7*(ctpage+1)){
+            
+        }
+        i++;
+    }
+    printf("                                         \033[0;32m(tip:按[和]按键可控制翻页)\n\033[0m");
+    printf("                                                         \033[0;32m[%d/%d]\033[0m\n",ctpage+1,maxpage);
+    printf("\033[0;36m==================================================================\033[0m\n");
+}
+
+void friendfucs::handlechat(char c){
+    Client * cp = (Client*)clientp;
+    Socket * sock = cp->getSocket();
+    system("clear");
+    //找到对应uid
+    int i = 5*page + c - '0' - 1, j = 0;
+    if(i >= u.friendlist.size()) return;
+    std::string uid2;
+    for(std::string str : u.friendlist){
+        if(j == i){
+            uid2 = str;
+            break;
+        }
+        j++;
+    }
+    sock->sendMsg("gtus:"+ uid2);
+    std::string js2 = EchoMsgQueue.wait_and_pop();
+    user ud2 = user::fromJson(js2);
+    //开始聊天
+    //拉取历史记录
+    //读取两页消息（一页7句消息）
+    if(uid2 > u.uid)
+        sock->sendMsg("ctms:"+u.uid+":"+uid2);
+    else sock->sendMsg("ctms:"+uid2+":"+u.uid);
+    std::string rev = EchoMsgQueue.wait_and_pop(), msg;
+    save = messages::fromJson(rev);
+    //定义部分变量
+    bool flag = false;
+    system("clear");
+    ctpage = 0;
+    chatmenu('0', ud2);
+    fflush(stdout); // 手动刷新标准输出缓冲区
+    while(1){
+        //判断用户信息是否变动
+        if(UserMsgQueue.try_pop(msg)){
+            page = 0;
+            u = user::fromJson(msg);
+            flag = true;
+        }
+        //判断是否有新通知
+        if(ReptMsgQueue.try_pop(msg) || flag){
+            flag = false;
+            system("clear");
+            chatmenu('p', ud2);
+            printf("\033[0;32m请选择您要删除的好友:>\033[0m");
+            fflush(stdout); // 手动刷新标准输出缓冲区
+        }
+        char input = tm_charget(200);
+        if(input == -1) continue;
+        switch(input){
+        case '1':
+        case '2':
+        case '3':
+        case '4':
+        case '5':{
+            //handledel(input);
+            break;
+        }
+        case '[':{
+            system("clear");
+            list('[');
+            fflush(stdout); // 手动刷新标准输出缓冲区
+            break;
+        }
+        case ']':{
+            system("clear");
+            list(']');
+            fflush(stdout); // 手动刷新标准输出缓冲区
+            break;
+        }
+        case 27:{
+            return ;
+        }
+        default:continue;
+        }
+    }
+}
+
+void friendfucs::chatfriend(){
+    system("clear");
+    page = 0;
+    list('0');
+    printf("\033[0;32m请选择您要私聊的好友:>\033[0m");
+    fflush(stdout); // 手动刷新标准输出缓冲区
+    bool flag = false;
+    std::string msg;
+    while(1){
+        //判断用户信息是否变动
+        if(UserMsgQueue.try_pop(msg)){
+            page = 0;
+            u = user::fromJson(msg);
+            flag = true;
+        }
+        //判断是否有新通知
+        if(ReptMsgQueue.try_pop(msg) || flag){
+            flag = false;
+            system("clear");
+            list('p');
+            printf("\033[0;32m请选择您要私聊的好友:>\033[0m");
+            fflush(stdout); // 手动刷新标准输出缓冲区
+        }
+        char input = tm_charget(200);
+        if(input == -1) continue;
+        switch(input){
+        case '1':
+        case '2':
+        case '3':
+        case '4':
+        case '5':{
+            handlechat(input);
+            flag = true;
+            break;
+        }
+        case '[':{
+            system("clear");
+            list('[');
+            fflush(stdout); // 手动刷新标准输出缓冲区
+            break;
+        }
+        case ']':{
+            system("clear");
+            list(']');
+            fflush(stdout); // 手动刷新标准输出缓冲区
+            break;
+        }
+        case 27:{
+            return ;
+        }
+        default:continue;
+        }
+    }
+    return ;
 
 }

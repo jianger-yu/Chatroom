@@ -108,7 +108,7 @@ int userfuc::friendfuc(void){
             break;
         }
         case '4':{
-            
+            f.chatfriend();
             break;
         }
         case '5':{

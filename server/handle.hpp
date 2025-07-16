@@ -6,6 +6,7 @@
 #include "sendrecv.hpp"
 #include "../user.hpp"
 #include "../client/register/hashpwd.hpp"
+#include "../message.hpp"
 
 class handler{
 private:
@@ -36,8 +37,6 @@ private:
     std::string lgok(std::string);
     //利用用户名处理用户下线的请求
     void unlg(std::string);
-    //利用uid处理用户下线的请求
-    void uulg(std::string);
     //处理客户端突然断开后的rvlg指令，即让其下线
     void rvlg();
     //处理用户获取report(json字符串)的请求
@@ -59,11 +58,15 @@ private:
     void rmnt();
     //处理删除好友的请求
     void rmfd();
+    //拉取两页聊天记录
+    void ctms();
 
 public:
     handler(std::string buf, int fd):str(buf),sockfd(fd){
     }
 
+    //利用uid处理用户下线的请求
+    void uulg(std::string);
     //处理用户传来的请求
     int handle();
 };
@@ -94,6 +97,7 @@ int handler::handle(void){
     else if(str[0] == 'r' && str[1] == 'd' && str[2] == 'n' && str[3] == 't') rdnt();
     else if(str[0] == 'r' && str[1] == 'm' && str[2] == 'n' && str[3] == 't') rmnt();
     else if(str[0] == 'r' && str[1] == 'm' && str[2] == 'f' && str[3] == 'd') rmfd();
+    else if(str[0] == 'c' && str[1] == 't' && str[2] == 'm' && str[3] == 's') ctms();
 
     return 0;
 }
@@ -247,6 +251,8 @@ void handler::unlg(std::string buf){
 void handler::uulg(std::string uid){
     //拿到用户信息
     user ud = u.GetUesr(uid);
+    if(uid_to_socket.count(uid) && uid_to_socket[uid] != sockfd)//处理顶号问题
+        return ;
     ud.stat = "offline";
     //将该用户在map存的映射清空
     uid_to_socket.erase(uid);
@@ -477,4 +483,20 @@ void handler::gtnm(){
     std::string uid = str.c_str() + i + 1;
     user ud = u.GetUesr(uid);
     sendMsg("echo:"+ud.name, sockfd);
+}
+
+void handler::ctms(){
+    //拿到数据
+    std::string uid1,uid2;
+    int i = 0;
+    while(str[i] != ':') i++;
+    int j = i + 1;
+    while(str[j] != ':') {
+        uid1.push_back(str[j]);
+        j++;
+    }
+    for(int t = j + 1; t < str.size(); t++) uid2.push_back(str[t]);
+    messages msg(u.lrange(uid1, uid2, 0, 13));
+    //发给用户
+    sendMsg("echo:"+ msg.toJson(), sockfd);
 }

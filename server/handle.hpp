@@ -60,7 +60,12 @@ private:
     void rmfd();
     //拉取两页聊天记录
     void ctms();
-
+    //处理用户发送消息的请求
+    void sdms();
+    //处理用户读取聊天记录总条数的请求
+    void rdpg();
+    //处理用户需要保存json字符串的需求
+    void svrp();
 public:
     handler(std::string buf, int fd):str(buf),sockfd(fd){
     }
@@ -98,6 +103,9 @@ int handler::handle(void){
     else if(str[0] == 'r' && str[1] == 'm' && str[2] == 'n' && str[3] == 't') rmnt();
     else if(str[0] == 'r' && str[1] == 'm' && str[2] == 'f' && str[3] == 'd') rmfd();
     else if(str[0] == 'c' && str[1] == 't' && str[2] == 'm' && str[3] == 's') ctms();
+    else if(str[0] == 's' && str[1] == 'd' && str[2] == 'm' && str[3] == 's') sdms();
+    else if(str[0] == 'r' && str[1] == 'd' && str[2] == 'p' && str[3] == 'g') rdpg();
+    else if(str[0] == 's' && str[1] == 'v' && str[2] == 'r' && str[3] == 'p') svrp();
 
     return 0;
 }
@@ -499,4 +507,59 @@ void handler::ctms(){
     messages msg(u.lrange(uid1, uid2, 0, 13));
     //发给用户
     sendMsg("echo:"+ msg.toJson(), sockfd);
+}
+
+//处理用户发送消息的请求
+//"sdms:"+message
+void handler::sdms(){
+    std::string msg;
+    int i = 0, j;
+    while(str[i] != ':') i ++;
+    msg = str.c_str() + i + 1;
+    //存入数据库
+    u.savechat(msg);
+    message sendm = message::fromJson(msg);
+    //编辑接受者的通知
+    report rpt = report::fromJson(u.u_report(sendm.receiver_uid));
+    int cnt = rpt.chatfriend[sendm.sender_uid];
+    rpt.chatfriend[sendm.sender_uid] = cnt + 1;
+    rpt.total_friend_msg++;
+    u.svreport(sendm.receiver_uid, rpt.toJson());
+    //若接受者在线，给接受者发通知：有新消息
+    if(uid_to_socket.count(sendm.receiver_uid)) sendMsg("rept:"+sendm.sender_uid, uid_to_socket[sendm.receiver_uid]);
+    //给接受者发送这条消息
+    if(uid_to_socket.count(sendm.receiver_uid)) sendMsg("chat:"+sendm.toJson(), uid_to_socket[sendm.receiver_uid]);
+
+}
+
+void handler::rdpg(){
+    //拿到数据
+    std::string uid1,uid2;
+    int i = 0;
+    while(str[i] != ':') i++;
+    int j = i + 1;
+    while(str[j] != ':') {
+        uid1.push_back(str[j]);
+        j++;
+    }
+    for(int t = j + 1; t < str.size(); t++) uid2.push_back(str[t]);
+    int t = u.llen(uid1, uid2);
+    char arr[512];
+    sprintf(arr, "echo:%d", t);
+    sendMsg(arr, sockfd);
+}
+
+void handler::svrp(){
+     //拿到数据
+    std::string uid1,sd;
+    int i = 0;
+    while(str[i] != ':') i++;
+    int j = i + 1;
+    while(str[j] != ':') {
+        uid1.push_back(str[j]);
+        j++;
+    }
+    for(int t = j + 1; t < str.size(); t++) sd.push_back(str[t]);
+    u.svreport(uid1, sd);
+    sendMsg("echo:right", sockfd);
 }

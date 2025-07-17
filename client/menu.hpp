@@ -121,11 +121,11 @@ void reportmenu(user& u, report rpt, bool ret){
   else printf("\n");
 
   printf("\033[0;32m[2] 查看未读好友消息   \033[0m");
-  if(ret && rpt.chatfriend.size()) printf("\033[0;31m(%ld)\033[0m\n", rpt.chatfriend.size());
+  if(ret && rpt.total_friend_msg) printf("\033[0;31m(%d)\033[0m\n", rpt.total_friend_msg);
   else printf("\n");
 
   printf("\033[0;32m[3] 查看未读群聊消息   \033[0m");
-  if(ret && rpt.chatgroup.size()) printf("\033[0;31m(%ld)\033[0m\n", rpt.chatgroup.size());
+  if(ret && rpt.total_group_msg) printf("\033[0;31m(%d)\033[0m\n", rpt.total_group_msg);
   else printf("\n");
 
   printf("\033[0;32m[4] 查看群组邀请      \033[0m");

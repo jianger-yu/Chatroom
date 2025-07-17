@@ -2,6 +2,7 @@
 #include "../MessageQueue.hpp"
 #include "reportfuc.hpp"
 #include "../../../message.hpp"
+#include <algorithm>
 
 class friendfucs{
 private:
@@ -9,6 +10,7 @@ private:
     void* clientp;
     int page = 0;
     int ctpage = 0;
+    int msgcnt = 0;
     messages save;
 public:
 
@@ -140,6 +142,7 @@ void friendfucs::list(char c){
     printf("                                \033[0;32m[%d/%d]\033[0m\n",page+1,maxpage);
     printf("\033[0;36m==========================================================\033[0m\n");
 }
+
 
 void friendfucs::listfriend(){
     system("clear");
@@ -285,32 +288,43 @@ void friendfucs::delfriend(){
 }
 
 void friendfucs::chatmenu(char c, user& ud2){
-    reportfucs rpf(u, clientp);
-    bool ret = rpf.Getrpt();
     Client* cp = (Client*) clientp;
     Socket* sock = cp->getSocket();
+    reportfucs rpf(u, clientp);
+    bool ret = rpf.Getrpt();
+    if(ret){
+        rpf.rpt.total_friend_msg -= rpf.rpt.chatfriend[ud2.uid];
+        rpf.rpt.chatfriend[ud2.uid] = 0;
+        sock->sendMsg("svrp:"+u.uid+":"+rpf.rpt.toJson());
+        std::string rev = EchoMsgQueue.wait_and_pop();
+    }
     int cnt = 0;
     cnt = save.data.size();
-    int maxpage = cnt / 7, i = 0;
-    if(cnt % 7 != 0) maxpage++;
-    if(maxpage == 0) maxpage = 1;
+    int maxctpage = msgcnt / 7;
+    int i = 0;
+    if(cnt % 7 != 0) maxctpage++;
+    if(maxctpage == 0) maxctpage = 1;
     if(c == '[' && ctpage == 0) ;
     else if(c == '[') ctpage --;
-    if(c == ']' && ctpage+1 >= maxpage) ;
+    if(c == ']' && ctpage+1 >= maxctpage) ;
     else if(c == ']') ctpage ++;
+    std::string sender;
     printf("\033[0;36m=============================聊天页面=============================\033[0m\n");
     reportfucs::newreport(u, clientp);
     if(ud2.stat == "online") printf("\033[0;32m                             %s (在线)\033[0m\n", ud2.name.c_str());
     else                     printf("\033[0;90m                             %s (离线)\033[0m\n", ud2.name.c_str());
-
-    for(std::string str : save.data){
-        if(i >= 7*ctpage && i < 7*(ctpage+1)){
-            
-        }
-        i++;
+    if(ctpage+1 == maxctpage)    printf("\033[0;90m                       ---聊天记录已到顶---\033[0m\n");
+    for(i = std::min(7*(ctpage+1) - 1, (int)save.data.size() - 1); i >= 7*ctpage; i--){
+        if(!save.data.size()) break;
+        message msg = message::fromJson(save.data[i]);
+        sender = ud2.name;
+        if(msg.sender_uid == u.uid) sender = u.name;
+        if(ud2.stat == "online" || sender == u.name) printf("\033[0;32m%s\033[0m \033[0;33m[%s]\033[0m\n", sender.c_str(), msg.timestamp.c_str());
+        else                     printf("\033[0;90m%s\033[0m \033[0;33m[%s]\033[0m\n", sender.c_str(), msg.timestamp.c_str());
+        printf("\033[0;32m>\033[0m%s\n", msg.content.c_str());
     }
     printf("                                         \033[0;32m(tip:按[和]按键可控制翻页)\n\033[0m");
-    printf("                                                         \033[0;32m[%d/%d]\033[0m\n",ctpage+1,maxpage);
+    printf("                                                         \033[0;32m[%d/%d]\033[0m\n",ctpage+1,maxctpage);
     printf("\033[0;36m==================================================================\033[0m\n");
 }
 
@@ -318,6 +332,8 @@ void friendfucs::handlechat(char c){
     Client * cp = (Client*)clientp;
     Socket * sock = cp->getSocket();
     system("clear");
+    printf("\033[0;32m数据请求中...\033[0m");
+    fflush(stdout); // 手动刷新标准输出缓冲区
     //找到对应uid
     int i = 5*page + c - '0' - 1, j = 0;
     if(i >= u.friendlist.size()) return;
@@ -340,12 +356,18 @@ void friendfucs::handlechat(char c){
     else sock->sendMsg("ctms:"+uid2+":"+u.uid);
     std::string rev = EchoMsgQueue.wait_and_pop(), msg;
     save = messages::fromJson(rev);
+    //读取聊天记录总条数
+    sock->sendMsg("rdpg:"+ u.uid + ":" + uid2);
+    rev = EchoMsgQueue.wait_and_pop();
+    sscanf(rev.c_str(), "%d", &msgcnt);
     //定义部分变量
     bool flag = false;
     system("clear");
     ctpage = 0;
     chatmenu('0', ud2);
+    printf("\033[0;32m请输入:>\033[0m");
     fflush(stdout); // 手动刷新标准输出缓冲区
+    std::string content, utf8_buf;
     while(1){
         //判断用户信息是否变动
         if(UserMsgQueue.try_pop(msg)){
@@ -353,41 +375,111 @@ void friendfucs::handlechat(char c){
             u = user::fromJson(msg);
             flag = true;
         }
+        //判断聊天消息是否有新
+        if(ChatMsgQueue.try_pop(msg)){
+            page = 0;
+            message m = message::fromJson(msg);
+            if(m.sender_uid == ud2.uid) save.data.insert(save.data.begin(), msg);
+            msgcnt++;
+            flag = true;
+        }
         //判断是否有新通知
         if(ReptMsgQueue.try_pop(msg) || flag){
             flag = false;
             system("clear");
             chatmenu('p', ud2);
-            printf("\033[0;32m请选择您要删除的好友:>\033[0m");
+            printf("\033[0;32m请输入:>\033[0m");
+            printf("%s", content.c_str());
             fflush(stdout); // 手动刷新标准输出缓冲区
         }
         char input = tm_charget(200);
         if(input == -1) continue;
+        // 中文或其他 UTF-8 字符处理
         switch(input){
-        case '1':
-        case '2':
-        case '3':
-        case '4':
-        case '5':{
-            //handledel(input);
+        case 127:
+        case '\b':{
+            if (content.empty()) continue;
+            int i = content.size() - 1;
+            // 向后回退找到一个 UTF-8 字符的起始字节
+            int len = 1;
+            while (i - len >= 0 && (content[i - len + 1] & 0xC0) == 0x80) {
+                len++;
+            }
+            int char_start = i - len + 1;
+            if (char_start < 0 || char_start >= (int)content.size()) continue;  // 安全边界
+            std::string ch = content.substr(char_start, len);
+            // 判断字符宽度
+            int display_width = is_wide_char((const unsigned char *)ch.c_str()) ? 2 : 1;
+            // 删除字符
+            content.erase(char_start, len);
+            // 回退显示
+            for (int j = 0; j < display_width; ++j) {
+                printf("\b \b");
+            }
+            fflush(stdout);
+            break;
+        }
+        case '\n':{//发送消息
+            if(content.size() == 0 || content == "\n") break;
+            content.push_back('\0');
+            message sendm;
+            sendm.sender_uid = u.uid;
+            sendm.receiver_uid = uid2;
+            sendm.content = content;
+            sendm.timestamp = message::get_beijing_time();
+            sock->sendMsg("sdms:"+sendm.toJson());
+            save.data.insert(save.data.begin(), sendm.toJson());
+            flag = true;
+            ctpage = 0;
+            content.clear();
+            msgcnt++;
             break;
         }
         case '[':{
             system("clear");
-            list('[');
+            chatmenu('[', ud2);
+            printf("\033[0;32m请输入:>\033[0m");
+            printf("%s", content.c_str());
             fflush(stdout); // 手动刷新标准输出缓冲区
             break;
         }
         case ']':{
             system("clear");
-            list(']');
+            chatmenu(']', ud2);
+            printf("\033[0;32m请输入:>\033[0m");
+            printf("%s", content.c_str());
             fflush(stdout); // 手动刷新标准输出缓冲区
             break;
         }
         case 27:{
             return ;
         }
-        default:continue;
+        default:{
+             utf8_buf += input;
+            
+            int need_len = 1;
+            unsigned char first = static_cast<unsigned char>(utf8_buf[0]);
+            if ((first & 0x80) == 0x00) need_len = 1;
+            else if ((first & 0xE0) == 0xC0) need_len = 2;
+            else if ((first & 0xF0) == 0xE0) need_len = 3;
+            else if ((first & 0xF8) == 0xF0) need_len = 4;
+            else {
+                // 非法字符
+                utf8_buf.clear();
+                continue;
+            }
+
+            while ((int)utf8_buf.size() < need_len) {
+                utf8_buf += charget(); // 继续收集字节
+            }
+
+            // 拼完一个字符
+            content += utf8_buf;
+            printf("%s", utf8_buf.c_str());
+            fflush(stdout);
+            utf8_buf.clear();
+            continue;
+        }
         }
     }
 }

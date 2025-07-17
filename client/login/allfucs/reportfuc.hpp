@@ -42,10 +42,10 @@ public:
         if(ret){
         if(rpf.rpt.friendapply.size())
         printf("           \033[0;34m[new] 有%ld条未处理的好友申请\033[0m\n", rpf.rpt.friendapply.size());
-            if(rpf.rpt.chatfriend.size())
-        printf("           \033[0;34m[new] 有%ld个未读的好友消息\033[0m\n", rpf.rpt.chatfriend.size());
-            if(rpf.rpt.chatgroup.size())
-        printf("           \033[0;34m[new] 有%ld个未读的群聊消息\033[0m\n", rpf.rpt.chatgroup.size());
+            if(rpf.rpt.total_friend_msg)
+        printf("           \033[0;34m[new] 有%d个未读的好友消息\033[0m\n", rpf.rpt.total_friend_msg);
+            if(rpf.rpt.total_group_msg)
+        printf("           \033[0;34m[new] 有%d个未读的群聊消息\033[0m\n", rpf.rpt.total_group_msg);
             if(rpf.rpt.groupapply.size())
         printf("           \033[0;34m[new] 有%ld条未处理的群聊邀请\033[0m\n", rpf.rpt.groupapply.size());
         int cnt = 0;
@@ -66,6 +66,7 @@ bool reportfucs::Getrpt(){
     js = EchoMsgQueue.wait_and_pop();
     if(js == "none") return false;
     rpt = report::fromJson(js);
+    
     return true;
 }
 

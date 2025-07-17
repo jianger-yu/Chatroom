@@ -5,6 +5,7 @@
 #include "../user.hpp"
 #include "../Redis.hpp"
 #include "report.hpp"
+#include "../message.hpp"
 
 class userdata{
 private:
@@ -50,6 +51,8 @@ public:
     std::vector<std::string> lrange(std::string uid1, std::string uid2, int cnt, int fg);
     //根据uid1、uid2获取消息总量
     int llen(std::string uid1, std::string uid2);
+    //根据聊天的json字符串存聊天记录
+    void savechat(std::string js);
 };
 
 
@@ -77,6 +80,7 @@ std::string userdata::newuser(std::string str){
     freeReplyObject(reply);
     //生成report数据
     report rpt;
+    rpt.total_group_msg = rpt.total_friend_msg = 0;
     svreport(nuid, rpt.toJson());
     return nuid;
 }
@@ -197,6 +201,7 @@ bool userdata::svreport(std::string uid, std::string js){
 }
 int userdata::llen(std::string uid1, std::string uid2){
     // 先获取list长度
+    if(uid1 > uid2) std::swap(uid1, uid2);
     std::string chat_key = "chat:" + uid1 + ":" + uid2;
     redisReply* reply_len = (redisReply*)redisCommand(redis, "LLEN %s", chat_key.c_str());
     if (!reply_len || reply_len->type != REDIS_REPLY_INTEGER) {
@@ -211,6 +216,7 @@ int userdata::llen(std::string uid1, std::string uid2){
 
 std::vector<std::string> userdata::lrange(std::string uid1, std::string uid2, int start, int stop){
     std::vector<std::string> result;
+    if(uid1 > uid2) std::swap(uid1, uid2);
     std::string chat_key = "chat:" + uid1 + ":" + uid2;
     int len = 0;
     if (len == llen(uid1, uid2)) return result; // 无消息直接返回
@@ -228,4 +234,12 @@ std::vector<std::string> userdata::lrange(std::string uid1, std::string uid2, in
     freeReplyObject(reply);
 
     return result;
+}
+
+void userdata::savechat(std::string js){
+    message sendm = message::fromJson(js);
+    if(sendm.sender_uid > sendm.receiver_uid) std::swap(sendm.sender_uid , sendm.receiver_uid);
+    std::string chat_key = "chat:" + sendm.sender_uid + ":" + sendm.receiver_uid;
+    redisReply* reply = (redisReply*)redisCommand(redis, "LPUSH %s %s", chat_key.c_str(), js.c_str());
+    freeReplyObject(reply);
 }

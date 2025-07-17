@@ -58,6 +58,34 @@ int tm_charget(int timeout_ms) {
     return ch;
 }
 
+std::string tm_read_all_input(int timeout_ms) {
+    struct termios oldt, newt;
+    std::string result;
+
+    tcgetattr(STDIN_FILENO, &oldt);
+    newt = oldt;
+    newt.c_lflag &= ~(ICANON | ECHO);
+    tcsetattr(STDIN_FILENO, TCSANOW, &newt);
+
+    fd_set rfds;
+    FD_ZERO(&rfds);
+    FD_SET(STDIN_FILENO, &rfds);
+
+    struct timeval tv;
+    tv.tv_sec = timeout_ms / 1000;
+    tv.tv_usec = (timeout_ms % 1000) * 1000;
+
+    int retval = select(STDIN_FILENO + 1, &rfds, NULL, NULL, &tv);
+    if (retval > 0) {
+        char buf[32];  // 最多读取32字节，UTF-8输入一次不会超过
+        int n = read(STDIN_FILENO, buf, sizeof(buf));
+        if (n > 0) result.append(buf, n);
+    }
+
+    tcsetattr(STDIN_FILENO, TCSANOW, &oldt);
+    return result;
+}
+
 
 
 // 判断 UTF-8 首字节，获取字符字节长度
@@ -81,9 +109,17 @@ int enter(char *arr, int key) {
     unsigned char ch;
 
     while (1) {
-        ch = charget();
-        if(i >= 20 && ch != '\b' && ch != 127 && ch != '\n' && ch != 27) continue;
+        if(key != 2)
+            ch = charget();
+        else if(key == 2) {
+            ch = tm_charget(200);
+            if(ch == -1) return -5;
+        }
+        if(key != 2 && i >= 20 && ch != '\b' && ch != 127 && ch != '\n' && ch != 27) continue;
+        if(key == 2 && i >= 300 && ch != '\b' && ch != 127 && ch != '\n' && ch != 27 && ch != '[' && ch != ']') continue;
         if (ch == 27) return -1;  // ESC
+        if (ch == '[') return -2;
+        if (ch == ']') return -3;
         if (ch == '\n') {
             arr[i] = '\0';
             break;

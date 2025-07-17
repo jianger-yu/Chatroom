@@ -26,7 +26,7 @@ private:
         return 0;
     }
 
-    void getcode(void){
+    void getcode(){
         std::random_device rd;
         std::mt19937 gen(rd());
         // 生成100000-999999之间的随机数

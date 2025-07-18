@@ -109,6 +109,7 @@ int userfuc::friendfuc(void){
         }
         case '4':{
             f.chatfriend();
+            flag = true;
             break;
         }
         case '5':{
@@ -289,7 +290,8 @@ int userfuc::reportfuc(void){
             break;
         }
         case '2':{
-            
+            rpf.ctfrdreport();
+            flag = true;
             break;
         }
         case '3':{

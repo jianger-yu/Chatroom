@@ -132,9 +132,11 @@ void friendfucs::list(char c){
             // 如果是在线，颜色绿色；否则灰色
             const char *color = (status == "在线") ? "\033[0;32m" : "\033[0;90m";
 
-            printf("%s[%d]  %-12s %-14s %-12s\033[0m\n",
+            printf("%s[%d]  %-12s %-14s %-12s\033[0m",
                     color, i - 5 * page + 1,
                     name.c_str(), ud.uid.c_str(), status.c_str());
+            if(rpf.rpt.chatfriend[ud.uid]) printf("   \033[0;31m（%d）\033[0m\n", rpf.rpt.chatfriend[ud.uid]);
+            else puts("");
         }
         i++;
     }
@@ -269,12 +271,14 @@ void friendfucs::delfriend(){
         case '[':{
             system("clear");
             list('[');
+            printf("\033[0;32m请选择您要删除的好友:>\033[0m");
             fflush(stdout); // 手动刷新标准输出缓冲区
             break;
         }
         case ']':{
             system("clear");
             list(']');
+            printf("\033[0;32m请选择您要删除的好友:>\033[0m");
             fflush(stdout); // 手动刷新标准输出缓冲区
             break;
         }
@@ -302,7 +306,7 @@ void friendfucs::chatmenu(char c, user& ud2){
     cnt = save.data.size();
     int maxctpage = msgcnt / 7;
     int i = 0;
-    if(cnt % 7 != 0) maxctpage++;
+    if(msgcnt % 7 != 0) maxctpage++;
     if(maxctpage == 0) maxctpage = 1;
     if(c == '[' && ctpage == 0) ;
     else if(c == '[') ctpage --;
@@ -361,6 +365,7 @@ void friendfucs::handlechat(char c){
     rev = EchoMsgQueue.wait_and_pop();
     sscanf(rev.c_str(), "%d", &msgcnt);
     //定义部分变量
+    bool new_flag = true;
     bool flag = false;
     system("clear");
     ctpage = 0;
@@ -378,10 +383,13 @@ void friendfucs::handlechat(char c){
         //判断聊天消息是否有新
         if(ChatMsgQueue.try_pop(msg)){
             page = 0;
-            message m = message::fromJson(msg);
-            if(m.sender_uid == ud2.uid) save.data.insert(save.data.begin(), msg);
-            msgcnt++;
-            flag = true;
+            if(!new_flag){
+                message m = message::fromJson(msg);
+                if(m.sender_uid == ud2.uid) save.data.insert(save.data.begin(), msg);
+                msgcnt++;
+                flag = true;
+            }
+            new_flag = false;
         }
         //判断是否有新通知
         if(ReptMsgQueue.try_pop(msg) || flag){
@@ -445,6 +453,15 @@ void friendfucs::handlechat(char c){
         }
         case ']':{
             system("clear");
+            //请求新页的消息
+            if(save.data.size() < msgcnt){
+                char tmp[512];
+                sprintf(tmp, "ndms:%s:%s:%ld", u.uid.c_str(), ud2.uid.c_str(), save.data.size());
+                sock->sendMsg(tmp);
+                messages mgs = messages::fromJson(EchoMsgQueue.wait_and_pop());
+                for(int i = 0; i < mgs.data.size(); i++)
+                    save.data.push_back(mgs.data[i]);
+            }
             chatmenu(']', ud2);
             printf("\033[0;32m请输入:>\033[0m");
             printf("%s", content.c_str());
@@ -478,9 +495,10 @@ void friendfucs::handlechat(char c){
             printf("%s", utf8_buf.c_str());
             fflush(stdout);
             utf8_buf.clear();
-            continue;
+            break;
         }
         }
+        new_flag = false;
     }
 }
 
@@ -522,12 +540,14 @@ void friendfucs::chatfriend(){
         case '[':{
             system("clear");
             list('[');
+            printf("\033[0;32m请选择您要私聊的好友:>\033[0m");
             fflush(stdout); // 手动刷新标准输出缓冲区
             break;
         }
         case ']':{
             system("clear");
             list(']');
+            printf("\033[0;32m请选择您要私聊的好友:>\033[0m");
             fflush(stdout); // 手动刷新标准输出缓冲区
             break;
         }

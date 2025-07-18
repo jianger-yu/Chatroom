@@ -66,6 +66,8 @@ private:
     void rdpg();
     //处理用户需要保存json字符串的需求
     void svrp();
+    //处理用户需要提供聊天记录的请求
+    void ndms();
 public:
     handler(std::string buf, int fd):str(buf),sockfd(fd){
     }
@@ -106,6 +108,7 @@ int handler::handle(void){
     else if(str[0] == 's' && str[1] == 'd' && str[2] == 'm' && str[3] == 's') sdms();
     else if(str[0] == 'r' && str[1] == 'd' && str[2] == 'p' && str[3] == 'g') rdpg();
     else if(str[0] == 's' && str[1] == 'v' && str[2] == 'r' && str[3] == 'p') svrp();
+    else if(str[0] == 'n' && str[1] == 'd' && str[2] == 'm' && str[3] == 's') ndms();
 
     return 0;
 }
@@ -550,7 +553,7 @@ void handler::rdpg(){
 }
 
 void handler::svrp(){
-     //拿到数据
+    //拿到数据
     std::string uid1,sd;
     int i = 0;
     while(str[i] != ':') i++;
@@ -562,4 +565,25 @@ void handler::svrp(){
     for(int t = j + 1; t < str.size(); t++) sd.push_back(str[t]);
     u.svreport(uid1, sd);
     sendMsg("echo:right", sockfd);
+}
+
+void handler::ndms(){
+    //拿到数据
+    std::string uid1, uid2, msgcnt;
+    int i = 0, t, cnt;
+    while(str[i] != ':') i++;
+    int j = i + 1;
+    while(str[j] != ':') {
+        uid1.push_back(str[j]);
+        j++;
+    }
+    t = j + 1;
+    while(str[t] != ':') {
+        uid2.push_back(str[t]);
+        t++;
+    }
+    for(int k = t + 1; k < str.size(); k++) msgcnt.push_back(str[k]);
+    sscanf(msgcnt.c_str(), "%d", &cnt);
+    messages msgs = u.lrange(uid1, uid2, cnt, cnt+6);
+    sendMsg("echo:"+ msgs.toJson(), sockfd);
 }

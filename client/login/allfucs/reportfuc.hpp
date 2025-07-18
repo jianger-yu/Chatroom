@@ -466,6 +466,13 @@ void reportfucs::handlechat(char c, report& rpt){
         if(UserMsgQueue.try_pop(msg)){
             page = 0;
             u = user::fromJson(msg);
+            if(u.friendlist.count(uid2) == 0){//被删除了
+                system("clear");
+                printf("\033[0;31m您被对方删除了。\033[0m\n");
+                printf("\033[0;31m请按任意键继续...\033[0m\n");
+                charget();
+                return;
+            }
             flag = true;
         }
         //判断聊天消息是否有新
@@ -524,6 +531,15 @@ void reportfucs::handlechat(char c, report& rpt){
             sendm.content = content;
             sendm.timestamp = message::get_beijing_time();
             sock->sendMsg("sdms:"+sendm.toJson());
+            rev = EchoMsgQueue.wait_and_pop();
+            if(rev == "rihgt");
+            else if(rev == "nofrd"){
+                system("clear");
+                printf("\033[0;31m当前不是好友，发送失败！\033[0m\n]]");
+                printf("\033[0;31m请按任意键继续...\033[0m\n");
+                charget();
+                return;
+            }
             save.data.insert(save.data.begin(), sendm.toJson());
             flag = true;
             ctpage = 0;

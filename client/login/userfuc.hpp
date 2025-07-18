@@ -113,6 +113,11 @@ int userfuc::friendfuc(void){
             break;
         }
         case '5':{
+            f.shieldfriend();
+            flag = true;
+            break;
+        }
+        case '6':{
             
             break;
         }
@@ -251,8 +256,23 @@ int userfuc::setupfuc(void){
             break;
         }
         case '4':{
-            sock->sendMsg("unlg:"+u.name);
-            return -1;
+            system("clear");
+            printf("\033[0;31m确定要退出登录？（Y/N）\033[0m\n");
+            fflush(stdout);
+            char input;
+            bool ext = false;
+            while(1){
+                input = charget();
+                if(input == 27) break;
+                if(input != 'Y' && input != 'N' && input != 'y' && input != 'n') continue;
+                if(input == 'Y' || input == 'y') ext = true;
+                break;
+            }
+            if(ext){
+                sock->sendMsg("unlg:"+u.name);
+                return -1;
+            } else flag = true;
+            break;
         }
         case 27:{
             return 0;

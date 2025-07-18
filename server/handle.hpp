@@ -519,9 +519,15 @@ void handler::sdms(){
     int i = 0, j;
     while(str[i] != ':') i ++;
     msg = str.c_str() + i + 1;
+    //先判断是不是好友
+    message sendm = message::fromJson(msg);
+    user ud = u.GetUesr(sendm.sender_uid);
+    if(ud.friendlist.count(sendm.receiver_uid) == 0){//说明不为好友
+        sendMsg("echo:nofrd", sockfd);
+        return;
+    }
     //存入数据库
     u.savechat(msg);
-    message sendm = message::fromJson(msg);
     //编辑接受者的通知
     report rpt = report::fromJson(u.u_report(sendm.receiver_uid));
     int cnt = rpt.chatfriend[sendm.sender_uid];
@@ -532,6 +538,8 @@ void handler::sdms(){
     if(uid_to_socket.count(sendm.receiver_uid)) sendMsg("rept:"+sendm.sender_uid, uid_to_socket[sendm.receiver_uid]);
     //给接受者发送这条消息
     if(uid_to_socket.count(sendm.receiver_uid)) sendMsg("chat:"+sendm.toJson(), uid_to_socket[sendm.receiver_uid]);
+    //给发送者发回声
+    sendMsg("echo:right", sockfd);
 
 }
 

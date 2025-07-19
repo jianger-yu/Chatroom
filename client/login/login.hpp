@@ -16,7 +16,7 @@ private:
 public:
 
     void lgin(void*p);
-    void findpwd(void*p);
+    void findpwd(void*p, int fg);
 };
 
 void login::lgin(void*p){
@@ -142,12 +142,16 @@ int login::emaillog(){
     return 0;
 }
 
-void login::findpwd(void*p){
+void login::findpwd(void*p, int fg){
     Client* c = (Client*)p;
     Socket* sock = c->getSocket();
     std::string pmitchar = "~!@#$%^&*()-=[];',./_+";
     system("clear");
+    if(fg == 1)
     printf("\033[0;32m正在为您找回密码(按ESC可返回上一级菜单)\033[0m\n");
+    else if(fg == 2)
+    printf("\033[0;32m正在为您修改密码(按ESC可返回上一级菜单)\033[0m\n");
+
     // printf("\033[0;32m请输入用户名。\033[0m\n>");
     // //输入用户名
     // do{
@@ -286,5 +290,4 @@ void login::findpwd(void*p){
             printf("\033[0;31m数据异常，请重试。\n\033[0m>");
         }
     } while(1);
-
 }

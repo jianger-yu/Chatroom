@@ -2,7 +2,6 @@
 #include<iostream>
 #include "login/allfucs.h"
 
-
 void startmenu(void){
   printf("\033[0;36m==========================================================\033[0m\n");
   printf("           \033[0;33m欢迎进入聊天室,请选择要进行的操作\033[0m\n");
@@ -37,7 +36,7 @@ void usermainmenu(user &u, void *p){
   reportfucs::newreport(u, p);
   printf("\033[0;32m[1] 好友功能\033[0m\n");
   printf("\033[0;32m[2] 群聊功能\033[0m\n");
-  printf("\033[0;32m[3] 聊天记录\033[0m\n");
+  printf("\033[0;32m[3] 文件功能\033[0m\n");
   printf("\033[0;32m[4] 查看通知\033[0m\n");
   printf("\033[0;32m[5] 设置与退出\033[0m\n");
   printf("\033[0;36m==========================================================\033[0m\n");
@@ -93,17 +92,19 @@ void groupmenu(user& u, void *p){
   fflush(stdout); // 手动刷新标准输出缓冲区
 }
 
-void recordmenu(user& u, void *p){
+void filemenu(user& u, void *p){
   system("clear");
   fflush(stdout); // 手动刷新标准输出缓冲区
   printf("\033[0;32m数据请求中...\033[0m\n");
   fflush(stdout); // 手动刷新标准输出缓冲区
   system("clear");
   printf("\033[0;36m==========================================================\033[0m\n");
-  printf("                \033[0;33m聊天记录\033[0m\n");
+  printf("                \033[0;33m文件功能\033[0m\n");
   reportfucs::newreport(u, p);
-  printf("\033[0;32m[1] 查看与某好友的聊天记录\033[0m\n");
-  printf("\033[0;32m[2] 查看某群组的聊天记录\033[0m\n");
+  printf("\033[0;32m[1] 给好友发送文件\033[0m\n");
+  printf("\033[0;32m[2] 给群组发送文件\033[0m\n");
+  printf("\033[0;32m[3] 下载好友发送的文件\033[0m\n");
+  printf("\033[0;32m[4] 下载群文件\033[0m\n");
   printf("                    \033[0;33m(tip:ESC可返回上一级菜单)\033[0m\n");
   printf("\033[0;36m==========================================================\033[0m\n");
 

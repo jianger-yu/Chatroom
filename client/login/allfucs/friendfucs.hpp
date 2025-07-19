@@ -373,7 +373,6 @@ void friendfucs::handlechat(char c){
     rev = EchoMsgQueue.wait_and_pop();
     sscanf(rev.c_str(), "%d", &msgcnt);
     //定义部分变量
-    bool new_flag = true;
     bool flag = false;
     system("clear");
     ctpage = 0;
@@ -381,6 +380,7 @@ void friendfucs::handlechat(char c){
     printf("\033[0;32m请输入:>\033[0m");
     fflush(stdout); // 手动刷新标准输出缓冲区
     std::string content, utf8_buf;
+    ChatMsgQueue.clear();
     while(1){
         //判断用户信息是否变动
         if(UserMsgQueue.try_pop(msg)){
@@ -398,13 +398,10 @@ void friendfucs::handlechat(char c){
         //判断聊天消息是否有新
         if(ChatMsgQueue.try_pop(msg)){
             page = 0;
-            if(!new_flag){
-                message m = message::fromJson(msg);
-                if(m.sender_uid == ud2.uid) save.data.insert(save.data.begin(), msg);
-                msgcnt++;
-                flag = true;
-            }
-            new_flag = false;
+            message m = message::fromJson(msg);
+            if(m.sender_uid == ud2.uid) save.data.insert(save.data.begin(), msg);
+            msgcnt++;
+            flag = true;
         }
         //判断是否有新通知
         if(ReptMsgQueue.try_pop(msg) || flag){
@@ -530,7 +527,6 @@ void friendfucs::handlechat(char c){
             break;
         }
         }
-        new_flag = false;
     }
 }
 

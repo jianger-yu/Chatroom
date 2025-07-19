@@ -237,7 +237,6 @@ std::vector<std::string> userdata::lrange(std::string uid1, std::string uid2, in
 
 void userdata::savechat(std::string js){
     message sendm = message::fromJson(js);
-    if(sendm.sender_uid > sendm.receiver_uid) std::swap(sendm.sender_uid , sendm.receiver_uid);
     std::string chat_key = "chat:" + sendm.receiver_uid + ":" + sendm.sender_uid;
     redisReply* reply = (redisReply*)redisCommand(redis, "LPUSH %s %s", chat_key.c_str(), js.c_str());
     freeReplyObject(reply);

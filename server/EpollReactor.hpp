@@ -333,7 +333,9 @@ void readctor::InitListenSocket(unsigned short port){
     fcntl(lfd, F_SETFL, O_NONBLOCK);
 
     memset(&addr, 0, sizeof addr);
-    addr.sin_addr.s_addr = INADDR_ANY;
+    //addr.sin_addr.s_addr = INADDR_ANY;    //绑定网卡上任意ip
+    inet_pton(AF_INET, DATASENDIP, &addr.sin_addr); //连接指定端口
+
     addr.sin_family = AF_INET;
     addr.sin_port = htons(port);
 

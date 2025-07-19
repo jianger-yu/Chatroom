@@ -403,7 +403,8 @@ void handler::adfok(){
         sendMsg("rept:"+uid2, uid_to_socket[uid1]);
         sendMsg("user:"+ud1.toJson(), uid_to_socket[uid1]);
     }
-
+    //给用户2发用户信息，避免本地内容被通信覆盖
+    sendMsg("user:"+ud2.toJson(), sockfd);
 }
 
 

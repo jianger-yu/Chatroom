@@ -45,7 +45,7 @@ void Client::ctlthread(){
       }
       case '3':
         login f;
-        f.findpwd(this);
+        f.findpwd(this, 1);
         break;
       case '4':{
         system("clear");

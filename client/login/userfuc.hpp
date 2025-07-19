@@ -2,7 +2,6 @@
 
 #include "../menu.hpp"
 
-
 class userfuc{
 private:
     user u;
@@ -17,7 +16,7 @@ public:
 
     int friendfuc(void);
     int groupfuc(void);
-    int recordfuc(void);
+    int filefuc(void);
     int setupfuc(void);
     int reportfuc(void);
 
@@ -54,7 +53,7 @@ int userfuc::mainfuc(void * p){
             break;
         }
         case '3':{
-            recordfuc();
+            filefuc();
             flag = true;
             break;
         }
@@ -178,38 +177,30 @@ int userfuc::groupfuc(void){
     return 0;
 }
 
-int userfuc::recordfuc(void){
+int userfuc::filefuc(void){
     char input = 0;
     std::string msg;
     system("clear");
-    recordmenu(u, clientp);
+    filefucs(u, clientp);
+    filemenu(u, clientp);
+    bool flag = false;
     fflush(stdout); // 手动刷新标准输出缓冲区
     while(1){
-        if(ReptMsgQueue.try_pop(msg)){
+        if(ReptMsgQueue.try_pop(msg) || flag){
+            flag == false;
             system("clear");
-            recordmenu(u, clientp);
+            filemenu(u, clientp);
             fflush(stdout); // 手动刷新标准输出缓冲区
         }
         input = tm_charget(200);
         if(input == -1) continue;
         switch(input){
-        case '1':{
+        case '1':{//查看与好友的聊天记录
             
+            flag = true;
             break;
         }
         case '2':{
-            
-            break;
-        }
-        case '3':{
-            
-            break;
-        }
-        case '4':{
-            
-            break;
-        }
-        case '5':{
             
             break;
         }
@@ -244,7 +235,8 @@ int userfuc::setupfuc(void){
         if(input == -1) continue;
         switch(input){
         case '1':{
-            
+            stf.modpwd();
+            flag = true;
             break;
         }
         case '2':{

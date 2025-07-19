@@ -32,10 +32,14 @@ public:
     void chatmenu(char c, user& u2);
     //处理私聊功能
     void handlechat(char);
-    //屏蔽/解除屏蔽好友
-    void shieldfriend();
+    //屏蔽/解除屏蔽好友，1为屏蔽，2为解除屏蔽
+    void shieldfriend(int);
     //屏蔽功能
     void shield(char);
+    //解除屏蔽功能
+    void shield_exit(char);
+    //屏蔽的好友的菜单
+    void shield_menu(char);
 };
 
 void friendfucs::addfriend(){
@@ -239,7 +243,8 @@ void friendfucs::delfriend(){
     system("clear");
     page = 0;
     list('0');
-    printf("\033[0;32m请选择您要删除的好友:>\033[0m");
+    if(u.friendlist.size())
+        printf("\033[0;32m请选择您要删除的好友:>\033[0m");
     fflush(stdout); // 手动刷新标准输出缓冲区
     bool flag = false;
     std::string msg;
@@ -255,7 +260,8 @@ void friendfucs::delfriend(){
             flag = false;
             system("clear");
             list('p');
-            printf("\033[0;32m请选择您要删除的好友:>\033[0m");
+            if(u.friendlist.size())
+                printf("\033[0;32m请选择您要删除的好友:>\033[0m");
             fflush(stdout); // 手动刷新标准输出缓冲区
         }
         char input = tm_charget(200);
@@ -273,14 +279,16 @@ void friendfucs::delfriend(){
         case '[':{
             system("clear");
             list('[');
-            printf("\033[0;32m请选择您要删除的好友:>\033[0m");
+            if(u.friendlist.size())
+                printf("\033[0;32m请选择您要删除的好友:>\033[0m");
             fflush(stdout); // 手动刷新标准输出缓冲区
             break;
         }
         case ']':{
             system("clear");
             list(']');
-            printf("\033[0;32m请选择您要删除的好友:>\033[0m");
+            if(u.friendlist.size())
+                printf("\033[0;32m请选择您要删除的好友:>\033[0m");
             fflush(stdout); // 手动刷新标准输出缓冲区
             break;
         }
@@ -357,9 +365,7 @@ void friendfucs::handlechat(char c){
     //开始聊天
     //拉取历史记录
     //读取两页消息（一页7句消息）
-    if(uid2 > u.uid)
-        sock->sendMsg("ctms:"+u.uid+":"+uid2);
-    else sock->sendMsg("ctms:"+uid2+":"+u.uid);
+    sock->sendMsg("ctms:"+u.uid+":"+uid2);
     std::string rev = EchoMsgQueue.wait_and_pop(), msg;
     save = messages::fromJson(rev);
     //读取聊天记录总条数
@@ -438,6 +444,14 @@ void friendfucs::handlechat(char c){
         }
         case '\n':{//发送消息
             if(content.size() == 0 || content == "\n") break;
+            if(u.shieldlist.count(uid2)){
+                system("clear");
+                printf("\033[0;31m对方已被您屏蔽，发送失败！\033[0m\n");
+                printf("\033[0;31m请解除屏蔽后再发送。\033[0m\n");
+                printf("\033[0;31m请按任意键继续...\033[0m\n");
+                charget();
+                return;
+            }
             content.push_back('\0');
             message sendm;
             sendm.sender_uid = u.uid;
@@ -524,7 +538,8 @@ void friendfucs::chatfriend(){
     system("clear");
     page = 0;
     list('0');
-    printf("\033[0;32m请选择您要私聊的好友:>\033[0m");
+    if(u.friendlist.size())
+        printf("\033[0;32m请选择您要私聊的好友:>\033[0m");
     fflush(stdout); // 手动刷新标准输出缓冲区
     bool flag = false;
     std::string msg;
@@ -540,7 +555,8 @@ void friendfucs::chatfriend(){
             flag = false;
             system("clear");
             list('p');
-            printf("\033[0;32m请选择您要私聊的好友:>\033[0m");
+            if(u.friendlist.size())
+                printf("\033[0;32m请选择您要私聊的好友:>\033[0m");
             fflush(stdout); // 手动刷新标准输出缓冲区
         }
         char input = tm_charget(200);
@@ -558,14 +574,16 @@ void friendfucs::chatfriend(){
         case '[':{
             system("clear");
             list('[');
-            printf("\033[0;32m请选择您要私聊的好友:>\033[0m");
+            if(u.friendlist.size())
+                printf("\033[0;32m请选择您要私聊的好友:>\033[0m");
             fflush(stdout); // 手动刷新标准输出缓冲区
             break;
         }
         case ']':{
             system("clear");
             list(']');
-            printf("\033[0;32m请选择您要私聊的好友:>\033[0m");
+            if(u.friendlist.size())
+                printf("\033[0;32m请选择您要私聊的好友:>\033[0m");
             fflush(stdout); // 手动刷新标准输出缓冲区
             break;
         }
@@ -607,7 +625,7 @@ void friendfucs::shield(char c){
         else return;
         break;
     }
-    //确定删除该好友,uid1删uid2
+    //确定屏蔽该好友,uid1屏蔽uid2
     sock->sendMsg("shfd:"+u.uid+":"+sd);
     rev = EchoMsgQueue.wait_and_pop();
     if(rev != "right"){
@@ -616,14 +634,119 @@ void friendfucs::shield(char c){
         input = charget();
         return ;
     }
-    //删除本地列表中的uid2
-    u.friendlist.erase(sd);
+    //屏蔽本地列表中的uid2
+    u.shieldlist.insert(sd);
+    system("clear");
+    printf("\033[0;32m屏蔽成功。\n\033[0m");
+    printf("\033[0;32m请按任意键继续...\033[0m");
+    charget();
 }
-void friendfucs::shieldfriend(){
+
+void friendfucs::shield_menu(char c){
+    reportfucs rpf(u, clientp);
+    bool ret = rpf.Getrpt();
+    Client* cp = (Client*) clientp;
+    Socket* sock = cp->getSocket();
+    if(!u.shieldlist.size()){
+        printf("\033[0;32m当前没有屏蔽的好友。\n\033[0m");
+        printf("\033[0;32m请按ESC返回...\033[0m");
+        return;
+    }
+    int cnt = 0;
+    cnt = u.shieldlist.size();
+    int maxpage = cnt / 5, i = 0;
+    if(cnt % 5 != 0) maxpage++;
+    if(c == '[' && page == 0) ;
+    else if(c == '[') page --;
+    if(c == ']' && page+1 >= maxpage) ;
+    else if(c == ']') page ++;
+    printf("\033[0;36m==========================================================\033[0m\n");
+    reportfucs::newreport(u, clientp);
+    printf("\033[0;32m以下为您的黑名单\033[0m\n");
+    printf("\033[0;34m%-6s %-15s %-13s %-12s\033[0m\n", "序号", "用户名", "UID", "在线状态");
+    for(std::string str : u.shieldlist){
+        if(i >= 5*page && i < 5*(page+1)){
+            sock->sendMsg("gtus:"+str);
+            std::string red = EchoMsgQueue.wait_and_pop();
+            user ud = user::fromJson(red);
+            std::string name = ud.name, status;
+            if(ud.stat == "online") status = "在线";
+            else if(ud.stat == "offline") status = "离线";
+            else if(ud.stat == "deleted") status = "该账户已注销";
+
+            // 如果是在线，颜色绿色；否则灰色
+            const char *color = (status == "在线") ? "\033[0;32m" : "\033[0;90m";
+
+            printf("%s[%d]  %-12s %-14s %-12s\033[0m",
+                    color, i - 5 * page + 1,
+                    name.c_str(), ud.uid.c_str(), status.c_str());
+            if(rpf.rpt.chatfriend[ud.uid]) printf("   \033[0;31m（%d）\033[0m\n", rpf.rpt.chatfriend[ud.uid]);
+            else puts("");
+        }
+        i++;
+    }
+    printf("                     \033[0;32m(tip:按[和]按键可控制翻页)\n\033[0m");
+    printf("                                \033[0;32m[%d/%d]\033[0m\n",page+1,maxpage);
+    printf("\033[0;36m==========================================================\033[0m\n");
+}
+
+void friendfucs::shield_exit(char c){
+    Client * cp = (Client*)clientp;
+    Socket * sock = cp->getSocket();
+    system("clear");
+    //找到对应消息
+    int i = 5*page + c - '0' - 1, j = 0;
+    if(i >= u.shieldlist.size()) return;
+    std::string sd;
+    for(std::string str : u.shieldlist){
+        if(j == i){
+            sd = str;
+            break;
+        }
+        j++;
+    }
+    sock->sendMsg("shex:"+sd);
+    std::string nm = EchoMsgQueue.wait_and_pop(), rev;
+    printf("\033[0;32m确定要解除屏蔽好友\033[0m \033[0;31m%s\033[0m \033[0;32m？（Y/N）\033[0m\n", nm.c_str());
+    fflush(stdout);
+    char input;
+    while(1){
+        input = charget();
+        if(input == 27) return;
+        if(input != 'Y' && input != 'N' && input != 'y' && input != 'n') continue;
+        if(input == 'Y' || input == 'y') break;
+        else return;
+        break;
+    }
+    //确定屏蔽该好友,uid1屏蔽uid2
+    sock->sendMsg("shex:"+u.uid+":"+sd);
+    rev = EchoMsgQueue.wait_and_pop();
+    if(rev != "right"){
+        printf("\033[0;31m数据异常，请稍后再试。\033[0m\n");
+        printf("\033[0;31m请按任意键继续...\033[0m");
+        input = charget();
+        return ;
+    }
+    //去除本地黑名单中的uid2
+    u.shieldlist.erase(sd);
+    system("clear");
+    printf("\033[0;32m解除屏蔽成功。\n\033[0m");
+    printf("\033[0;32m请按任意键继续...\033[0m");
+    charget();
+}
+
+void friendfucs::shieldfriend(int cs){
     system("clear");
     page = 0;
-    list('0');
-    printf("\033[0;32m请选择您要屏蔽的好友:>\033[0m");
+    if(cs == 1){
+        list('0');
+        if(u.friendlist.size())
+            printf("\033[0;32m请选择您要屏蔽的好友:>\033[0m");
+    } else if(cs == 2){
+        shield_menu('0');
+        if(u.shieldlist.size())
+            printf("\033[0;32m请选择您要解除屏蔽的好友:>\033[0m");
+    }
     fflush(stdout); // 手动刷新标准输出缓冲区
     bool flag = false;
     std::string msg;
@@ -638,8 +761,15 @@ void friendfucs::shieldfriend(){
         if(ReptMsgQueue.try_pop(msg) || flag){
             flag = false;
             system("clear");
-            list('p');
-            printf("\033[0;32m请选择您要屏蔽的好友:>\033[0m");
+            if(cs == 1){
+                list('p');
+                if(u.friendlist.size())
+                    printf("\033[0;32m请选择您要屏蔽的好友:>\033[0m");
+            } else if(cs == 2){
+                shield_menu('0');
+                if(u.shieldlist.size())
+                    printf("\033[0;32m请选择您要解除屏蔽的好友:>\033[0m");
+            }
             fflush(stdout); // 手动刷新标准输出缓冲区
         }
         char input = tm_charget(200);
@@ -650,21 +780,38 @@ void friendfucs::shieldfriend(){
         case '3':
         case '4':
         case '5':{
-            shield(input);
+            if(cs == 1)
+                shield(input);
+            else if(cs == 2)
+                shield_exit(input);
             flag = true;
             break;
         }
         case '[':{
             system("clear");
-            list('[');
-            printf("\033[0;32m请选择您要屏蔽的好友:>\033[0m");
+            if(cs == 1){
+                list('[');
+                if(u.friendlist.size())
+                    printf("\033[0;32m请选择您要屏蔽的好友:>\033[0m");
+            } else if(cs == 2){
+                shield_menu('0');
+                if(u.shieldlist.size())
+                    printf("\033[0;32m请选择您要解除屏蔽的好友:>\033[0m");
+            }
             fflush(stdout); // 手动刷新标准输出缓冲区
             break;
         }
         case ']':{
             system("clear");
-            list(']');
-            printf("\033[0;32m请选择您要屏蔽的好友:>\033[0m");
+            if(cs == 1){
+                list(']');
+                if(u.friendlist.size())
+                    printf("\033[0;32m请选择您要屏蔽的好友:>\033[0m");
+            } else if(cs == 2){
+                shield_menu('0');
+                if(u.shieldlist.size())
+                    printf("\033[0;32m请选择您要解除屏蔽的好友:>\033[0m");
+            }
             fflush(stdout); // 手动刷新标准输出缓冲区
             break;
         }

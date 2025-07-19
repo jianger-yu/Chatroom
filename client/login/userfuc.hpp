@@ -113,12 +113,13 @@ int userfuc::friendfuc(void){
             break;
         }
         case '5':{
-            f.shieldfriend();
+            f.shieldfriend(1);
             flag = true;
             break;
         }
         case '6':{
-            
+            f.shieldfriend(2);
+            flag = true;
             break;
         }
         case 27:{

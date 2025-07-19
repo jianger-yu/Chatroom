@@ -68,6 +68,10 @@ private:
     void svrp();
     //处理用户需要提供聊天记录的请求
     void ndms();
+    //处理用户屏蔽好友的请求
+    void shfd();
+    //处理解除屏蔽好友的请求
+    void shex();
 public:
     handler(std::string buf, int fd):str(buf),sockfd(fd){
     }
@@ -109,6 +113,8 @@ int handler::handle(void){
     else if(str[0] == 'r' && str[1] == 'd' && str[2] == 'p' && str[3] == 'g') rdpg();
     else if(str[0] == 's' && str[1] == 'v' && str[2] == 'r' && str[3] == 'p') svrp();
     else if(str[0] == 'n' && str[1] == 'd' && str[2] == 'm' && str[3] == 's') ndms();
+    else if(str[0] == 's' && str[1] == 'h' && str[2] == 'f' && str[3] == 'd') shfd();
+    else if(str[0] == 's' && str[1] == 'h' && str[2] == 'e' && str[3] == 'x') shex();
 
     return 0;
 }
@@ -514,6 +520,7 @@ void handler::ctms(){
 
 //处理用户发送消息的请求
 //"sdms:"+message
+//redis  chat:uid1:uid2 表示uid1收到uid2的消息表
 void handler::sdms(){
     std::string msg;
     int i = 0, j;
@@ -521,13 +528,22 @@ void handler::sdms(){
     msg = str.c_str() + i + 1;
     //先判断是不是好友
     message sendm = message::fromJson(msg);
-    user ud = u.GetUesr(sendm.sender_uid);
-    if(ud.friendlist.count(sendm.receiver_uid) == 0){//说明不为好友
+    user ud1 = u.GetUesr(sendm.sender_uid);
+    user ud2 = u.GetUesr(sendm.receiver_uid);
+    if(ud1.friendlist.count(sendm.receiver_uid) == 0){//说明不为好友
         sendMsg("echo:nofrd", sockfd);
+        return;
+    }
+    //再判断是否被屏蔽
+    if(ud2.shieldlist.count(ud1.uid)){//被屏蔽，消息记录为单向，不给接受者发通知
+        u.savechat2(sendm.toJson());
+        sendMsg("echo:right", sockfd);
         return;
     }
     //存入数据库
     u.savechat(msg);
+    //同时给uid2存入他的消息表
+    u.savechat2(msg);
     //编辑接受者的通知
     report rpt = report::fromJson(u.u_report(sendm.receiver_uid));
     int cnt = rpt.chatfriend[sendm.sender_uid];
@@ -540,7 +556,6 @@ void handler::sdms(){
     if(uid_to_socket.count(sendm.receiver_uid)) sendMsg("chat:"+sendm.toJson(), uid_to_socket[sendm.receiver_uid]);
     //给发送者发回声
     sendMsg("echo:right", sockfd);
-
 }
 
 void handler::rdpg(){
@@ -594,4 +609,44 @@ void handler::ndms(){
     sscanf(msgcnt.c_str(), "%d", &cnt);
     messages msgs = u.lrange(uid1, uid2, cnt, cnt+6);
     sendMsg("echo:"+ msgs.toJson(), sockfd);
+}
+
+//uid1屏蔽uid2
+void handler::shfd(){
+    //拿到数据
+    std::string uid1,uid2;
+    int i = 0;
+    while(str[i] != ':') i++;
+    int j = i + 1;
+    while(str[j] != ':') {
+        uid1.push_back(str[j]);
+        j++;
+    }
+    for(int t = j + 1; t < str.size(); t++) uid2.push_back(str[t]);
+    //在uid1的屏蔽表添加uid2
+    user ud1 = u.GetUesr(uid1);
+    ud1.shieldlist.insert(uid2); 
+    //保存屏蔽结果
+    u.setutoj( uid1, ud1.toJson());
+    sendMsg("echo:right", sockfd);
+}
+
+
+void handler::shex(){
+    //拿到数据
+    std::string uid1,uid2;
+    int i = 0;
+    while(str[i] != ':') i++;
+    int j = i + 1;
+    while(str[j] != ':') {
+        uid1.push_back(str[j]);
+        j++;
+    }
+    for(int t = j + 1; t < str.size(); t++) uid2.push_back(str[t]);
+    //在uid1的屏蔽表添加uid2
+    user ud1 = u.GetUesr(uid1);
+    ud1.shieldlist.erase(uid2); 
+    //保存屏蔽结果
+    u.setutoj( uid1, ud1.toJson());
+    sendMsg("echo:right", sockfd);
 }

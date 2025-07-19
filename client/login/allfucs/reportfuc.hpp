@@ -443,9 +443,7 @@ void reportfucs::handlechat(char c, report& rpt){
     //开始聊天
     //拉取历史记录
     //读取两页消息（一页7句消息）
-    if(uid2 > u.uid)
-        sock->sendMsg("ctms:"+u.uid+":"+uid2);
-    else sock->sendMsg("ctms:"+uid2+":"+u.uid);
+    sock->sendMsg("ctms:"+u.uid+":"+uid2);
     std::string rev = EchoMsgQueue.wait_and_pop(), msg;
     save = messages::fromJson(rev);
     //读取聊天记录总条数
@@ -524,6 +522,14 @@ void reportfucs::handlechat(char c, report& rpt){
         }
         case '\n':{//发送消息
             if(content.size() == 0 || content == "\n") break;
+            if(u.shieldlist.count(uid2)){
+                system("clear");
+                printf("\033[0;31m对方已被您屏蔽，发送失败！\033[0m\n");
+                printf("\033[0;31m请解除屏蔽后再发送。\033[0m\n");
+                printf("\033[0;31m请按任意键继续...\033[0m\n");
+                charget();
+                return;
+            }
             content.push_back('\0');
             message sendm;
             sendm.sender_uid = u.uid;

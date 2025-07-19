@@ -14,6 +14,7 @@ struct report {
     std::vector<std::string> notice;                   //各种事务通知表    redis存notice:uid               值为notice:id
 
     int total_friend_msg = 0;                          // 未读好友消息总数
+    
     int total_group_msg = 0;                           // 未读群聊消息总数
 
     // JSON 序列化

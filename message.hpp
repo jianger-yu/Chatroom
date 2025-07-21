@@ -78,3 +78,27 @@ public:
         return m;
     }
 };
+
+class friendnamelist{
+public:
+    std::vector<std::string> data;
+
+    friendnamelist() = default;
+
+    friendnamelist(const std::vector<std::string>& msgs) : data(msgs) {}
+
+    // 序列化为 JSON 字符串
+    std::string toJson() const {
+        json j;
+        j["data"] = data;
+        return j.dump();
+    }
+
+    // 从 JSON 字符串反序列化为 friendnamelist 对象
+    static friendnamelist fromJson(const std::string& str) {
+        json j = json::parse(str);
+        friendnamelist m;
+        m.data = j.at("data").get<std::vector<std::string>>();
+        return m;
+    }
+};

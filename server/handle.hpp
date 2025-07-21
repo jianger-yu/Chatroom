@@ -72,6 +72,12 @@ private:
     void shfd();
     //处理解除屏蔽好友的请求
     void shex();
+    //判断群聊名是否重复
+    void jrgn();
+    //创建群聊
+    void ctgp();
+    //处理用户获取好友名列表的请求
+    void fdlt();
 public:
     handler(std::string buf, int fd):str(buf),sockfd(fd){
     }
@@ -89,6 +95,7 @@ int handler::handle(void){
     else if(str[0] == 'j' && str[1] == 'r' && str[2] == 'u' && str[3] == 'd') jrud();
     else if(str[0] == 'j' && str[1] == 'r' && str[2] == 'e' && str[3] == 'm') jrem();
     else if(str[0] == 'j' && str[1] == 'r' && str[2] == 'n' && str[3] == 'e') jrne();
+    else if(str[0] == 'j' && str[1] == 'r' && str[2] == 'g' && str[3] == 'n') jrgn();
     else if(str[0] == 'j' && str[1] == 'r' && str[2] == 'f' && str[3] == 'd') jrfd();
     else if(str[0] == 'p' && str[1] == 'w' && str[2] == 'l' && str[3] == 'g') pwlg();
     else if(str[0] == 'f' && str[1] == 'd' && str[2] == 'p' && str[3] == 'd') fdpd();
@@ -109,12 +116,14 @@ int handler::handle(void){
     else if(str[0] == 'r' && str[1] == 'm' && str[2] == 'n' && str[3] == 't') rmnt();
     else if(str[0] == 'r' && str[1] == 'm' && str[2] == 'f' && str[3] == 'd') rmfd();
     else if(str[0] == 'c' && str[1] == 't' && str[2] == 'm' && str[3] == 's') ctms();
+    else if(str[0] == 'c' && str[1] == 't' && str[2] == 'g' && str[3] == 'p') ctgp();
     else if(str[0] == 's' && str[1] == 'd' && str[2] == 'm' && str[3] == 's') sdms();
     else if(str[0] == 'r' && str[1] == 'd' && str[2] == 'p' && str[3] == 'g') rdpg();
     else if(str[0] == 's' && str[1] == 'v' && str[2] == 'r' && str[3] == 'p') svrp();
     else if(str[0] == 'n' && str[1] == 'd' && str[2] == 'm' && str[3] == 's') ndms();
     else if(str[0] == 's' && str[1] == 'h' && str[2] == 'f' && str[3] == 'd') shfd();
     else if(str[0] == 's' && str[1] == 'h' && str[2] == 'e' && str[3] == 'x') shex();
+    else if(str[0] == 'f' && str[1] == 'd' && str[2] == 'l' && str[3] == 't') fdlt();
 
     return 0;
 }
@@ -650,4 +659,40 @@ void handler::shex(){
     //保存屏蔽结果
     u.setutoj( uid1, ud1.toJson());
     sendMsg("echo:right", sockfd);
+}
+
+void handler::jrgn(){
+    //根据群聊名发送gid，若用户不存在则返回“norepeat”
+    int i = 0;
+    while(str[i] != ':') i++;
+    std::string buf = str.c_str() + i + 1;
+    sendMsg("echo:"+u.Getuid(buf.c_str()), sockfd);
+}
+
+
+void handler::ctgp(){
+    //发送群组uid或fail
+    sendMsg("echo:"+u.newgroup(str), sockfd);
+}
+
+void handler::fdlt(){
+   //拿到数据
+    std::string uid1,fdname;
+    int i = 0;
+    while(str[i] != ':') i++;
+    int j = i + 1;
+    while(str[j] != ':') {
+        uid1.push_back(str[j]);
+        j++;
+    }
+    for(int t = j + 1; t < str.size(); t++) fdname.push_back(str[t]);
+    user ud1 = u.GetUesr(uid1);
+
+    friendnamelist fnl;
+    for(std::string uid2 : ud1.friendlist){
+        user ud2 = u.GetUesr(uid2);
+        if(ud2.name.find(fdname) != -1)
+            fnl.data.push_back(ud2.uid);
+    }
+    sendMsg("echo:"+fnl.toJson(), sockfd);
 }

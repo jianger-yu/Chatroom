@@ -3,6 +3,7 @@
 #include<string>
 #include<vector>
 #include "../user.hpp"
+#include "../group.hpp"
 #include "../Redis.hpp"
 #include "report.hpp"
 #include "../message.hpp"
@@ -25,12 +26,18 @@ public:
     }
     //根据json字符串注册用户,返回uid或fail
     std::string newuser(std::string);
+    std::string newgroup(std::string&);
+
     //根据uid和json字符串存储report
     bool svreport(std::string uid, std::string js);
     //获取一个未使用的uid
     std::string newuid(void);
+    std::string newgid(void);
+
     //根据用户名返回用户id，若用户不存在则返回“norepeat”
     std::string Getuid(const char *);
+    std::string Getgid(const char * buf);
+
     //根据email返回用户id，若用户不存在则返回“norepeat”
     std::string EmailGetuid(const char *);
     //判断电子邮箱是否已存在，返回true已存在，返回false不存在
@@ -86,6 +93,37 @@ std::string userdata::newuser(std::string str){
     return nuid;
 }
 
+std::string userdata::newgroup(std::string &str){
+    //拿到数据
+    std::string gname,uid;
+    int i = 0;
+    while(str[i] != ':') i++;
+    int j = i + 1;
+    while(str[j] != ':') {
+        gname.push_back(str[j]);
+        j++;
+    }
+    for(int t = j + 1; t < str.size(); t++) uid.push_back(str[t]);
+    group gd;
+    //生成gid
+    std::string ngid = newgid();
+    gd.name = gname; 
+    gd.gid = ngid;
+    gd.owner = uid;
+    //写入组名->gid的键值对
+    redisReply* reply = (redisReply*)redisCommand(redis, "SET groupname:%s %s", gd.name.c_str(), ngid.c_str());
+    freeReplyObject(reply);
+    //写入json字符串
+    reply = (redisReply*)redisCommand(redis, "SET group:%s %s", ngid.c_str(), gd.toJson().c_str());
+    freeReplyObject(reply);
+    //获取用户结构体，修改数据
+    user ud = GetUesr(uid);
+    ud.grouplist.insert(ngid);
+    setutoj(uid, ud.toJson());
+    return ngid;
+}
+
+
 std::string userdata::newuid(){
     int i;
     redisReply* reply = NULL;
@@ -97,6 +135,19 @@ std::string userdata::newuid(){
         freeReplyObject(reply);
     return buf;
 }
+
+std::string userdata::newgid(){
+    int i;
+    redisReply* reply = NULL;
+    reply = (redisReply*)redisCommand(redis, "INCR newgid");
+    i = reply->integer;
+    char buf[20];
+    sprintf(buf, "%d", i);
+    if(reply != NULL)
+        freeReplyObject(reply);
+    return buf;
+}
+
 
 bool userdata::RepeatEmail(const char * buf){
     int i = 0;
@@ -114,6 +165,19 @@ bool userdata::RepeatEmail(const char * buf){
 std::string userdata::Getuid(const char * buf){
     printf("拿到username:%s\n",buf);
     redisReply* reply = (redisReply*)redisCommand(redis, "GET username:%s", buf);
+    if(reply->type == REDIS_REPLY_NIL){
+        freeReplyObject(reply);
+        return "norepeat";
+    } else {
+        std::string ret = reply->str;
+        freeReplyObject(reply);
+        return ret;
+    }
+}
+
+//根据群聊名返回gid，若用户不存在则返回“norepeat”
+std::string userdata::Getgid(const char * buf){
+    redisReply* reply = (redisReply*)redisCommand(redis, "GET groupname:%s", buf);
     if(reply->type == REDIS_REPLY_NIL){
         freeReplyObject(reply);
         return "norepeat";

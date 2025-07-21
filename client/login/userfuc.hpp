@@ -121,6 +121,11 @@ int userfuc::friendfuc(void){
             flag = true;
             break;
         }
+        case '7':{
+            f.searchfriend();
+            flag = true;
+            break;
+        }
         case 27:{
             return 0;
         }
@@ -136,9 +141,10 @@ int userfuc::groupfuc(void){
     system("clear");
     fflush(stdout); // 手动刷新标准输出缓冲区
     groupmenu(u, clientp);
+    groupfucs grf(u, clientp);
     bool flag = false;
     while(1){
-        if(ReptMsgQueue.try_pop(msg)){
+        if(ReptMsgQueue.try_pop(msg) || flag){
             flag = false;
             system("clear");
             fflush(stdout); // 手动刷新标准输出缓冲区
@@ -149,7 +155,8 @@ int userfuc::groupfuc(void){
         if(input == -1) continue;
         switch(input){
         case '1':{
-            
+            grf.creategroup();
+            flag = true;
             break;
         }
         case '2':{
@@ -187,7 +194,7 @@ int userfuc::filefuc(void){
     fflush(stdout); // 手动刷新标准输出缓冲区
     while(1){
         if(ReptMsgQueue.try_pop(msg) || flag){
-            flag == false;
+            flag = false;
             system("clear");
             filemenu(u, clientp);
             fflush(stdout); // 手动刷新标准输出缓冲区

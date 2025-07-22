@@ -27,10 +27,13 @@ public:
 
     //处理好友申请页面
     void friendreport();
+    void groupreport();
     //好友申请页面的菜单
     void menu(char c , int fg);
     //处理好友申请的函数
     void handleapply(char );
+    //处理加群申请
+    void handlegroupapply(char );
     //查看事务通知的页面
     void notice();
     //分析公告
@@ -55,7 +58,7 @@ public:
             if(rpf.rpt.total_group_msg)
         printf("           \033[0;34m[new] 有%d个未读的群聊消息\033[0m\n", rpf.rpt.total_group_msg);
             if(rpf.rpt.groupapply.size())
-        printf("           \033[0;34m[new] 有%ld条未处理的群聊邀请\033[0m\n", rpf.rpt.groupapply.size());
+        printf("           \033[0;34m[new] 有%ld条未处理的加群申请\033[0m\n", rpf.rpt.groupapply.size());
         int cnt = 0;
         for(int i = 0; i < rpf.rpt.notice.size(); i++)
             if(rpf.rpt.notice[i][5] == 'n') cnt++;
@@ -110,6 +113,11 @@ void reportfucs::menu(char c, int fg){
         printf("\033[0;32m请按ESC返回...\033[0m");
         return;
     }
+    else if(fg == 4 && rpt.groupapply.size() == 0){
+        printf("\033[0;32m当前没有加群申请。\n\033[0m");
+        printf("\033[0;32m请按ESC返回...\033[0m");
+        return;
+    }
     else if(fg == 5 && rpt.notice.size() == 0){
         printf("\033[0;32m当前没有事务通知。\n\033[0m");
         printf("\033[0;32m请按ESC返回...\033[0m");
@@ -120,6 +128,8 @@ void reportfucs::menu(char c, int fg){
         cnt = rpt.friendapply.size();
     else if(fg == 2)
         cnt = rpt.chatfriend.size();
+    else if(fg == 4)
+        cnt = rpt.groupapply.size();
     else if(fg == 5)
         cnt = rpt.notice.size();
     int maxpage = cnt / 5, i = 0;
@@ -133,6 +143,8 @@ void reportfucs::menu(char c, int fg){
         printf("\033[0;32m以下为您未处理的好友申请\033[0m\n");
     else if(fg == 2)
         printf("\033[0;32m以下为您有未读消息的好友\033[0m\n");    
+    else if(fg == 4)
+        printf("\033[0;32m以下为未被处理的加群申请\033[0m\n");    
     else if(fg == 5)
         printf("\033[0;32m以下为您收到的通知,黄色为未读部分\033[0m\n");
     if(fg == 1){
@@ -166,6 +178,16 @@ void reportfucs::menu(char c, int fg){
                         name.c_str(), ud.uid.c_str(), status.c_str());
                 if(rpt.chatfriend[ud.uid]) printf("   \033[0;31m（%d）\033[0m\n", rpt.chatfriend[ud.uid]);
                 else puts("");
+            }
+            i++;
+        }
+    } else if(fg == 4){
+        for(std::string str : rpt.groupapply){
+            if(i >= 5*page && i < 5*(page+1)){
+                std::string uname;
+                int j = 0;
+                while(str[j] != ':') uname.push_back(str[j++]);
+                printf("\033[0;32m[%d] %d、用户\033[0m \033[0;34m%s\033[0m \033[0;32m申请加入群聊\033[0m \033[0;33m%s\033[0m\n", i-5*page+1, i + 1, uname.c_str(), str.c_str()+j+1);
             }
             i++;
         }
@@ -208,15 +230,17 @@ void reportfucs::handleapply(char c){
         break;
     }
     //改本地
-    sock->sendMsg("gtud:"+name);
-    rev = EchoMsgQueue.wait_and_pop();
-    if(rev == "false"){
-        printf("\033[0;31m数据异常，请稍后再试。\033[0m\n");
-        printf("\033[0;31m请按任意键继续...\033[0m");
-        input = charget();
-        return ;
+    if(input == 'Y' || input == 'y'){
+        sock->sendMsg("gtud:"+name);
+        rev = EchoMsgQueue.wait_and_pop();
+        if(rev == "false"){
+            printf("\033[0;31m数据异常，请稍后再试。\033[0m\n");
+            printf("\033[0;31m请按任意键继续...\033[0m");
+            input = charget();
+            return ;
+        }
+        u.friendlist.insert(rev);
     }
-    u.friendlist.insert(rev);
     //xxx:user1.name:user2:uid(用户1加用户2),改数据库
     sock->sendMsg(sd+":"+name+":"+u.uid);
     sd = EchoMsgQueue.wait_and_pop();
@@ -236,8 +260,108 @@ void reportfucs::handleapply(char c){
     }
 }
 
+void reportfucs::handlegroupapply(char c){
+    Client * cp = (Client*)clientp;
+    Socket * sock = cp->getSocket();
+    system("clear");
+    fflush(stdout);
+    int i = 0, j = 0;
+    std::string rptstr, sd, rev, name, gname;
+    for(std::string str : rpt.friendapply)
+        if((i++ + 1) == 5*page + c -'0')
+            rptstr = str;
+    if(!rptstr.size()) return;
+    while(rptstr[j] != ':') name.push_back(rptstr[j++]);
+    gname = rptstr.c_str() + j + 1;
+    printf("\033[0;32m是否同意用户\033[0m \033[0;34m%s\033[0m \033[0;32m加入群聊\033[0m \033[0;33m%s\033[0m \033[0;32m？（Y/N）\033[0m\n", name.c_str(), gname.c_str());
+    char input = 0;
+    sd = "adg(";
+    while(1){
+        input = charget();
+        if(input == 27) return;
+        if(input != 'Y' && input != 'N' && input != 'y' && input != 'n') continue;
+        if(input == 'Y' || input == 'y') sd.push_back('y');
+        else sd.push_back('n');
+        break;
+    }
+
+    
+    //adg(y:uname:gname(用户加群),改数据库
+    sock->sendMsg(sd+":"+name+":"+gname);
+    sd = EchoMsgQueue.wait_and_pop();
+    if(sd == "right"){
+        if(input == 'Y' || input == 'y')
+            printf("\033[0;32m添加好友成功！\033[0m\n");
+        else 
+            printf("\033[0;32m已拒绝该申请！\033[0m\n");
+        printf("\033[0;32m请按任意键继续...\033[0m");
+        input = charget();
+        return ;
+    }  else{
+        printf("\033[0;31m数据异常，请稍后再试。\033[0m\n");
+        printf("\033[0;31m请按任意键继续...\033[0m");
+        input = charget();
+        return ;
+    }
+}
+
+
 
 void reportfucs::friendreport(){
+    char input = 0;
+    page = 0;
+    std::string msg;
+    system("clear");
+    menu('0', 4);
+    fflush(stdout); // 手动刷新标准输出缓冲区
+    bool flag = false;
+    while(1){
+        if(ReptMsgQueue.try_pop(msg) || flag){
+            flag = false;
+            system("clear");
+            if(!Getrpt()) {
+                printf("\033[0;31m数据异常，请稍后再试\033[0m\n");
+                printf("\033[0;31m请按任意键继续...\033[0m");
+                input = charget();
+                return;
+            }
+            menu('p', 4);
+            fflush(stdout); // 手动刷新标准输出缓冲区
+        }
+        input = tm_charget(200);
+        if(input == -1) continue;
+        switch(input){
+        case '1':
+        case '2':
+        case '3':
+        case '4':
+        case '5':{
+            handlegroupapply(input);
+            flag = true;
+            break;
+        }
+        case '[':{
+            system("clear");
+            menu('[', 4);
+            fflush(stdout); // 手动刷新标准输出缓冲区
+            break;
+        }
+        case ']':{
+            system("clear");
+            menu(']', 4);
+            fflush(stdout); // 手动刷新标准输出缓冲区
+            break;
+        }
+        case 27:{
+            return ;
+        }
+        default:continue;
+        }
+    }
+    return ;
+}
+
+void reportfucs::groupreport(){
     char input = 0;
     page = 0;
     std::string msg;
@@ -290,6 +414,8 @@ void reportfucs::friendreport(){
     }
     return ;
 }
+
+
 
 void reportfucs::handlenotice(char c){
     Client * cp = (Client*)clientp;

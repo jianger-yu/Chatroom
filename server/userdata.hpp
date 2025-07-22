@@ -38,12 +38,17 @@ public:
     std::string Getuid(const char *);
     std::string Getgid(const char * buf);
 
+    //根据用户uid返回用户结构体
+    user GetUesr(std::string);
+    //返回group的json字符串，若不存在，返回norepeat
+    std::string GetGroup(std::string);
+
     //根据email返回用户id，若用户不存在则返回“norepeat”
     std::string EmailGetuid(const char *);
     //判断电子邮箱是否已存在，返回true已存在，返回false不存在
     bool RepeatEmail(const char *);
-    //根据用户uid返回用户结构体
-    user GetUesr(std::string);
+    
+
     //根据用户uid删除用户结构体
     bool DELUesr(std::string);
     //仅存入user:uid -> json的键值对
@@ -206,6 +211,16 @@ user userdata::GetUesr(std::string buf){
     redisReply* reply = (redisReply*)redisCommand(redis, "GET user:%s", buf.c_str());
     //if(reply == NULL || reply->type == REDIS_REPLY_NIL || reply->type != REDIS_REPLY_STRING)
     user ret = user::fromJson(reply->str);
+    freeReplyObject(reply);
+    return ret;
+}
+
+std::string userdata::GetGroup(std::string buf){
+    redisReply* reply = (redisReply*)redisCommand(redis, "GET group:%s", buf.c_str());
+    std::string ret = "norepeat";
+    if(reply == NULL || reply->type == REDIS_REPLY_NIL || reply->type != REDIS_REPLY_STRING)
+        return ret;
+    ret = reply->str;
     freeReplyObject(reply);
     return ret;
 }

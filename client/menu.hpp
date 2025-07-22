@@ -131,7 +131,7 @@ void reportmenu(user& u, report rpt, bool ret){
   if(ret && rpt.total_group_msg) printf("\033[0;31m(%d)\033[0m\n", rpt.total_group_msg);
   else printf("\n");
 
-  printf("\033[0;32m[4] 查看群组邀请      \033[0m");
+  printf("\033[0;32m[4] 查看加群申请      \033[0m");
   if(ret && rpt.groupapply.size()) printf("\033[0;31m(%ld)\033[0m\n", rpt.groupapply.size());
   else printf("\n");
 

@@ -160,11 +160,16 @@ int userfuc::groupfuc(void){
             break;
         }
         case '2':{
-            
+            grf.addgroup();
+            flag = true;
             break;
         }
         case '3':{
-            
+            system("clear");
+            grf.list('0');
+            fflush(stdout);
+            charget();
+            flag = true;
             break;
         }
         case '4':{

@@ -43,6 +43,8 @@ private:
     void gtrp();
     //处理用户获取 user (json字符串)的请求
     void gtus();
+    //处理用户获取 group (json字符串)的请求
+    void gtgp();
     //根据用户名获取uid的请求
     void gtud();
     //根据uid获取用户名的请求
@@ -50,8 +52,12 @@ private:
 
     //处理添加好友的请求
     void adfr();
+    //处理加群的请求
+    void adgp();
     //处理同意/拒绝好友的请求
     void adfok();
+    //处理同意/拒绝加群申请的请求
+    void adgok();
     //处理已读通知的请求
     void rdnt();
     //处理删除通知的请求
@@ -107,9 +113,12 @@ int handler::handle(void){
         return 1;
     }
     else if(str[0] == 'a' && str[1] == 'd' && str[2] == 'f' && str[3] == 'r') adfr();
+    else if(str[0] == 'a' && str[1] == 'd' && str[2] == 'g' && str[3] == 'p') adgp();
     else if(str[0] == 'a' && str[1] == 'd' && str[2] == 'f' && str[3] == '(') adfok();
+    else if(str[0] == 'a' && str[1] == 'd' && str[2] == 'g' && str[3] == '(') adgok();
     else if(str[0] == 'g' && str[1] == 't' && str[2] == 'r' && str[3] == 'p') gtrp();
     else if(str[0] == 'g' && str[1] == 't' && str[2] == 'u' && str[3] == 's') gtus();
+    else if(str[0] == 'g' && str[1] == 't' && str[2] == 'g' && str[3] == 'p') gtgp();
     else if(str[0] == 'g' && str[1] == 't' && str[2] == 'u' && str[3] == 'd') gtud();
     else if(str[0] == 'g' && str[1] == 't' && str[2] == 'n' && str[3] == 'm') gtnm();
     else if(str[0] == 'r' && str[1] == 'd' && str[2] == 'n' && str[3] == 't') rdnt();
@@ -317,6 +326,38 @@ void handler::adfr(){
     }
 }
 
+void handler::adgp(){
+    //拿到uid1要加gid的信息
+    std::string uid1,gid;
+    int i = 0;
+    while(str[i] != ':') i++;
+    int j = i + 1;
+    while(str[j] != ':') {
+        uid1.push_back(str[j]);
+        j++;
+    }
+    for(int t = j + 1; t < str.size(); t++) gid.push_back(str[t]);
+    group gp = group::fromJson(u.GetGroup(gid));
+    if(gp.owner == uid1 || gp.managelist.count(uid1) || gp.memberlist.count(uid1)){//已经在群内
+        sendMsg("echo:ingrp", sockfd);
+        return;
+    }
+    //给群主和管理员广播一次
+    report rpt = report::fromJson(u.u_report(gp.owner));
+    user ud = u.GetUesr(gp.owner);
+    rpt.groupapply.insert(ud.name+":"+gp.name);
+    u.svreport( gp.owner, rpt.toJson());
+    if(uid_to_socket.count(gp.owner)) sendMsg("rept:", uid_to_socket[gp.owner]);
+    for(std::string str : gp.managelist){
+        rpt = report::fromJson(u.u_report(str));
+        ud = u.GetUesr(str);
+        rpt.groupapply.insert(ud.name+":"+gp.name);
+        u.svreport( str, rpt.toJson());
+        if(uid_to_socket.count(str)) sendMsg("rept:", uid_to_socket[str]);
+    }
+    sendMsg("echo:right", sockfd);
+}
+
 void handler::gtrp(){
     //拿到uid字符串
     int i = 0;
@@ -335,6 +376,16 @@ void handler::gtus(){
     //拿到json/none
     user us = u.GetUesr(uid);
     sendMsg("echo:"+us.toJson(), sockfd);
+}
+
+void handler::gtgp(){
+    //拿到gid字符串
+    int i = 0;
+    while(str[i] != ':') i++;
+    std::string gid = str.c_str() + i + 1;
+    //拿到json/none
+    std::string sd = u.GetGroup(gid);
+    sendMsg("echo:"+sd, sockfd);
 }
 
 
@@ -695,4 +746,17 @@ void handler::fdlt(){
             fnl.data.push_back(ud2.uid);
     }
     sendMsg("echo:"+fnl.toJson(), sockfd);
+}
+
+//adg(y:uname:gname(用户加群),改数据库
+void handler::adgok(){
+    int i = 6;
+    char input = str[4];
+    std::string uname, gname;
+    while(str[i] != ':') uname.push_back(str[i++]);
+    gname = str.c_str() + i + 1;
+    std::string uid = u.Getuid(uname.c_str()), gid = u.Getgid(gname.c_str());
+    //同意：1.用户结构体中群组列表加入该群gid -> 2.该群成员中加入该用户 -> 3.去除群主管理员通知中这条申请，给他们发结果通知
+    //拒绝: 去除群主管理员通知中这条申请，给他们发结果通知
+    
 }

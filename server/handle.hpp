@@ -713,11 +713,11 @@ void handler::shex(){
 }
 
 void handler::jrgn(){
-    //根据群聊名发送gid，若用户不存在则返回“norepeat”
+    //根据群聊名发送gid，若群名不存在则返回“norepeat”
     int i = 0;
     while(str[i] != ':') i++;
     std::string buf = str.c_str() + i + 1;
-    sendMsg("echo:"+u.Getuid(buf.c_str()), sockfd);
+    sendMsg("echo:"+u.Getgid(buf.c_str()), sockfd);
 }
 
 
@@ -791,6 +791,12 @@ void handler::adgok(){
         if(uid_to_socket.count(mvs)) sendMsg("rept:", uid_to_socket[mvs]);
     }
     sendMsg("echo:right", sockfd);
-    //给对应用户发送user提醒
+    //给对应用户发送user提醒和可能的通知
     if(uid_to_socket.count(uid)) sendMsg("user:"+ud.toJson(), uid_to_socket[uid]);
+    if(input == 'Y' || input == 'y') {
+        rpt = report::fromJson(u.u_report(uid));
+        rpt.notice.insert(rpt.notice.begin(), result);
+        u.svreport( uid, rpt.toJson());
+        if(uid_to_socket.count(uid)) sendMsg("rept:", uid_to_socket[uid]);
+    }
 }

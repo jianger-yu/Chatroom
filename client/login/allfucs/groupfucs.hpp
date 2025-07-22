@@ -114,7 +114,6 @@ void groupfucs::creategroup(){
         //判断是否有重名
         //询问服务器
         sock->sendMsg("jrgn:"+std::string(name));//judge_repeat_name
-        //sock->sendMsg(name);
         str = EchoMsgQueue.wait_and_pop();
         if(strcmp(str.c_str(), "norepeat") != 0){
             printf("\033[0;31m群聊名已存在，请重新输入。\n\033[0m>");

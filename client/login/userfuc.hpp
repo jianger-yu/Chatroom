@@ -32,6 +32,11 @@ int userfuc::mainfuc(void * p){
     std::string msg;
     bool flag = false;
     while(1){
+        //判断用户信息是否变动
+        if(UserMsgQueue.try_pop(msg)){
+            u = user::fromJson(msg);
+            flag = true;
+        }
         if(ReptMsgQueue.try_pop(msg) || flag){
             flag = false;
             system("clear");
@@ -81,6 +86,11 @@ int userfuc::friendfuc(void){
     friendmenu(u, clientp);
     bool flag = false;
     while(1){
+        //判断用户信息是否变动
+        if(UserMsgQueue.try_pop(msg)){
+            u = user::fromJson(msg);
+            flag = true;
+        }
         if(ReptMsgQueue.try_pop(msg) || flag){
             flag = false;
             system("clear");
@@ -144,6 +154,11 @@ int userfuc::groupfuc(void){
     groupfucs grf(u, clientp);
     bool flag = false;
     while(1){
+        //判断用户信息是否变动
+        if(UserMsgQueue.try_pop(msg)){
+            u = user::fromJson(msg);
+            flag = true;
+        }
         if(ReptMsgQueue.try_pop(msg) || flag){
             flag = false;
             system("clear");
@@ -198,6 +213,11 @@ int userfuc::filefuc(void){
     bool flag = false;
     fflush(stdout); // 手动刷新标准输出缓冲区
     while(1){
+        //判断用户信息是否变动
+        if(UserMsgQueue.try_pop(msg)){
+            u = user::fromJson(msg);
+            flag = true;
+        }
         if(ReptMsgQueue.try_pop(msg) || flag){
             flag = false;
             system("clear");
@@ -236,6 +256,11 @@ int userfuc::setupfuc(void){
     fflush(stdout); // 手动刷新标准输出缓冲区
     bool flag = false;
     while(1){
+        //判断用户信息是否变动
+        if(UserMsgQueue.try_pop(msg)){
+            u = user::fromJson(msg);
+            flag = true;
+        }
         if(ReptMsgQueue.try_pop(msg) || flag){
             flag = false;
             system("clear");
@@ -298,6 +323,11 @@ int userfuc::reportfuc(void){
     reportmenu( u, rpf.rpt, ret);
     bool flag = false;
     while(1){
+        //判断用户信息是否变动
+        if(UserMsgQueue.try_pop(msg)){
+            u = user::fromJson(msg);
+            flag = true;
+        }
         if(ReptMsgQueue.try_pop(msg) || flag){
             flag = false;
             system("clear");

@@ -161,7 +161,7 @@ void groupfucs::list(char c){
             std::string red = EchoMsgQueue.wait_and_pop();
             if(red == "norepeat") continue;
             group ud = group::fromJson(red);
-            std::string name = ud.name, status;
+            std::string name = ud.name, status = "成员";
             const char *color = "\033[0;37m";
             if(ud.owner == u.uid) {
                 status = "群主";

@@ -7,6 +7,7 @@
 #include "../Redis.hpp"
 #include "report.hpp"
 #include "../message.hpp"
+#include "sendrecv.hpp"
 
 class userdata{
 private:
@@ -53,6 +54,9 @@ public:
     bool DELUesr(std::string);
     //仅存入user:uid -> json的键值对
     bool setutoj(std::string, std::string);
+    //仅存入group:gid -> json的键值对
+    bool setgtoj(std::string, std::string);
+
     //将uid1放在uid2的好友申请表内（uid1加uid2）
     bool AddFrd(std::string uid1, std::string uid2);
     //判断传入的uid是否存在，存在返回true，不存在返回false
@@ -125,6 +129,7 @@ std::string userdata::newgroup(std::string &str){
     user ud = GetUesr(uid);
     ud.grouplist.insert(ngid);
     setutoj(uid, ud.toJson());
+    if(uid_to_socket.count(ud.uid)) sendMsg("user:"+ud.toJson(), uid_to_socket[ud.uid]);
     return ngid;
 }
 
@@ -239,9 +244,15 @@ bool userdata::setutoj(std::string nuid, std::string s){
     freeReplyObject(reply);
     return true;
 }
+bool userdata::setgtoj(std::string ngid, std::string s){
+    redisReply*reply = (redisReply*)redisCommand(redis, "SET group:%s %s", ngid.c_str(), s.c_str());
+    freeReplyObject(reply);
+    return true;
+}
+
 
 bool userdata::AddFrd(std::string name1, std::string uid2){
-    std::string js = u_report(uid);
+    std::string js = u_report(uid2);
     report rpt;
     if(js != "none") 
         rpt = report::fromJson(js);

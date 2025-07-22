@@ -3,7 +3,6 @@
 #include<cstring>
 #include<string>
 #include "userdata.hpp"
-#include "sendrecv.hpp"
 #include "../user.hpp"
 #include "../client/register/hashpwd.hpp"
 #include "../message.hpp"
@@ -344,13 +343,12 @@ void handler::adgp(){
     }
     //给群主和管理员广播一次
     report rpt = report::fromJson(u.u_report(gp.owner));
-    user ud = u.GetUesr(gp.owner);
+    user ud = u.GetUesr(uid1);
     rpt.groupapply.insert(ud.name+":"+gp.name);
     u.svreport( gp.owner, rpt.toJson());
     if(uid_to_socket.count(gp.owner)) sendMsg("rept:", uid_to_socket[gp.owner]);
     for(std::string str : gp.managelist){
         rpt = report::fromJson(u.u_report(str));
-        ud = u.GetUesr(str);
         rpt.groupapply.insert(ud.name+":"+gp.name);
         u.svreport( str, rpt.toJson());
         if(uid_to_socket.count(str)) sendMsg("rept:", uid_to_socket[str]);
@@ -449,13 +447,15 @@ void handler::adfok(){
         return;
     }
     report rpt1 = report::fromJson(js);
+
     //若用户2对用户1有好友申请，清除
     if(rpt1.friendapply.count(ud2.name)) rpt1.friendapply.erase(ud2.name);
+
     //给u1发成功添加好友的notice
     if(flag == 'y')
-        rpt1.notice.push_back("adfy(n)" + ud2.name);
+        rpt1.notice.insert( rpt1.notice.begin(), std::string("adfy(n)") + ud2.name);
     else    
-        rpt1.notice.push_back("adfn(n)" + ud2.name);
+        rpt1.notice.insert( rpt1.notice.begin() ,std::string("adfn(n)") + ud2.name);
     //保存rpt1
     u.svreport(uid1, rpt1.toJson());
     //若uid1在线，发通知
@@ -748,15 +748,49 @@ void handler::fdlt(){
     sendMsg("echo:"+fnl.toJson(), sockfd);
 }
 
-//adg(y:uname:gname(用户加群),改数据库
+//adg(y:uname:gname:handler(用户加群),改数据库
 void handler::adgok(){
     int i = 6;
     char input = str[4];
-    std::string uname, gname;
+    std::string uname, gname, handname;
     while(str[i] != ':') uname.push_back(str[i++]);
-    gname = str.c_str() + i + 1;
+    i++;
+    while(str[i] != ':') gname.push_back(str[i++]);
+    handname = str.c_str() + i + 1;
     std::string uid = u.Getuid(uname.c_str()), gid = u.Getgid(gname.c_str());
-    //同意：1.用户结构体中群组列表加入该群gid -> 2.该群成员中加入该用户 -> 3.去除群主管理员通知中这条申请，给他们发结果通知
+    //同意：1.用户结构体中群组列表加入该群gid -> 2.该群成员中加入该用户 -> 3.去除群主管理员通知中这条申请，给他们发结果通知 ->
     //拒绝: 去除群主管理员通知中这条申请，给他们发结果通知
-    
+    user ud = u.GetUesr(uid);
+    group gp = group::fromJson(u.GetGroup(gid));
+    if(input == 'Y' || input == 'y'){
+        //用户结构体中群组列表加入该群gid
+        ud.grouplist.insert(gid);
+        u.setutoj(uid, ud.toJson());
+        //该群成员中加入该用户
+        gp.memberlist.insert(uid);
+        u.setgtoj(gid, gp.toJson());
+    }
+    //拼接通知
+    char result[512];
+    sprintf( result, "adg%c(n)%s:%s:%s", input, uname.c_str(), gname.c_str(), handname.c_str());
+    std::string apply = uname+":"+gname;
+    //去除群主通知中这条申请
+    report rpt = report::fromJson(u.u_report(gp.owner));
+    rpt.groupapply.erase(apply);
+    //替换群主的通知
+    rpt.notice.insert(rpt.notice.begin(), result);
+    u.svreport( gp.owner, rpt.toJson());
+    //若在线，提示该通知
+    if(uid_to_socket.count(gp.owner)) sendMsg("rept:", uid_to_socket[gp.owner]);
+    //去除管理员通知中这条申请
+    for(std::string mvs : gp.managelist){
+        rpt = report::fromJson(u.u_report(mvs));
+        rpt.groupapply.erase(apply);
+        rpt.notice.insert(rpt.notice.begin(), result);
+        u.svreport( mvs, rpt.toJson());
+        if(uid_to_socket.count(mvs)) sendMsg("rept:", uid_to_socket[mvs]);
+    }
+    sendMsg("echo:right", sockfd);
+    //给对应用户发送user提醒
+    if(uid_to_socket.count(uid)) sendMsg("user:"+ud.toJson(), uid_to_socket[uid]);
 }

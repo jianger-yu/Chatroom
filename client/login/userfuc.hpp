@@ -324,7 +324,8 @@ int userfuc::reportfuc(void){
             break;
         }
         case '4':{
-            
+            rpf.groupreport();
+            flag = true;
             break;
         }
         case '5':{

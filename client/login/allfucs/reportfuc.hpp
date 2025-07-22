@@ -97,7 +97,29 @@ void reportfucs::Analysisnotice(std::string &str, int i){
             printf("[%d] %d、用户 \033[0;34m%s\033[0m %s了您的好友申请\n", i-5*page+1, i + 1, str.c_str(), result.c_str());
         else
             printf("\033[0;33m[%d] %d、用户\033[0m \033[0;34m%s\033[0m \033[0;33m%s了您的好友申请\033[0m\n", i-5*page+1, i + 1, str.c_str(), result.c_str());
-    
+    }
+    else if(str[0] == 'a' && str[1] == 'd' && str[2] == 'g'){
+        std::string result, uname, gname, handname;
+        bool yellow = false;
+        if(str[3] == 'y' || str[3] == 'Y') result = "同意";
+        else result = "拒绝";
+        if(str[5] == 'n' || str[3] == 'N') yellow = true;
+        //解析命令"adg%c(n)%s:%s:%s", input, uname.c_str(), gname.c_str(), handname.c_str()
+        int j = 0;
+        while(str[j] != ')') j++;
+        j++;
+        while(str[j] != ':') uname.push_back(str[j++]);
+        j++;
+        while(str[j] != ':') gname.push_back(str[j++]);
+        handname = str.c_str() + j + 1;
+        if(i == -1){
+            printf("用户 \033[0;34m%s\033[0m 加入群聊 \033[0;34m%s\033[0m 的申请被 \033[0;34m%s\033[0m。\n处理人：\033[0;34m%s\n\033[0m", uname.c_str(), gname.c_str(), result.c_str(), handname.c_str());
+            return;    
+        }
+        if(!yellow) 
+            printf("[%d] %d、用户 \033[0;34m%s\033[0m 加入群聊 \033[0;34m%s\033[0m 的申请被 \033[0;34m%s\033[0m。\n", i-5*page+1, i + 1,  uname.c_str(), gname.c_str(), result.c_str());
+        else
+            printf("\033[0;33m[%d] %d、用户 \033[0m\033[0;34m%s\033[0m\033[0;33m 加入群聊 \033[0m\033[0;34m%s\033[0m \033[0;33m的申请被\033[0m \033[0;34m%s\033[0m\033[0;33m。\033[0m\n", i-5*page+1, i + 1,  uname.c_str(), gname.c_str(), result.c_str());
     }
 }
 
@@ -267,7 +289,7 @@ void reportfucs::handlegroupapply(char c){
     fflush(stdout);
     int i = 0, j = 0;
     std::string rptstr, sd, rev, name, gname;
-    for(std::string str : rpt.friendapply)
+    for(std::string str : rpt.groupapply)
         if((i++ + 1) == 5*page + c -'0')
             rptstr = str;
     if(!rptstr.size()) return;
@@ -286,12 +308,12 @@ void reportfucs::handlegroupapply(char c){
     }
 
     
-    //adg(y:uname:gname(用户加群),改数据库
-    sock->sendMsg(sd+":"+name+":"+gname);
+    //adg(y:uname:gname:handler(用户加群),改数据库
+    sock->sendMsg(sd+":"+name+":"+gname+":"+u.name);
     sd = EchoMsgQueue.wait_and_pop();
     if(sd == "right"){
         if(input == 'Y' || input == 'y')
-            printf("\033[0;32m添加好友成功！\033[0m\n");
+            printf("\033[0;32m已经同意该申请！\033[0m\n");
         else 
             printf("\033[0;32m已拒绝该申请！\033[0m\n");
         printf("\033[0;32m请按任意键继续...\033[0m");
@@ -308,60 +330,6 @@ void reportfucs::handlegroupapply(char c){
 
 
 void reportfucs::friendreport(){
-    char input = 0;
-    page = 0;
-    std::string msg;
-    system("clear");
-    menu('0', 4);
-    fflush(stdout); // 手动刷新标准输出缓冲区
-    bool flag = false;
-    while(1){
-        if(ReptMsgQueue.try_pop(msg) || flag){
-            flag = false;
-            system("clear");
-            if(!Getrpt()) {
-                printf("\033[0;31m数据异常，请稍后再试\033[0m\n");
-                printf("\033[0;31m请按任意键继续...\033[0m");
-                input = charget();
-                return;
-            }
-            menu('p', 4);
-            fflush(stdout); // 手动刷新标准输出缓冲区
-        }
-        input = tm_charget(200);
-        if(input == -1) continue;
-        switch(input){
-        case '1':
-        case '2':
-        case '3':
-        case '4':
-        case '5':{
-            handlegroupapply(input);
-            flag = true;
-            break;
-        }
-        case '[':{
-            system("clear");
-            menu('[', 4);
-            fflush(stdout); // 手动刷新标准输出缓冲区
-            break;
-        }
-        case ']':{
-            system("clear");
-            menu(']', 4);
-            fflush(stdout); // 手动刷新标准输出缓冲区
-            break;
-        }
-        case 27:{
-            return ;
-        }
-        default:continue;
-        }
-    }
-    return ;
-}
-
-void reportfucs::groupreport(){
     char input = 0;
     page = 0;
     std::string msg;
@@ -403,6 +371,60 @@ void reportfucs::groupreport(){
         case ']':{
             system("clear");
             menu(']', 1);
+            fflush(stdout); // 手动刷新标准输出缓冲区
+            break;
+        }
+        case 27:{
+            return ;
+        }
+        default:continue;
+        }
+    }
+    return ;
+}
+
+void reportfucs::groupreport(){
+    char input = 0;
+    page = 0;
+    std::string msg;
+    system("clear");
+    menu('0', 4);
+    fflush(stdout); // 手动刷新标准输出缓冲区
+    bool flag = false;
+    while(1){
+        if(ReptMsgQueue.try_pop(msg) || flag){
+            flag = false;
+            system("clear");
+            if(!Getrpt()) {
+                printf("\033[0;31m数据异常，请稍后再试\033[0m\n");
+                printf("\033[0;31m请按任意键继续...\033[0m");
+                input = charget();
+                return;
+            }
+            menu('p', 4);
+            fflush(stdout); // 手动刷新标准输出缓冲区
+        }
+        input = tm_charget(200);
+        if(input == -1) continue;
+        switch(input){
+        case '1':
+        case '2':
+        case '3':
+        case '4':
+        case '5':{
+            handlegroupapply(input);
+            flag = true;
+            break;
+        }
+        case '[':{
+            system("clear");
+            menu('[', 4);
+            fflush(stdout); // 手动刷新标准输出缓冲区
+            break;
+        }
+        case ']':{
+            system("clear");
+            menu(']', 4);
             fflush(stdout); // 手动刷新标准输出缓冲区
             break;
         }

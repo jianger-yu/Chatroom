@@ -492,8 +492,9 @@ void friendfucs::handlechat(char c, int fg){
     fflush(stdout); // 手动刷新标准输出缓冲区
     //找到对应uid
     int i = 5*page + c - '0' - 1, j = 0;
-    if(fg == 1)
+    if(fg == 1){
         if(i >= u.friendlist.size()) return;
+    }
     else if(fg == 2)
         if(i >= fnl.data.size()) return;
     std::string uid2;

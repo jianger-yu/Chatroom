@@ -69,14 +69,20 @@ private:
     void rmgp();
     //拉取两页聊天记录
     void ctms();
+    //拉取两页群聊记录
+    void gctm();
     //处理用户发送消息的请求
     void sdms();
+    //处理用户发送群消息的请求
+    void sdgm();
     //处理用户读取聊天记录总条数的请求
     void rdpg();
+    void rdgc();
     //处理用户需要保存json字符串的需求
     void svrp();
     //处理用户需要提供聊天记录的请求
     void ndms();
+    void ndgm();
     //处理用户屏蔽好友的请求
     void shfd();
     //处理解除屏蔽好友的请求
@@ -132,11 +138,15 @@ int handler::handle(void){
     else if(str[0] == 'r' && str[1] == 'm' && str[2] == 'f' && str[3] == 'd') rmfd();
     else if(str[0] == 'r' && str[1] == 'm' && str[2] == 'g' && str[3] == 'p') rmgp();
     else if(str[0] == 'c' && str[1] == 't' && str[2] == 'm' && str[3] == 's') ctms();
+    else if(str[0] == 'g' && str[1] == 'c' && str[2] == 't' && str[3] == 'm') gctm();
     else if(str[0] == 'c' && str[1] == 't' && str[2] == 'g' && str[3] == 'p') ctgp();
     else if(str[0] == 's' && str[1] == 'd' && str[2] == 'm' && str[3] == 's') sdms();
+    else if(str[0] == 's' && str[1] == 'd' && str[2] == 'g' && str[3] == 'm') sdgm();
     else if(str[0] == 'r' && str[1] == 'd' && str[2] == 'p' && str[3] == 'g') rdpg();
+    else if(str[0] == 'r' && str[1] == 'd' && str[2] == 'g' && str[3] == 'c') rdgc();
     else if(str[0] == 's' && str[1] == 'v' && str[2] == 'r' && str[3] == 'p') svrp();
     else if(str[0] == 'n' && str[1] == 'd' && str[2] == 'm' && str[3] == 's') ndms();
+    else if(str[0] == 'n' && str[1] == 'd' && str[2] == 'g' && str[3] == 'm') ndgm();
     else if(str[0] == 's' && str[1] == 'h' && str[2] == 'f' && str[3] == 'd') shfd();
     else if(str[0] == 's' && str[1] == 'h' && str[2] == 'e' && str[3] == 'x') shex();
     else if(str[0] == 'f' && str[1] == 'd' && str[2] == 'l' && str[3] == 't') fdlt();
@@ -638,6 +648,15 @@ void handler::ctms(){
     sendMsg("echo:"+ msg.toJson(), sockfd);
 }
 
+void handler::gctm(){
+    int i = 0;
+    while(str[i] != ':') i++;
+    std::string gid = str.c_str() + i + 1;
+    messages msg(u.glrange(gid, 0, 13));
+    sendMsg("echo:"+ msg.toJson(), sockfd);
+}
+
+
 //处理用户发送消息的请求
 //"sdms:"+message
 //redis  chat:uid1:uid2 表示uid1收到uid2的消息表
@@ -678,6 +697,75 @@ void handler::sdms(){
     sendMsg("echo:right", sockfd);
 }
 
+void handler::sdgm(){
+    std::string msg;
+    int i = 0, j;
+    while(str[i] != ':') i ++;
+    msg = str.c_str() + i + 1;
+    //先判断在不在群
+    message sendm = message::fromJson(msg);
+    user ud1 = u.GetUesr(sendm.sender_uid);
+    std::string js = u.GetGroup(sendm.receiver_uid);
+    if(js == "norepeat"){
+        sendMsg("echo:nofrd", sockfd);
+        return;
+    }
+    group gp = group::fromJson(js);
+    bool exist = false;
+    if(ud1.uid == gp.owner) exist = true;
+    if(gp.managelist.count(ud1.uid)) exist = true;
+    if(gp.memberlist.count(ud1.uid)) exist = true;
+    if(!exist){//说明不在群内
+        sendMsg("echo:nofrd", sockfd);
+        return;
+    }
+    //存入数据库
+    u.savegchat(msg);
+    //编辑接受者的通知
+    report rpt;
+
+    if(sendm.sender_uid != gp.owner){
+        rpt = report::fromJson(u.u_report(gp.owner));
+        int cnt = rpt.chatgroup[gp.gid];
+        rpt.chatgroup[gp.gid] = cnt + 1;
+        rpt.total_group_msg++;
+        u.svreport(gp.owner, rpt.toJson());
+        //若接受者在线，给接受者发通知：有新消息
+        if(uid_to_socket.count(gp.owner)) sendMsg("rept:"+sendm.sender_uid, uid_to_socket[gp.owner]);
+        //给接受者发送这条消息
+        if(uid_to_socket.count(gp.owner)) sendMsg("chat:"+sendm.toJson(), uid_to_socket[gp.owner]);
+    }
+    for(std::string uid2 : gp.managelist){
+        if(uid2 != sendm.sender_uid){
+            rpt = report::fromJson(u.u_report(uid2));
+            int cnt = rpt.chatgroup[gp.gid];
+            rpt.chatgroup[gp.gid] = cnt + 1;
+            rpt.total_group_msg++;
+            u.svreport(uid2, rpt.toJson());
+            //若接受者在线，给接受者发通知：有新消息
+            if(uid_to_socket.count(uid2)) sendMsg("rept:"+sendm.sender_uid, uid_to_socket[uid2]);
+            //给接受者发送这条消息
+            if(uid_to_socket.count(uid2)) sendMsg("chat:"+sendm.toJson(), uid_to_socket[uid2]);
+        }
+    }
+    for(std::string uid2 : gp.memberlist){
+        if(uid2 != sendm.sender_uid){
+            rpt = report::fromJson(u.u_report(uid2));
+            int cnt = rpt.chatgroup[gp.gid];
+            rpt.chatgroup[gp.gid] = cnt + 1;
+            rpt.total_group_msg++;
+            u.svreport(uid2, rpt.toJson());
+            //若接受者在线，给接受者发通知：有新消息
+            if(uid_to_socket.count(uid2)) sendMsg("rept:"+sendm.sender_uid, uid_to_socket[uid2]);
+            //给接受者发送这条消息
+            if(uid_to_socket.count(uid2)) sendMsg("chat:"+sendm.toJson(), uid_to_socket[uid2]);
+        }
+    }
+    
+    //给发送者发回声
+    sendMsg("echo:right", sockfd);
+}
+
 void handler::rdpg(){
     //拿到数据
     std::string uid1,uid2;
@@ -690,6 +778,16 @@ void handler::rdpg(){
     }
     for(int t = j + 1; t < str.size(); t++) uid2.push_back(str[t]);
     int t = u.llen(uid1, uid2);
+    char arr[512];
+    sprintf(arr, "echo:%d", t);
+    sendMsg(arr, sockfd);
+}
+void handler::rdgc(){
+    //拿到数据
+    int i = 0;
+    while(str[i] != ':') i++;
+    std::string gid = str.c_str() + i + 1;
+    int t = u.gllen(gid);
     char arr[512];
     sprintf(arr, "echo:%d", t);
     sendMsg(arr, sockfd);
@@ -728,6 +826,22 @@ void handler::ndms(){
     for(int k = t + 1; k < str.size(); k++) msgcnt.push_back(str[k]);
     sscanf(msgcnt.c_str(), "%d", &cnt);
     messages msgs = u.lrange(uid1, uid2, cnt, cnt+6);
+    sendMsg("echo:"+ msgs.toJson(), sockfd);
+}
+
+void handler::ndgm(){
+    //拿到数据
+    std::string gid,msgcnt;
+    int i = 0, cnt;
+    while(str[i] != ':') i++;
+    int j = i + 1;
+    while(str[j] != ':') {
+        gid.push_back(str[j]);
+        j++;
+    }
+    for(int t = j + 1; t < str.size(); t++) msgcnt.push_back(str[t]);
+    sscanf(msgcnt.c_str(), "%d", &cnt);
+    messages msgs = u.glrange( gid, cnt, cnt+6);
     sendMsg("echo:"+ msgs.toJson(), sockfd);
 }
 

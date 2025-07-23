@@ -625,7 +625,7 @@ void reportfucs::handlechat(char c, report& rpt){
         if(ChatMsgQueue.try_pop(msg)){
             page = 0;
             message m = message::fromJson(msg);
-            if(m.sender_uid == ud2.uid) save.data.insert(save.data.begin(), msg);
+            if(m.sender_uid == ud2.uid&& m.is_group == false) save.data.insert(save.data.begin(), msg);
             msgcnt++;
             flag = true;
         }

@@ -188,7 +188,8 @@ int userfuc::groupfuc(void){
             break;
         }
         case '4':{
-            
+            grf.groupchat();
+            flag = true;
             break;
         }
         case '5':{

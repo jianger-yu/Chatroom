@@ -65,11 +65,14 @@ public:
     std::string u_report(std::string uid);
     //根据uid1、uid2、消息条数、拉取顺序获取消息列表，fg为0拉最新消息，为1拉最早消息
     std::vector<std::string> lrange(std::string uid1, std::string uid2, int cnt, int fg);
+    std::vector<std::string> glrange(std::string gid, int cnt, int fg);
     //根据uid1、uid2获取消息总量
     int llen(std::string uid1, std::string uid2);
+    int gllen(std::string gid);
     //根据聊天的json字符串存聊天记录
     void savechat(std::string js);
     void savechat2(std::string js);
+    void savegchat(std::string js);
 };
 
 
@@ -303,12 +306,47 @@ int userdata::llen(std::string uid1, std::string uid2){
     return len;
 }
 
+int userdata::gllen(std::string gid){
+    // 先获取list长度
+    std::string chat_key = "gchat:" + gid;
+    redisReply* reply_len = (redisReply*)redisCommand(redis, "LLEN %s", chat_key.c_str());
+    if (!reply_len || reply_len->type != REDIS_REPLY_INTEGER) {
+        if(reply_len) freeReplyObject(reply_len);
+        return 0; // 失败返回空
+    }
+    int len = (int)reply_len->integer;
+    freeReplyObject(reply_len);
+    return len;
+}
+
+
 
 std::vector<std::string> userdata::lrange(std::string uid1, std::string uid2, int start, int stop){
     std::vector<std::string> result;
     std::string chat_key = "chat:" + uid1 + ":" + uid2;
     int len = 0;
     if (len == llen(uid1, uid2)) return result; // 无消息直接返回
+
+    redisReply* reply = (redisReply*)redisCommand(redis, "LRANGE %s %d %d", chat_key.c_str(), start, stop);
+    if (!reply || reply->type != REDIS_REPLY_ARRAY) {
+        if(reply) freeReplyObject(reply);
+        return result;
+    }
+
+    for (int i = 0; i < reply->elements; i++) {
+        if(reply->element[i]->type == REDIS_REPLY_STRING)
+            result.push_back(reply->element[i]->str);
+    }
+    freeReplyObject(reply);
+
+    return result;
+}
+
+std::vector<std::string> userdata::glrange(std::string gid, int start, int stop){
+    std::vector<std::string> result;
+    std::string chat_key = "gchat:" + gid;
+    int len = 0;
+    if (len == gllen(gid)) return result; // 无消息直接返回
 
     redisReply* reply = (redisReply*)redisCommand(redis, "LRANGE %s %d %d", chat_key.c_str(), start, stop);
     if (!reply || reply->type != REDIS_REPLY_ARRAY) {
@@ -336,6 +374,13 @@ void userdata::savechat(std::string js){
 void userdata::savechat2( std::string js){
     message sendm = message::fromJson(js);
     std::string chat_key = "chat:" + sendm.sender_uid + ":" + sendm.receiver_uid;
+    redisReply* reply = (redisReply*)redisCommand(redis, "LPUSH %s %s", chat_key.c_str(), js.c_str());
+    freeReplyObject(reply);
+}
+
+void userdata::savegchat(std::string js){
+    message sendm = message::fromJson(js);
+    std::string chat_key = "gchat:" + sendm.receiver_uid;
     redisReply* reply = (redisReply*)redisCommand(redis, "LPUSH %s %s", chat_key.c_str(), js.c_str());
     freeReplyObject(reply);
 }

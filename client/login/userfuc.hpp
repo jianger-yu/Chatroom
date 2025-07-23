@@ -192,6 +192,16 @@ int userfuc::groupfuc(void){
             break;
         }
         case '5':{
+            grf.quitgroup();
+            flag = true;
+            break;
+        }
+        case '6':{
+            grf.viewmember();
+            flag = true;
+            break;
+        }
+        case '7':{
             
             break;
         }

@@ -1,5 +1,6 @@
 {
     "files.associations": {
+        "*.dbclient-js": "javascript",
         "iostream": "cpp",
         "random": "cpp",
         "cstring": "cpp",
@@ -67,6 +68,9 @@
         "print": "cpp",
         "queue": "cpp",
         "stack": "cpp",
-        "list": "cpp"
+        "list": "cpp",
+        "ranges": "cpp",
+        "*.inc": "cpp",
+        "__config": "cpp"
     }
 }

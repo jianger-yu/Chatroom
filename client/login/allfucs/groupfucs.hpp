@@ -7,6 +7,8 @@ private:
     void* clientp;
     int page = 0;
     char name[512];
+    friendnamelist fnl;
+    group viewgp;
 
 public:
 
@@ -18,6 +20,14 @@ public:
     void list(char);
     //加群
     void addgroup();
+    //退出
+    void quitgroup();
+    void handlequit(char, int fg = 1);
+    //查看群成员
+    void viewmember();
+    void view(char , int fg = 1);
+    void viewlist(char c);
+
 };
 
 void groupfucs::addgroup(){
@@ -184,4 +194,340 @@ void groupfucs::list(char c){
     printf("                     \033[0;32m(tip:按[和]按键可控制翻页)\n\033[0m");
     printf("                                \033[0;32m[%d/%d]\033[0m\n",page+1,maxpage);
     printf("\033[0;36m==========================================================\033[0m\n");
+}
+
+void groupfucs::handlequit(char c, int fg){
+    Client * cp = (Client*)clientp;
+    Socket * sock = cp->getSocket();
+    system("clear");
+    //找到对应消息
+    int i = 5*page + c - '0' - 1, j = 0;
+    if(fg == 1)
+        if(i >= u.grouplist.size()) return;
+    // else if(fg == 2)
+    //     if(i >= fnl.data.size()) return;
+    std::string sd;
+    if(fg == 1){
+        for(std::string str : u.grouplist){
+            if(j == i){
+                sd = str;
+                break;
+            }
+            j++;
+        }
+    }
+    // } else if(fg == 2){
+    //     for(std::string str : fnl.data){
+    //         if(j == i){
+    //             sd = str;
+    //             break;
+    //         }
+    //         j++;
+    //     }
+    // }
+    sock->sendMsg("gtgp:"+sd);
+    std::string nm = EchoMsgQueue.wait_and_pop(), rev;
+    if(nm == "norepeat"){
+        printf("\033[0;31m数据异常，请稍后再试。\033[0m\n");
+        printf("\033[0;31m请按任意键继续...\033[0m");
+        charget();
+        return ;
+    }
+    group gp = group::fromJson(nm);
+    nm = gp.name;
+    if(gp.owner == u.uid)
+        printf("\033[0;32m您为群组\033[0m \033[0;31m%s\033[0m \033[0;32m的群主，退出后该群会解散，确认继续吗？（Y/N）\033[0m\n", nm.c_str());
+    else
+        printf("\033[0;32m确定要退出群组\033[0m \033[0;31m%s\033[0m \033[0;32m？（Y/N）\033[0m\n", nm.c_str());
+    fflush(stdout);
+    char input;
+    while(1){
+        input = charget();
+        if(input == 27) return;
+        if(input != 'Y' && input != 'N' && input != 'y' && input != 'n') continue;
+        if(input == 'Y' || input == 'y') break;
+        else return;
+        break;
+    }
+    //确定删除该好友,uid1删gp
+    sock->sendMsg("rmgp:"+u.uid+":"+sd);
+    rev = EchoMsgQueue.wait_and_pop();
+    if(rev != "right"){
+        printf("\033[0;31m数据异常，请稍后再试。\033[0m\n");
+        printf("\033[0;31m请按任意键继续...\033[0m");
+        input = charget();
+        return ;
+    }
+    //删除本地列表中的gid
+    u.grouplist.erase(sd);
+    // for(int i = 0; i < fnl.data.size(); i++)
+    // if(fnl.data[i] == sd) fnl.data.erase(fnl.data.begin() + i);
+}
+
+void groupfucs::quitgroup(){
+    system("clear");
+    page = 0;
+    list('0');
+    if(u.grouplist.size())
+        printf("\033[0;32m请选择您要退出的群聊:>\033[0m");
+    fflush(stdout); // 手动刷新标准输出缓冲区
+    bool flag = false;
+    std::string msg;
+    while(1){
+        //判断用户信息是否变动
+        if(UserMsgQueue.try_pop(msg)){
+            page = 0;
+            u = user::fromJson(msg);
+            flag = true;
+        }
+        //判断是否有新通知
+        if(ReptMsgQueue.try_pop(msg) || flag){
+            flag = false;
+            system("clear");
+            list('p');
+            if(u.grouplist.size())
+                printf("\033[0;32m请选择您要退出的群聊:>\033[0m");
+            fflush(stdout); // 手动刷新标准输出缓冲区
+        }
+        char input = tm_charget(200);
+        if(input == -1) continue;
+        switch(input){
+        case '1':
+        case '2':
+        case '3':
+        case '4':
+        case '5':{
+            handlequit(input, 1);
+            flag = true;
+            break;
+        }
+        case '[':{
+            system("clear");
+            list('[');
+            if(u.grouplist.size())
+                printf("\033[0;32m请选择您要退出的群聊:>\033[0m");
+            fflush(stdout); // 手动刷新标准输出缓冲区
+            break;
+        }
+        case ']':{
+            system("clear");
+            list(']');
+            if(u.grouplist.size())
+                printf("\033[0;32m请选择您要退出的群聊:>\033[0m");
+            fflush(stdout); // 手动刷新标准输出缓冲区
+            break;
+        }
+        case 27:{
+            return ;
+        }
+        default:continue;
+        }
+    }
+    return ;
+}
+
+void groupfucs::viewlist(char c){
+    reportfucs rpf(u, clientp);
+    bool ret = rpf.Getrpt();
+    Client* cp = (Client*) clientp;
+    Socket* sock = cp->getSocket();
+    if(!fnl.data.size()){
+        printf("\033[0;32m没有包含该字段的好友。\n\033[0m");
+        printf("\033[0;32m请按ESC返回...\033[0m");
+        return;
+    }
+    int cnt = 0;
+    cnt = fnl.data.size();
+    int maxpage = cnt / 5, i = 0;
+    if(cnt % 5 != 0) maxpage++;
+    if(c == '[' && page == 0) ;
+    else if(c == '[') page --;
+    if(c == ']' && page+1 >= maxpage) ;
+    else if(c == ']') page ++;
+    printf("\033[0;36m==========================================================\033[0m\n");
+    reportfucs::newreport(u, clientp);
+    printf("\033[0;32m以下为群聊 %s 的全部成员\033[0m\n", viewgp.name.c_str());
+    printf("\033[0;34m%-6s %-15s %-13s %-12s\033[0m\n", "序号", "用户名", "UID", "群中身份");
+    for(std::string str : fnl.data){
+        if(i >= 5*page && i < 5*(page+1)){
+            sock->sendMsg("gtus:"+str);
+            std::string red = EchoMsgQueue.wait_and_pop();
+            user ud = user::fromJson(red);
+            std::string name = ud.name, status, identity = "用户";
+            if(ud.stat == "online") status = "在线";
+            else if(ud.stat == "offline") status = "离线";
+            else if(ud.stat == "deleted") status = "该账户已注销";
+            if(ud.uid == viewgp.owner) identity = "群主";
+            else if(viewgp.managelist.count(ud.uid)) identity = "管理员";
+            // 如果是在线，颜色绿色；否则灰色
+            const char *color = (status == "在线") ? "\033[0;32m" : "\033[0;90m";
+
+            printf("%s[%d]  %-12s %-14s %-12s\033[0m",
+                    color, i - 5 * page + 1,
+                    name.c_str(), ud.uid.c_str(), identity.c_str());
+            if(rpf.rpt.chatfriend[ud.uid]) printf("   \033[0;31m（%d）\033[0m\n", rpf.rpt.chatfriend[ud.uid]);
+            else puts("");
+        }
+        i++;
+    }
+    printf("                     \033[0;32m(tip:按[和]按键可控制翻页)\n\033[0m");
+    printf("                                \033[0;32m[%d/%d]\033[0m\n",page+1,maxpage);
+    printf("\033[0;36m==========================================================\033[0m\n");
+}
+
+void groupfucs::view(char c, int fg){
+    Client * cp = (Client*)clientp;
+    Socket* sock = cp->getSocket();
+    std::string str;
+    char arr[512];
+    std::string sd;
+    system("clear");
+    //找到对应群聊
+    int i = 5*page + c - '0' - 1, j = 0;
+    if(fg == 1)
+        if(i >= u.grouplist.size()) return;
+    // else if(fg == 2)
+    //     if(i >= fnl.data.size()) return;
+    if(fg == 1){
+        for(std::string str : u.grouplist){
+            if(j == i){
+                sd = str;
+                break;
+            }
+            j++;
+        }
+    }
+    // } else if(fg == 2){
+    //     for(std::string str : fnl.data){
+    //         if(j == i){
+    //             sd = str;
+    //             break;
+    //         }
+    //         j++;
+    //     }
+    // }
+    //获取群成员列表
+    sprintf( arr, "gtgp:%s", sd.c_str());
+    sock->sendMsg(arr);
+    str = EchoMsgQueue.wait_and_pop();
+    if(str == "norepeat"){
+        printf("\033[0;31m数据异常，请稍后再试。\033[0m\n");
+        printf("\033[0;31m请按任意键继续...\033[0m");
+        charget();
+        return ;
+    }
+    viewgp = group::fromJson(str);
+    fnl.data.clear();
+    fnl.data.push_back(viewgp.owner);
+    for(std::string tmp : viewgp.managelist) fnl.data.push_back(tmp);
+    for(std::string tmp : viewgp.memberlist) fnl.data.push_back(tmp);
+    page = 0;
+    viewlist('0');
+    fflush(stdout); // 手动刷新标准输出缓冲区
+    bool flag = false;
+    std::string msg;
+    while(1){
+        //判断用户信息是否变动
+        if(UserMsgQueue.try_pop(msg)){
+            page = 0;
+            u = user::fromJson(msg);
+            flag = true;
+        }
+        //判断是否有新通知
+        if(ReptMsgQueue.try_pop(msg) || flag){
+            flag = false;
+            system("clear");
+            viewlist('p');
+            fflush(stdout); // 手动刷新标准输出缓冲区
+        }
+        char input = tm_charget(200);
+        if(input == -1) continue;
+        switch(input){
+        case '1':
+        case '2':
+        case '3':
+        case '4':
+        case '5':continue;
+        case '[':{
+            system("clear");
+            viewlist('[');
+            fflush(stdout); // 手动刷新标准输出缓冲区
+            break;
+        }
+        case ']':{
+            system("clear");
+            viewlist(']');
+            fflush(stdout); // 手动刷新标准输出缓冲区
+            break;
+        }
+        case 27:{
+            return ;
+        }
+        default:continue;
+        }
+    }
+    return ;
+}
+
+
+void groupfucs::viewmember(){
+    system("clear");
+    page = 0;
+    list('0');
+    if(u.grouplist.size())
+        printf("\033[0;32m请选择您要查看成员的群聊:>\033[0m");
+    fflush(stdout); // 手动刷新标准输出缓冲区
+    bool flag = false;
+    std::string msg;
+    while(1){
+        //判断用户信息是否变动
+        if(UserMsgQueue.try_pop(msg)){
+            page = 0;
+            u = user::fromJson(msg);
+            flag = true;
+        }
+        //判断是否有新通知
+        if(ReptMsgQueue.try_pop(msg) || flag){
+            flag = false;
+            system("clear");
+            list('p');
+            if(u.grouplist.size())
+                printf("\033[0;32m请选择您要查看成员的群聊:>\033[0m");
+            fflush(stdout); // 手动刷新标准输出缓冲区
+        }
+        char input = tm_charget(200);
+        if(input == -1) continue;
+        switch(input){
+        case '1':
+        case '2':
+        case '3':
+        case '4':
+        case '5':{
+            view(input, 1);
+            flag = true;
+            break;
+        }
+        case '[':{
+            system("clear");
+            list('[');
+            if(u.grouplist.size())
+                printf("\033[0;32m请选择您要查看成员的群聊:>\033[0m");
+            fflush(stdout); // 手动刷新标准输出缓冲区
+            break;
+        }
+        case ']':{
+            system("clear");
+            list(']');
+            if(u.grouplist.size())
+                printf("\033[0;32m请选择您要查看成员的群聊:>\033[0m");
+            fflush(stdout); // 手动刷新标准输出缓冲区
+            break;
+        }
+        case 27:{
+            return ;
+        }
+        default:continue;
+        }
+    }
+    return ;
 }

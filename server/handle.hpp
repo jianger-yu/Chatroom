@@ -48,6 +48,8 @@ private:
     void gtud();
     //根据uid获取用户名的请求
     void gtnm();
+    //根据gid获取用户名的请求
+    void ggnm();
 
     //处理添加好友的请求
     void adfr();
@@ -63,6 +65,8 @@ private:
     void rmnt();
     //处理删除好友的请求
     void rmfd();
+    //处理退出群聊的请求
+    void rmgp();
     //拉取两页聊天记录
     void ctms();
     //处理用户发送消息的请求
@@ -83,6 +87,8 @@ private:
     void ctgp();
     //处理用户获取好友名列表的请求
     void fdlt();
+    //处理用户获取群组成员列表的请求
+    void gplt();
 public:
     handler(std::string buf, int fd):str(buf),sockfd(fd){
     }
@@ -120,9 +126,11 @@ int handler::handle(void){
     else if(str[0] == 'g' && str[1] == 't' && str[2] == 'g' && str[3] == 'p') gtgp();
     else if(str[0] == 'g' && str[1] == 't' && str[2] == 'u' && str[3] == 'd') gtud();
     else if(str[0] == 'g' && str[1] == 't' && str[2] == 'n' && str[3] == 'm') gtnm();
+    else if(str[0] == 'g' && str[1] == 'g' && str[2] == 'n' && str[3] == 'm') ggnm();
     else if(str[0] == 'r' && str[1] == 'd' && str[2] == 'n' && str[3] == 't') rdnt();
     else if(str[0] == 'r' && str[1] == 'm' && str[2] == 'n' && str[3] == 't') rmnt();
     else if(str[0] == 'r' && str[1] == 'm' && str[2] == 'f' && str[3] == 'd') rmfd();
+    else if(str[0] == 'r' && str[1] == 'm' && str[2] == 'g' && str[3] == 'p') rmgp();
     else if(str[0] == 'c' && str[1] == 't' && str[2] == 'm' && str[3] == 's') ctms();
     else if(str[0] == 'c' && str[1] == 't' && str[2] == 'g' && str[3] == 'p') ctgp();
     else if(str[0] == 's' && str[1] == 'd' && str[2] == 'm' && str[3] == 's') sdms();
@@ -132,6 +140,7 @@ int handler::handle(void){
     else if(str[0] == 's' && str[1] == 'h' && str[2] == 'f' && str[3] == 'd') shfd();
     else if(str[0] == 's' && str[1] == 'h' && str[2] == 'e' && str[3] == 'x') shex();
     else if(str[0] == 'f' && str[1] == 'd' && str[2] == 'l' && str[3] == 't') fdlt();
+    else if(str[0] == 'g' && str[1] == 'p' && str[2] == 'l' && str[3] == 't') gplt();
 
     return 0;
 }
@@ -381,7 +390,7 @@ void handler::gtgp(){
     int i = 0;
     while(str[i] != ':') i++;
     std::string gid = str.c_str() + i + 1;
-    //拿到json/none
+    //拿到json/norepeat
     std::string sd = u.GetGroup(gid);
     sendMsg("echo:"+sd, sockfd);
 }
@@ -545,6 +554,48 @@ void handler::rmfd(){
     sendMsg("echo:right", sockfd);
 }
 
+void handler::rmgp(){
+    //拿到数据
+    std::string uid1,gid;
+    int i = 0;
+    while(str[i] != ':') i++;
+    int j = i + 1;
+    while(str[j] != ':') {
+        uid1.push_back(str[j]);
+        j++;
+    }
+    for(int t = j + 1; t < str.size(); t++) gid.push_back(str[t]);
+    user ud1 = u.GetUesr(uid1);
+    group gp = group::fromJson(u.GetGroup(gid));
+    if(ud1.uid == gp.owner){
+        //调用解散函数
+        return;
+    }
+    //1.去掉ud1群列表中的该组，给ud1发user -> 2.去掉群列表的该用户 -> 3.给全体成员广播该退群通知？
+    ud1.grouplist.erase(gid);
+    u.setutoj(uid1, ud1.toJson());
+    if(uid_to_socket.count(uid1)) sendMsg("user:"+ ud1.toJson(), sockfd);
+    //去掉群中的该用户
+    for(std::string p : gp.managelist){
+        if(p == uid1){
+            gp.managelist.erase(uid1);
+            break;
+        }
+    }
+    for(std::string p : gp.memberlist){
+        if(p == uid1){
+            gp.memberlist.erase(uid1);
+            break;
+        }
+    }
+    u.setgtoj( gid, gp.toJson());
+    // char result[512];
+    // //exgp(n)uid1:gid
+    // sprintf( result, "exgp(n)%s:%s", uid1.c_str(), gid.c_str());
+    sendMsg("echo:right", sockfd);
+}
+
+
 
 void handler::gtud(){
     int i = 0;
@@ -562,6 +613,14 @@ void handler::gtnm(){
     user ud = u.GetUesr(uid);
     sendMsg("echo:"+ud.name, sockfd);
 }
+void handler::ggnm(){
+    int i = 0;
+    while(str[i] != ':') i++;
+    std::string gid = str.c_str() + i + 1;
+    group ud = group::fromJson(u.GetGroup(gid));
+    sendMsg("echo:"+ud.name, sockfd);
+}
+
 
 void handler::ctms(){
     //拿到数据
@@ -799,4 +858,22 @@ void handler::adgok(){
         u.svreport( uid, rpt.toJson());
         if(uid_to_socket.count(uid)) sendMsg("rept:", uid_to_socket[uid]);
     }
+}
+
+void handler::gplt(){
+    //根据gid获取，若群名不存在则返回“norepeat”
+    int i = 0;
+    while(str[i] != ':') i++;
+    std::string gid = str.c_str() + i + 1;
+    std::string js = u.GetGroup(gid);
+    if(js == "norepeat"){
+        sendMsg("echo:norepeat", sockfd);
+        return;
+    }
+    group gp = group::fromJson(js);
+    friendnamelist fnl;
+    fnl.data.push_back(gp.owner);
+    for(std::string tmp : gp.managelist) fnl.data.push_back(tmp);
+    for(std::string tmp : gp.memberlist) fnl.data.push_back(tmp);
+    sendMsg("echo:"+fnl.toJson(), sockfd);
 }

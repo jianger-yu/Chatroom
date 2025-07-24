@@ -160,10 +160,14 @@ void reportfucs::menu(char c, int fg){
     int cnt = 0;
     if(fg == 1)
         cnt = rpt.friendapply.size();
-    else if(fg == 2)
-        cnt = rpt.chatfriend.size();
-    else if(fg == 3)
-        cnt = rpt.chatgroup.size();
+    else if(fg == 2){
+        for(auto m : rpt.chatfriend)
+        if(m.second) cnt++;
+    }
+    else if(fg == 3){
+        for(auto m : rpt.chatgroup)
+        if(m.second) cnt++;
+    }
     else if(fg == 4)
         cnt = rpt.groupapply.size();
     else if(fg == 5)

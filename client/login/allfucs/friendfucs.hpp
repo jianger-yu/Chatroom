@@ -1090,7 +1090,12 @@ void friendfucs::searchfriend(){
         break;
     }
     fnl = friendnamelist::fromJson(str);
-
+    if(!fnl.data.size()){
+        printf("\033[0;32m没有包含该字段的好友。\n\033[0m");
+        printf("\033[0;32m请按任意键继续...\033[0m");
+        charget();
+        return;
+    }
     system("clear");
     page = 0;
     searchlist('0');

@@ -1,5 +1,6 @@
 #pragma once
 #include "../MessageQueue.hpp"
+#include "../../register/SendEmail.hpp"
 class setupfucs{
 private:
     user& u;
@@ -15,8 +16,8 @@ public:
     void modpwd(int fg);
     //查看用户基本信息
     void ViewAccountInformation();
-
-
+    //注销账号
+    void logoff();
 };
 
 void setupfucs::ViewAccountInformation(){
@@ -177,4 +178,57 @@ void setupfucs::modpwd(int fg = 2){
             printf("\033[0;31m数据异常，请重试。\n\033[0m>");
         }
     } while(1);
+}
+
+
+void setupfucs::logoff(){
+    system("clear");
+    printf("\033[0;31m确定要注销该账号？（Y/N）\033[0m\n");
+    fflush(stdout);
+    char input;
+    bool off = false;
+    while(1){
+        input = charget();
+        if(input == 27) break;
+        if(input != 'Y' && input != 'N' && input != 'y' && input != 'n') continue;
+        if(input == 'Y' || input == 'y') off = true;
+        break;
+    }
+    if(!off) return ;
+    off = false;   
+    printf("\033[0;31m真的确定要注销该账号？（T/F）\033[0m\n");
+    while(1){
+        input = charget();
+        if(input == 27) break;
+        if(input != 'T' && input != 't' && input != 'F' && input != 'f') continue;
+        if(input == 'T' || input == 't') off = true;
+        break;
+    }
+    if(!off) return ;
+    //发送验证码
+    printf("\033[0;32m正在为您发送验证码...\033[0m");
+    fflush(stdout); // 手动刷新标准输出缓冲区
+    EmailSender emsend;
+    if(!emsend.send(u.email)){
+        printf("\033[0;31m数据异常，请稍后再试。\033[0m\n");
+        printf("\033[0;31m请按任意键继续...\033[0m\n");
+        charget();
+        return;
+    }
+    //输入验证码
+    char yan[100];
+    printf("\033[0;32m请输入验证码\n\033[0m>");
+    do{
+        chu(yan);
+        int ret = enter(yan, 0);
+        if(ret == -1) return;
+        if(strcmp(yan, emsend.code) != 0){
+            printf("\033[0;31m验证码错误，请检查并重新输入。\n\033[0m>");
+            continue;
+        }
+        break;
+    } while(1);
+    printf("正在注销；");
+    charget();
+
 }

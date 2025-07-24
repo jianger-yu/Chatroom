@@ -95,6 +95,11 @@ private:
     void fdlt();
     //处理用户获取群组成员列表的请求
     void gplt();
+    //添加管理员
+    void admn();
+
+    //根据uid获取用户为管理员的全部群
+    void mngl();
 public:
     handler(std::string buf, int fd):str(buf),sockfd(fd){
     }
@@ -125,6 +130,7 @@ int handler::handle(void){
     }
     else if(str[0] == 'a' && str[1] == 'd' && str[2] == 'f' && str[3] == 'r') adfr();
     else if(str[0] == 'a' && str[1] == 'd' && str[2] == 'g' && str[3] == 'p') adgp();
+    else if(str[0] == 'a' && str[1] == 'd' && str[2] == 'm' && str[3] == 'n') admn();
     else if(str[0] == 'a' && str[1] == 'd' && str[2] == 'f' && str[3] == '(') adfok();
     else if(str[0] == 'a' && str[1] == 'd' && str[2] == 'g' && str[3] == '(') adgok();
     else if(str[0] == 'g' && str[1] == 't' && str[2] == 'r' && str[3] == 'p') gtrp();
@@ -151,6 +157,7 @@ int handler::handle(void){
     else if(str[0] == 's' && str[1] == 'h' && str[2] == 'e' && str[3] == 'x') shex();
     else if(str[0] == 'f' && str[1] == 'd' && str[2] == 'l' && str[3] == 't') fdlt();
     else if(str[0] == 'g' && str[1] == 'p' && str[2] == 'l' && str[3] == 't') gplt();
+    else if(str[0] == 'm' && str[1] == 'n' && str[2] == 'g' && str[3] == 'l') mngl();
 
     return 0;
 }
@@ -900,7 +907,7 @@ void handler::ctgp(){
 }
 
 void handler::fdlt(){
-   //拿到数据
+    //拿到数据
     std::string uid1,fdname;
     int i = 0;
     while(str[i] != ':') i++;
@@ -990,4 +997,41 @@ void handler::gplt(){
     for(std::string tmp : gp.managelist) fnl.data.push_back(tmp);
     for(std::string tmp : gp.memberlist) fnl.data.push_back(tmp);
     sendMsg("echo:"+fnl.toJson(), sockfd);
+}
+
+void handler::mngl(){
+    int i = 0;
+    while(str[i] != ':') i++;
+    std::string uid = str.c_str() + i + 1, js;
+    user ud = u.GetUesr(uid);
+    friendnamelist gnl;
+    group gp;
+    for(std::string gid : ud.grouplist){
+        js = u.GetGroup(gid);
+        if(js == "norepeat") continue;
+        gp = group::fromJson(js);
+        if(gp.owner == uid || gp.managelist.count(uid)) gnl.data.push_back(js);
+    }
+    sendMsg("echo:"+gnl.toJson(), sockfd);
+}
+
+void handler::admn(){
+    //拿到数据
+    std::string gid,uid2,js;
+    int i = 0;
+    while(str[i] != ':') i++;
+    int j = i + 1;
+    while(str[j] != ':') {
+        gid.push_back(str[j]);
+        j++;
+    }
+    for(int t = j + 1; t < str.size(); t++) uid2.push_back(str[t]);
+    user ud = u.GetUesr(uid2);
+    js = u.GetGroup(gid);
+    if(js == "norepeat"){
+        sendMsg("echo:false", sockfd);
+        return;
+    }
+    group gp = group::fromJson(js);
+
 }

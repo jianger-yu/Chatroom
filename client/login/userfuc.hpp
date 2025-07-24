@@ -180,10 +180,7 @@ int userfuc::groupfuc(void){
             break;
         }
         case '3':{
-            system("clear");
-            grf.list('0');
-            fflush(stdout);
-            charget();
+            grf.list_group();
             flag = true;
             break;
         }
@@ -288,7 +285,8 @@ int userfuc::setupfuc(void){
             break;
         }
         case '2':{
-            
+            stf.logoff();
+            flag = true;
             break;
         }
         case '3':{

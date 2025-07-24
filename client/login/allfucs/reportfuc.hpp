@@ -16,6 +16,7 @@ private:
     int ctpage = 0;
     int msgcnt = 0;
     messages save;
+    group viewgp;
 public:
     report rpt;
 
@@ -42,10 +43,16 @@ public:
     void handlenotice(char );
     //查看聊天请求的页面
     void ctfrdreport();
+    //查看群聊天请求的页面
+    void ctfgrpreport();
     //处理聊天
     void handlechat(char, report& rpt);
     //聊天界面
     void chatmenu(char c, user& ud2);
+
+    void gchatmenu(char c, group& gp);
+    void ghandlechat(char c, int fg);
+
     //打印新通知
     static void newreport(user&u, void* p){
         reportfucs rpf(u, p);
@@ -135,6 +142,11 @@ void reportfucs::menu(char c, int fg){
         printf("\033[0;32m请按ESC返回...\033[0m");
         return;
     }
+    else if(fg == 3 && rpt.total_group_msg == 0){
+        printf("\033[0;32m当前没有未读的群聊消息。\n\033[0m");
+        printf("\033[0;32m请按ESC返回...\033[0m");
+        return;
+    }
     else if(fg == 4 && rpt.groupapply.size() == 0){
         printf("\033[0;32m当前没有加群申请。\n\033[0m");
         printf("\033[0;32m请按ESC返回...\033[0m");
@@ -150,6 +162,8 @@ void reportfucs::menu(char c, int fg){
         cnt = rpt.friendapply.size();
     else if(fg == 2)
         cnt = rpt.chatfriend.size();
+    else if(fg == 3)
+        cnt = rpt.chatgroup.size();
     else if(fg == 4)
         cnt = rpt.groupapply.size();
     else if(fg == 5)
@@ -164,7 +178,9 @@ void reportfucs::menu(char c, int fg){
     if(fg == 1)
         printf("\033[0;32m以下为您未处理的好友申请\033[0m\n");
     else if(fg == 2)
-        printf("\033[0;32m以下为您有未读消息的好友\033[0m\n");    
+        printf("\033[0;32m以下为您有未读消息的好友\033[0m\n");  
+    else if(fg == 3)
+        printf("\033[0;32m以下为您有未读消息的群聊\033[0m\n");
     else if(fg == 4)
         printf("\033[0;32m以下为未被处理的加群申请\033[0m\n");    
     else if(fg == 5)
@@ -199,6 +215,39 @@ void reportfucs::menu(char c, int fg){
                         color, i - 5 * page + 1,
                         name.c_str(), ud.uid.c_str(), status.c_str());
                 if(rpt.chatfriend[ud.uid]) printf("   \033[0;31m（%d）\033[0m\n", rpt.chatfriend[ud.uid]);
+                else puts("");
+            }
+            i++;
+        }
+    }
+    else if(fg == 3){
+        Client* cp = (Client*)clientp;
+        Socket * sock = cp->getSocket(); 
+        printf("\033[0;34m%-6s %-14s %-13s %-12s\033[0m\n", "序号", "群名", "GID", "在群中身份");
+        for(auto str : rpt.chatgroup){
+            if(str.second == 0) continue;
+            if(i >= 5*page && i < 5*(page+1)){
+                sock->sendMsg("gtgp:"+str.first);
+                std::string red = EchoMsgQueue.wait_and_pop();
+                if(red == "norepeat") continue;
+                group ud = group::fromJson(red);
+                std::string name = ud.name, status = "成员";
+                const char *color = "\033[0;37m";
+                if(ud.owner == u.uid) {
+                    status = "群主";
+                    color = "\033[0;31m";
+                } else{
+                    for(std::string str : ud.managelist){
+                        if(str == u.uid){
+                            status = "管理员";
+                            color = "\033[0;32m";
+                        }
+                    }
+                }
+                printf("\033[0;37m[%d]  %-12s %-14s \033[0m%s%-12s\033[0m",
+                        i - 5 * page + 1,
+                        name.c_str(), ud.gid.c_str(), color,status.c_str());
+                if(rpt.chatgroup[ud.gid]) printf("   \033[0;31m（%d）\033[0m\n", rpt.chatgroup[ud.gid]);
                 else puts("");
             }
             i++;
@@ -582,7 +631,8 @@ void reportfucs::handlechat(char c, report& rpt){
             uid2 = str.first;
             break;
         }
-        j++;
+        if(str.second != 0)
+            j++;
     }
     if(uid2 == "none") return;
     sock->sendMsg("gtus:"+ uid2);
@@ -799,6 +849,316 @@ void reportfucs::ctfrdreport(){
         case ']':{
             system("clear");
             menu(']', 2);
+            fflush(stdout); // 手动刷新标准输出缓冲区
+            break;
+        }
+        case 27:{
+            return ;
+        }
+        default:continue;
+        }
+    }
+    return ;
+}
+
+void reportfucs::gchatmenu(char c, group& gp){
+    Client* cp = (Client*) clientp;
+    Socket* sock = cp->getSocket();
+    reportfucs rpf(u, clientp);
+    bool ret = rpf.Getrpt();
+    if(ret){
+        rpf.rpt.total_group_msg -= rpf.rpt.chatgroup[gp.gid];
+        rpf.rpt.chatgroup[gp.gid] = 0;
+        sock->sendMsg("svrp:"+u.uid+":"+rpf.rpt.toJson());
+        std::string rev = EchoMsgQueue.wait_and_pop();
+    }
+    int cnt = 0;
+    cnt = save.data.size();
+    int maxctpage = msgcnt / 7;
+    int i = 0;
+    if(msgcnt % 7 != 0) maxctpage++;
+    if(maxctpage == 0) maxctpage = 1;
+    if(c == '[' && ctpage == 0) ;
+    else if(c == '[') ctpage --;
+    if(c == ']' && ctpage+1 >= maxctpage) ;
+    else if(c == ']') ctpage ++;
+    std::string sender;
+    user ud2;
+    printf("\033[0;36m=============================群聊页面=============================\033[0m\n");
+    reportfucs::newreport(u, clientp);
+    printf("\033[0;32m                             %s (%ld)\033[0m\n", gp.name.c_str(), gp.memberlist.size() + gp.managelist.size() + 1);
+    if(ctpage+1 == maxctpage)    printf("\033[0;90m                       ---聊天记录已到顶---\033[0m\n");
+    for(i = std::min(7*(ctpage+1) - 1, (int)save.data.size() - 1); i >= 7*ctpage; i--){
+        if(!save.data.size()) break;
+        message msg = message::fromJson(save.data[i]);
+        if(msg.sender_uid != u.uid){
+            sock->sendMsg("gtus:"+msg.sender_uid);
+            ud2 = user::fromJson(EchoMsgQueue.wait_and_pop());
+            sender = ud2.name;
+        }
+        if(msg.sender_uid == u.uid) sender = u.name;
+        if(ud2.stat == "online" || sender == u.name) printf("\033[0;32m%s\033[0m \033[0;33m[%s]\033[0m\n", sender.c_str(), msg.timestamp.c_str());
+        else                     printf("\033[0;90m%s\033[0m \033[0;33m[%s]\033[0m\n", sender.c_str(), msg.timestamp.c_str());
+        printf("\033[0;32m>\033[0m%s\n", msg.content.c_str());
+    }
+    printf("                                         \033[0;32m(tip:按[和]按键可控制翻页)\n\033[0m");
+    printf("                                                         \033[0;32m[%d/%d]\033[0m\n",ctpage+1,maxctpage);
+    printf("\033[0;36m==================================================================\033[0m\n");
+}
+
+void reportfucs::ghandlechat(char c, int fg){
+    int i = 5*page + c - '0' - 1, j = 0;
+    if(fg == 2){
+        for(auto m : rpt.chatgroup)
+            if(m.second > 0)
+                j++;
+        if(i >= j) return ;
+        j = 0;
+    }
+    Client * cp = (Client*)clientp;
+    Socket * sock = cp->getSocket();
+    system("clear");
+    printf("\033[0;32m数据请求中...\033[0m");
+    fflush(stdout); // 手动刷新标准输出缓冲区
+    //找到对应gid
+    if(fg == 1){
+        if(i >= u.grouplist.size()) return;
+    }
+    else if(fg == 2)
+        if(i >= rpt.chatgroup.size()) return;
+    std::string gid;
+    if(fg == 1){
+        for(std::string str : u.grouplist){
+            if(j == i){
+                gid = str;
+                break;
+            }
+            j++;
+        }
+    } 
+    else if (fg == 2){
+        for(auto str : rpt.chatgroup){
+            if(j == i && str.second != 0){
+                gid = str.first;
+                break;
+            }
+            if(str.second != 0)
+                j++;
+        }
+    }
+    sock->sendMsg("gtgp:"+ gid);
+    std::string js = EchoMsgQueue.wait_and_pop();
+    if(js == "norepeat"){
+        printf("\033[0;31m数据异常，请稍后再试。\033[0m\n");
+        printf("\033[0;31m请按任意键继续...\033[0m");
+        charget();
+        return ;
+    }
+    viewgp = group::fromJson(js);
+    //开始聊天
+    //拉取历史记录
+    //读取两页消息（一页7句消息）
+    save.data.clear();
+    sock->sendMsg("gctm:"+gid);
+    std::string rev = EchoMsgQueue.wait_and_pop(), msg;
+    save = messages::fromJson(rev);
+    //读取聊天记录总条数
+    sock->sendMsg("rdgc:"+gid);
+    rev = EchoMsgQueue.wait_and_pop();
+    sscanf(rev.c_str(), "%d", &msgcnt);
+    //定义部分变量
+    bool flag = false;
+    system("clear");
+    ctpage = 0;
+    gchatmenu('0', viewgp);
+    printf("\033[0;32m请输入:>\033[0m");
+    fflush(stdout); // 手动刷新标准输出缓冲区
+    std::string content, utf8_buf;
+    ChatMsgQueue.clear();
+    while(1){
+        //判断用户信息是否变动
+        if(UserMsgQueue.try_pop(msg)){
+            page = 0;
+            u = user::fromJson(msg);
+            if(u.grouplist.count(gid) == 0){//被删除了
+                system("clear");
+                printf("\033[0;31m您当前已不在该群聊。\033[0m\n");
+                printf("\033[0;31m请按任意键继续...\033[0m\n");
+                charget();
+                return;
+            }
+            flag = true;
+        }
+        //判断聊天消息是否有新
+        if(ChatMsgQueue.try_pop(msg)){
+            page = 0;
+            message m = message::fromJson(msg);
+            if(m.sender_uid != u.uid && m.receiver_uid == gid && m.is_group) save.data.insert(save.data.begin(), msg);
+            msgcnt++;
+            flag = true;
+        }
+        //判断是否有新通知
+        if(ReptMsgQueue.try_pop(msg) || flag){
+            flag = false;
+            system("clear");
+            gchatmenu('p', viewgp);
+            printf("\033[0;32m请输入:>\033[0m");
+            printf("%s", content.c_str());
+            fflush(stdout); // 手动刷新标准输出缓冲区
+        }
+        char input = tm_charget(200);
+        if(input == -1) continue;
+        // 中文或其他 UTF-8 字符处理
+        switch(input){
+        case 127:
+        case '\b':{
+            if (content.empty()) continue;
+            int i = content.size() - 1;
+            // 向后回退找到一个 UTF-8 字符的起始字节
+            int len = 1;
+            while (i - len >= 0 && (content[i - len + 1] & 0xC0) == 0x80) {
+                len++;
+            }
+            int char_start = i - len + 1;
+            if (char_start < 0 || char_start >= (int)content.size()) continue;  // 安全边界
+            std::string ch = content.substr(char_start, len);
+            // 判断字符宽度
+            int display_width = is_wide_char((const unsigned char *)ch.c_str()) ? 2 : 1;
+            // 删除字符
+            content.erase(char_start, len);
+            // 回退显示
+            for (int j = 0; j < display_width; ++j) {
+                printf("\b \b");
+            }
+            fflush(stdout);
+            break;
+        }
+        case '\n':{//发送消息
+            if(content.size() == 0 || content == "\n") break;
+            content.push_back('\0');
+            message sendm;
+            sendm.sender_uid = u.uid;
+            sendm.receiver_uid = gid;
+            sendm.content = content;
+            sendm.timestamp = message::get_beijing_time();
+            sendm.is_group = true;
+            sock->sendMsg("sdgm:"+sendm.toJson());
+            rev = EchoMsgQueue.wait_and_pop();
+            if(rev == "rihgt");
+            else if(rev == "nofrd"){
+                system("clear");
+                printf("\033[0;31m当前不在群聊，发送失败！\033[0m\n]]");
+                printf("\033[0;31m请按任意键继续...\033[0m\n");
+                charget();
+                return;
+            }
+            save.data.insert(save.data.begin(), sendm.toJson());
+            flag = true;
+            ctpage = 0;
+            content.clear();
+            msgcnt++;
+            break;
+        }
+        case '[':{
+            system("clear");
+            gchatmenu('[', viewgp);
+            printf("\033[0;32m请输入:>\033[0m");
+            printf("%s", content.c_str());
+            fflush(stdout); // 手动刷新标准输出缓冲区
+            break;
+        }
+        case ']':{
+            system("clear");
+            //请求新页的消息
+            if(save.data.size() < msgcnt){
+                char tmp[512];
+                sprintf(tmp, "ndgm:%s:%ld", gid.c_str(), save.data.size());
+                sock->sendMsg(tmp);
+                messages mgs = messages::fromJson(EchoMsgQueue.wait_and_pop());
+                for(int i = 0; i < mgs.data.size(); i++)
+                    save.data.push_back(mgs.data[i]);
+            }
+            gchatmenu(']', viewgp);
+            printf("\033[0;32m请输入:>\033[0m");
+            printf("%s", content.c_str());
+            fflush(stdout); // 手动刷新标准输出缓冲区
+            break;
+        }
+        case 27:{
+            return ;
+        }
+        default:{
+             utf8_buf += input;
+            
+            int need_len = 1;
+            unsigned char first = static_cast<unsigned char>(utf8_buf[0]);
+            if ((first & 0x80) == 0x00) need_len = 1;
+            else if ((first & 0xE0) == 0xC0) need_len = 2;
+            else if ((first & 0xF0) == 0xE0) need_len = 3;
+            else if ((first & 0xF8) == 0xF0) need_len = 4;
+            else {
+                // 非法字符
+                utf8_buf.clear();
+                continue;
+            }
+
+            while ((int)utf8_buf.size() < need_len) {
+                utf8_buf += charget(); // 继续收集字节
+            }
+
+            // 拼完一个字符
+            content += utf8_buf;
+            printf("%s", utf8_buf.c_str());
+            fflush(stdout);
+            utf8_buf.clear();
+            break;
+        }
+        }
+    }
+}
+
+void reportfucs::ctfgrpreport(){
+    char input = 0;
+    page = 0;
+    std::string msg;
+    system("clear");
+    menu('0', 3);
+    fflush(stdout); // 手动刷新标准输出缓冲区
+    bool flag = false;
+    while(1){
+        if(ReptMsgQueue.try_pop(msg) || flag){
+            flag = false;
+            system("clear");
+            if(!Getrpt()) {
+                printf("\033[0;31m数据异常，请稍后再试\033[0m\n");
+                printf("\033[0;31m请按任意键继续...\033[0m");
+                input = charget();
+                return;
+            }
+            menu('p', 3);
+            fflush(stdout); // 手动刷新标准输出缓冲区
+        }
+        input = tm_charget(200);
+        if(input == -1) continue;
+        switch(input){
+        case '1':
+        case '2':
+        case '3':
+        case '4':
+        case '5':{
+            ghandlechat(input, 2);
+            flag = true;
+            break;
+        }
+        case '[':{
+            system("clear");
+            menu('[', 3);
+            fflush(stdout); // 手动刷新标准输出缓冲区
+            break;
+        }
+        case ']':{
+            system("clear");
+            menu(']', 3);
             fflush(stdout); // 手动刷新标准输出缓冲区
             break;
         }

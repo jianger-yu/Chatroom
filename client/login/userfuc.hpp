@@ -361,7 +361,8 @@ int userfuc::reportfuc(void){
             break;
         }
         case '3':{
-            
+            rpf.ctfgrpreport();
+            flag = true;
             break;
         }
         case '4':{

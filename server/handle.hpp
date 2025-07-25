@@ -97,6 +97,8 @@ private:
     void gplt();
     //添加管理员
     void admn();
+    //删除管理员
+    void dlmn();
 
     //根据uid获取用户为管理员的全部群
     void mngl();
@@ -131,6 +133,7 @@ int handler::handle(void){
     else if(str[0] == 'a' && str[1] == 'd' && str[2] == 'f' && str[3] == 'r') adfr();
     else if(str[0] == 'a' && str[1] == 'd' && str[2] == 'g' && str[3] == 'p') adgp();
     else if(str[0] == 'a' && str[1] == 'd' && str[2] == 'm' && str[3] == 'n') admn();
+    else if(str[0] == 'd' && str[1] == 'l' && str[2] == 'm' && str[3] == 'n') dlmn();
     else if(str[0] == 'a' && str[1] == 'd' && str[2] == 'f' && str[3] == '(') adfok();
     else if(str[0] == 'a' && str[1] == 'd' && str[2] == 'g' && str[3] == '(') adgok();
     else if(str[0] == 'g' && str[1] == 't' && str[2] == 'r' && str[3] == 'p') gtrp();
@@ -1033,5 +1036,92 @@ void handler::admn(){
         return;
     }
     group gp = group::fromJson(js);
+    gp.memberlist.erase(uid2);
+    gp.managelist.insert(uid2);
+    u.setgtoj( gid, gp.toJson());
+    js = u.u_report(uid2);
+    if(js == "none"){
+        sendMsg("echo:false", sockfd);
+        return;
+    }
+    //拼接通知
+    char result[512];
+    sprintf( result, "admy(n)%s:%s", gp.name.c_str(), ud.name.c_str());
+    for(std::string u2 : gp.managelist){
+        js = u.u_report(u2);
+        if(js == "none"){
+            sendMsg("echo:false", sockfd);
+            return;
+        }
+        report rpt = report::fromJson(js);
+        rpt.notice.insert(rpt.notice.begin(), std::string(result));
+        u.svreport( u2, rpt.toJson());
+        if(uid_to_socket.count(u2)) sendMsg("rept:", uid_to_socket[u2]);
+    }
+    for(std::string u2 : gp.memberlist){
+        js = u.u_report(u2);
+        if(js == "none"){
+            sendMsg("echo:false", sockfd);
+            return;
+        }
+        report rpt = report::fromJson(js);
+        rpt.notice.insert(rpt.notice.begin(), std::string(result));
+        u.svreport( u2, rpt.toJson());
+        if(uid_to_socket.count(u2)) sendMsg("rept:", uid_to_socket[u2]);
+    }
+    sendMsg("echo:right", sockfd);
+}
 
+void handler::dlmn(){
+    //拿到数据
+    std::string gid,uid2,js;
+    int i = 0;
+    while(str[i] != ':') i++;
+    int j = i + 1;
+    while(str[j] != ':') {
+        gid.push_back(str[j]);
+        j++;
+    }
+    for(int t = j + 1; t < str.size(); t++) uid2.push_back(str[t]);
+    user ud = u.GetUesr(uid2);
+    js = u.GetGroup(gid);
+    if(js == "norepeat"){
+        sendMsg("echo:false", sockfd);
+        return;
+    }
+    group gp = group::fromJson(js);
+    gp.managelist.erase(uid2);
+    gp.memberlist.insert(uid2);
+    u.setgtoj( gid, gp.toJson());
+    js = u.u_report(uid2);
+    if(js == "none"){
+        sendMsg("echo:false", sockfd);
+        return;
+    }
+    //拼接通知
+    char result[512];
+    sprintf( result, "admn(n)%s:%s", gp.name.c_str(), ud.name.c_str());
+    for(std::string u2 : gp.managelist){
+        js = u.u_report(u2);
+        if(js == "none"){
+            sendMsg("echo:false", sockfd);
+            return;
+        }
+        report rpt = report::fromJson(js);
+        rpt.notice.insert(rpt.notice.begin(), std::string(result));
+        u.svreport( u2, rpt.toJson());
+        if(uid_to_socket.count(u2)) sendMsg("rept:", uid_to_socket[u2]);
+    }
+    for(std::string u2 : gp.memberlist){
+        js = u.u_report(u2);
+        if(js == "none"){
+            sendMsg("echo:false", sockfd);
+            return;
+        }
+        report rpt = report::fromJson(js);
+        rpt.notice.insert(rpt.notice.begin(), std::string(result));
+        u.svreport( u2, rpt.toJson());
+        if(uid_to_socket.count(u2)) sendMsg("rept:", uid_to_socket[u2]);
+    }
+    sendMsg("echo:right", sockfd);
 }

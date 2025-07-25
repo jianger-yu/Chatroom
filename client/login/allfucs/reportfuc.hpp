@@ -128,6 +128,26 @@ void reportfucs::Analysisnotice(std::string &str, int i){
         else
             printf("\033[0;33m[%d] %d、用户 \033[0m\033[0;34m%s\033[0m\033[0;33m 加入群聊 \033[0m\033[0;34m%s\033[0m \033[0;33m的申请被\033[0m \033[0;34m%s\033[0m\033[0;33m。\033[0m\n", i-5*page+1, i + 1,  uname.c_str(), gname.c_str(), result.c_str());
     }
+    else if(str[0] == 'a' && str[1] == 'd' && str[2] == 'm'){
+        std::string result = "解除", gname, uname;
+        if(str[3] == 'y' || str[3] == 'Y') result = "设为";
+        bool yellow = false;
+        if(str[5] == 'n' || str[3] == 'N') yellow = true;
+        //解析命令"admy(n)%s:%s", gp.name.c_str(), ud.name.c_str()
+        int j = 0;
+        while(str[j] != ')') j++;
+        j++;
+        while(str[j] != ':') gname.push_back(str[j++]);
+        uname = str.c_str() + j + 1;
+        if(i == -1){
+            printf("用户 \033[0;34m%s\033[0m 在群聊 \033[0;34m%s\033[0m 被群主%s管理员。 \n", uname.c_str(), gname.c_str(), result.c_str());
+            return;    
+        }
+        if(!yellow) 
+            printf("[%d] %d、用户 \033[0;34m%s\033[0m 在群聊 \033[0;34m%s\033[0m 被群主%s管理员。\n", i-5*page+1, i + 1,  uname.c_str(), gname.c_str(), result.c_str());
+        else
+            printf("\033[0;33m[%d] %d、用户 \033[0m\033[0;34m%s\033[0m\033[0;33m 在群聊 \033[0m\033[0;34m%s\033[0m \033[0;33m被群主%s管理员。\033[0m\n", i-5*page+1, i + 1,  uname.c_str(), gname.c_str(), result.c_str());
+    }
 }
 
 

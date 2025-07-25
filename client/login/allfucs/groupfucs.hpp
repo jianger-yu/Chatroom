@@ -379,7 +379,7 @@ void groupfucs::viewlist(char c){
             sock->sendMsg("gtus:"+str);
             std::string red = EchoMsgQueue.wait_and_pop();
             user ud = user::fromJson(red);
-            std::string name = ud.name, status, identity = "用户";
+            std::string name = ud.name, status, identity = "成员";
             if(ud.stat == "online") status = "在线";
             else if(ud.stat == "offline") status = "离线";
             else if(ud.stat == "deleted") status = "该账户已注销";
@@ -449,6 +449,8 @@ void groupfucs::view(char c, int fg, int hdl){
     for(std::string tmp : viewgp.memberlist) fnl.data.push_back(tmp);
     viewpage = 0;
     viewlist('0');
+    if(hdl == 1) printf("\033[0;32m请选择您要设置为管理员的成员:>\033[0m");
+    else if(hdl == 2) printf("\033[0;32m请选择您要解除管理员的成员:>\033[0m");
     fflush(stdout); // 手动刷新标准输出缓冲区
     bool flag = false;
     std::string msg;
@@ -464,6 +466,8 @@ void groupfucs::view(char c, int fg, int hdl){
             flag = false;
             system("clear");
             viewlist('p');
+            if(hdl == 1) printf("\033[0;32m请选择您要设置为管理员的成员:>\033[0m");
+            else if(hdl == 2) printf("\033[0;32m请选择您要解除管理员的成员:>\033[0m");
             fflush(stdout); // 手动刷新标准输出缓冲区
         }
         char input = tm_charget(200);
@@ -490,12 +494,16 @@ void groupfucs::view(char c, int fg, int hdl){
         case '[':{
             system("clear");
             viewlist('[');
+            if(hdl == 1) printf("\033[0;32m请选择您要设置为管理员的成员:>\033[0m");
+            else if(hdl == 2) printf("\033[0;32m请选择您要解除管理员的成员:>\033[0m");
             fflush(stdout); // 手动刷新标准输出缓冲区
             break;
         }
         case ']':{
             system("clear");
             viewlist(']');
+            if(hdl == 1) printf("\033[0;32m请选择您要设置为管理员的成员:>\033[0m");
+            else if(hdl == 2) printf("\033[0;32m请选择您要解除管理员的成员:>\033[0m");
             fflush(stdout); // 手动刷新标准输出缓冲区
             break;
         }
@@ -1073,7 +1081,7 @@ void groupfucs::select(char c, int fg){
         case '6':{
             //删除管理员
             if(identity == "群主"){
-
+                view(c, 1, 2);
                 flag = true;
             }
             break;
@@ -1088,7 +1096,46 @@ void groupfucs::select(char c, int fg){
 }
 
 void groupfucs::delmanager(std::string gid, std::string uid2) {
-
+    Client * cp = (Client*)clientp;
+    Socket * sock = cp->getSocket();
+    system("clear");
+    if(uid2 == u.uid || viewgp.memberlist.count(uid2)){
+        printf("\033[0;31m该用户不为管理员，无法操作。\n\033[0m");
+        printf("\033[0;31m请按任意键继续...\033[0m");
+        charget();
+        return;
+    }
+    //发uid，获取是管理员的群聊列表
+    sock->sendMsg("gtnm:"+uid2);
+    std::string nm = EchoMsgQueue.wait_and_pop(), rev;
+    printf("\033[0;32m确定将成员\033[0m \033[0;31m%s\033[0m \033[0;32m解除管理员？（Y/N）\033[0m\n", nm.c_str());
+    fflush(stdout);
+    char input;
+    while(1){
+        input = charget();
+        if(input == 27) return;
+        if(input != 'Y' && input != 'N' && input != 'y' && input != 'n') continue;
+        if(input == 'Y' || input == 'y') break;
+        else return;
+        break;
+    }
+    //确定设置uid2为管理员
+    sock->sendMsg("dlmn:"+gid+":"+ uid2);
+    rev = EchoMsgQueue.wait_and_pop();
+    if(rev != "right"){
+        printf("\033[0;31m数据异常，请稍后再试。\033[0m\n");
+        printf("\033[0;31m请按任意键继续...\033[0m");
+        input = charget();
+        return ;
+    }
+    //改本地表
+    viewgp.managelist.erase(uid2);
+    viewgp.memberlist.insert(uid2);
+    system("clear");
+    printf("\033[0;32m解除管理员成功。\033[0m\n");
+    printf("\033[0;32m请按任意键继续...\033[0m");
+    fflush(stdout);
+    input = charget();
 }
 
 void groupfucs::kickmember(std::string gid, std::string uid2) {
@@ -1101,7 +1148,7 @@ void groupfucs::addmanager(std::string gid, std::string uid2){
     Socket * sock = cp->getSocket();
     system("clear");
     if(uid2 == u.uid){
-        printf("\033[0;31m无法设置自己为管理员\033[0m");
+        printf("\033[0;31m无法设置自己为管理员。\n\033[0m");
         printf("\033[0;31m请按任意键继续...\033[0m");
         charget();
         return;
@@ -1129,10 +1176,14 @@ void groupfucs::addmanager(std::string gid, std::string uid2){
         input = charget();
         return ;
     }
-    //删除本地列表中的uid2
-    u.friendlist.erase(uid2);
-    for(int i = 0; i < fnl.data.size(); i++)
-    if(fnl.data[i] == uid2) fnl.data.erase(fnl.data.begin() + i);
+    //改本地表
+    viewgp.memberlist.erase(uid2);
+    viewgp.managelist.insert(uid2);
+    system("clear");
+    printf("\033[0;32m添加管理员成功。\033[0m\n");
+    printf("\033[0;32m请按任意键继续...\033[0m");
+    fflush(stdout);
+    input = charget();
 }
 
 void groupfucs::manage(){

@@ -148,6 +148,27 @@ void reportfucs::Analysisnotice(std::string &str, int i){
         else
             printf("\033[0;33m[%d] %d、用户 \033[0m\033[0;34m%s\033[0m\033[0;33m 在群聊 \033[0m\033[0;34m%s\033[0m \033[0;33m被群主%s管理员。\033[0m\n", i-5*page+1, i + 1,  uname.c_str(), gname.c_str(), result.c_str());
     }
+    else if(str[0] == 'k' && str[1] == 'c' && str[2] == 'm'){
+        std::string result, uname, gname, handname;
+        bool yellow = false;
+        if(str[5] == 'n' || str[3] == 'N') yellow = true;
+        //解析命令"kcmb(n)%s:%s:%s", input, uname.c_str(), gname.c_str(), handname.c_str()
+        int j = 0;
+        while(str[j] != ')') j++;
+        j++;
+        while(str[j] != ':') uname.push_back(str[j++]);
+        j++;
+        while(str[j] != ':') gname.push_back(str[j++]);
+        handname = str.c_str() + j + 1;
+        if(i == -1){
+            printf("用户 \033[0;34m%s\033[0m 被踢出了群聊 \033[0;34m%s\033[0m 。\n处理人：\033[0;34m%s\n\033[0m", uname.c_str(), gname.c_str(), handname.c_str());
+            return;    
+        }
+        if(!yellow) 
+            printf("[%d] %d、用户 \033[0;34m%s\033[0m 被踢出了群聊\033[0;34m%s\033[0m 。\n", i-5*page+1, i + 1,  uname.c_str(), gname.c_str());
+        else
+            printf("\033[0;33m[%d] %d、用户 \033[0m\033[0;34m%s\033[0m\033[0;33m 被踢出了群聊 \033[0m\033[0;34m%s\033[0m 。\033[0m\n", i-5*page+1, i + 1,  uname.c_str(), gname.c_str());
+    }
 }
 
 
@@ -384,6 +405,12 @@ void reportfucs::handlegroupapply(char c){
     //adg(y:uname:gname:handler(用户加群),改数据库
     sock->sendMsg(sd+":"+name+":"+gname+":"+u.name);
     sd = EchoMsgQueue.wait_and_pop();
+    if(sd == "ingrp"){
+        printf("\033[0;31m该申请已被处理。\033[0m\n");
+        printf("\033[0;31m请按任意键继续...\033[0m");
+        input = charget();
+        return ;
+    }
     if(sd == "right"){
         if(input == 'Y' || input == 'y')
             printf("\033[0;32m已经同意该申请！\033[0m\n");

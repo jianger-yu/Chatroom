@@ -99,6 +99,8 @@ private:
     void admn();
     //删除管理员
     void dlmn();
+    //踢出群成员
+    void kcmb();
 
     //根据uid获取用户为管理员的全部群
     void mngl();
@@ -161,6 +163,7 @@ int handler::handle(void){
     else if(str[0] == 'f' && str[1] == 'd' && str[2] == 'l' && str[3] == 't') fdlt();
     else if(str[0] == 'g' && str[1] == 'p' && str[2] == 'l' && str[3] == 't') gplt();
     else if(str[0] == 'm' && str[1] == 'n' && str[2] == 'g' && str[3] == 'l') mngl();
+    else if(str[0] == 'k' && str[1] == 'c' && str[2] == 'm' && str[3] == 'b') kcmb();
 
     return 0;
 }
@@ -945,6 +948,10 @@ void handler::adgok(){
     //拒绝: 去除群主管理员通知中这条申请，给他们发结果通知
     user ud = u.GetUesr(uid);
     group gp = group::fromJson(u.GetGroup(gid));
+    if(gp.owner == uid || gp.managelist.count(uid) || gp.memberlist.count(uid)){//已经在群内
+        sendMsg("echo:ingrp", sockfd);
+        return;
+    }
     if(input == 'Y' || input == 'y'){
         //用户结构体中群组列表加入该群gid
         ud.grouplist.insert(gid);
@@ -1123,5 +1130,81 @@ void handler::dlmn(){
         u.svreport( u2, rpt.toJson());
         if(uid_to_socket.count(u2)) sendMsg("rept:", uid_to_socket[u2]);
     }
+    sendMsg("echo:right", sockfd);
+}
+
+//"kcmb:"+gid+":"+ uid2+":"+handleuid
+void handler::kcmb(){
+    int i = 5;
+    char input = str[4];
+    std::string gid, uid2, handuid, js;
+    while(str[i] != ':') gid.push_back(str[i++]);
+    i++;
+    while(str[i] != ':') uid2.push_back(str[i++]);
+    handuid = str.c_str() + i + 1;
+    js = u.GetGroup(gid);
+    if(js == "norepeat"){
+        printf("\033[0;31mgid:%s\n\033[0m", gid.c_str());
+        sendMsg("echo:false", sockfd);
+        return;
+    }
+    user ud1 = u.GetUesr(handuid) ,ud2 = u.GetUesr(uid2);
+    group gp = group::fromJson(js);
+    if(gp.owner != handuid && gp.managelist.count(handuid) == 0){
+        sendMsg("echo:nopms", sockfd);
+        return;
+    }
+    if(handuid != gp.owner){
+        if(uid2 == gp.owner || gp.managelist.count(uid2)){
+            sendMsg("echo:pmser", sockfd);
+            return;
+        }
+    }
+    ud2.grouplist.erase(gid);
+    u.setutoj(uid2, ud2.toJson());
+    if(uid_to_socket.count(uid2)) sendMsg("user:"+ ud2.toJson(), uid_to_socket[uid2]);
+    //去掉群中的该用户
+    for(std::string p : gp.managelist){
+        if(p == uid2){
+            gp.managelist.erase(uid2);
+            break;
+        }
+    }
+    for(std::string p : gp.memberlist){
+        if(p == uid2){
+            gp.memberlist.erase(uid2);
+            break;
+        }
+    }
+    u.setgtoj( gid, gp.toJson());
+    //命令"kcmb(n)%s:%s:%s", input, uname.c_str(), gname.c_str(), handname.c_str()
+    char result[512];
+    sprintf( result, "kcmb(n)%s:%s:%s", ud2.name.c_str(), gp.name.c_str(), ud1.name.c_str());
+
+    //广播
+    report rpt = report::fromJson(u.u_report(gp.owner));
+    rpt.notice.insert(rpt.notice.begin(), result);
+    u.svreport(gp.owner, rpt.toJson());
+    if(uid_to_socket.count(gp.owner)) sendMsg("rept:" , uid_to_socket[gp.owner]);
+
+    rpt = report::fromJson(u.u_report(uid2));
+    rpt.notice.insert(rpt.notice.begin(), result);
+    u.svreport(uid2, rpt.toJson());
+    if(uid_to_socket.count(uid2)) sendMsg("rept:" , uid_to_socket[uid2]);
+
+    for(std::string p : gp.managelist){
+        rpt = report::fromJson(u.u_report(p));
+        rpt.notice.insert(rpt.notice.begin(), result);
+        u.svreport(p, rpt.toJson());
+        if(uid_to_socket.count(p)) sendMsg("rept:" , uid_to_socket[p]);
+    }
+    for(std::string p : gp.memberlist){
+        rpt = report::fromJson(u.u_report(p));
+        rpt.notice.insert(rpt.notice.begin(), result);
+        u.svreport(p, rpt.toJson());
+        if(uid_to_socket.count(p)) sendMsg("rept:" , uid_to_socket[p]);
+    }
+    
+    //给发送者发回声
     sendMsg("echo:right", sockfd);
 }

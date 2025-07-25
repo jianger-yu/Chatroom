@@ -451,6 +451,7 @@ void groupfucs::view(char c, int fg, int hdl){
     viewlist('0');
     if(hdl == 1) printf("\033[0;32m请选择您要设置为管理员的成员:>\033[0m");
     else if(hdl == 2) printf("\033[0;32m请选择您要解除管理员的成员:>\033[0m");
+    else if(hdl == 3) printf("\033[0;32m请选择您要踢出群聊的成员:>\033[0m");
     fflush(stdout); // 手动刷新标准输出缓冲区
     bool flag = false;
     std::string msg;
@@ -468,6 +469,7 @@ void groupfucs::view(char c, int fg, int hdl){
             viewlist('p');
             if(hdl == 1) printf("\033[0;32m请选择您要设置为管理员的成员:>\033[0m");
             else if(hdl == 2) printf("\033[0;32m请选择您要解除管理员的成员:>\033[0m");
+            else if(hdl == 3) printf("\033[0;32m请选择您要踢出群聊的成员:>\033[0m");
             fflush(stdout); // 手动刷新标准输出缓冲区
         }
         char input = tm_charget(200);
@@ -496,6 +498,7 @@ void groupfucs::view(char c, int fg, int hdl){
             viewlist('[');
             if(hdl == 1) printf("\033[0;32m请选择您要设置为管理员的成员:>\033[0m");
             else if(hdl == 2) printf("\033[0;32m请选择您要解除管理员的成员:>\033[0m");
+            else if(hdl == 3) printf("\033[0;32m请选择您要踢出群聊的成员:>\033[0m");
             fflush(stdout); // 手动刷新标准输出缓冲区
             break;
         }
@@ -504,6 +507,7 @@ void groupfucs::view(char c, int fg, int hdl){
             viewlist(']');
             if(hdl == 1) printf("\033[0;32m请选择您要设置为管理员的成员:>\033[0m");
             else if(hdl == 2) printf("\033[0;32m请选择您要解除管理员的成员:>\033[0m");
+            else if(hdl == 3) printf("\033[0;32m请选择您要踢出群聊的成员:>\033[0m");
             fflush(stdout); // 手动刷新标准输出缓冲区
             break;
         }
@@ -922,7 +926,8 @@ void groupfucs::list_group(){
         case '3':
         case '4':
         case '5':{
-            if(u.grouplist.size()){
+            int i = 5*page + input - '0' - 1;
+            if(i >= 0 && i < u.grouplist.size()){
                 select(input, 1);
                 flag = true;
             }
@@ -951,7 +956,6 @@ void groupfucs::list_group(){
         }
     }
     return ;
-
 }
 
 void groupfucs::selectmenu(char c, int fg){
@@ -1055,7 +1059,7 @@ void groupfucs::select(char c, int fg){
             }
             else handlequit(c, 1);
             flag = true;
-            break;
+            return;
         }
         case '3':{
             view(c, 1);
@@ -1065,7 +1069,7 @@ void groupfucs::select(char c, int fg){
         case '4':{
             //踢人
             if(identity != "成员"){
-
+                view(c, 1, 3);
                 flag = true;
             }
             break;
@@ -1139,7 +1143,69 @@ void groupfucs::delmanager(std::string gid, std::string uid2) {
 }
 
 void groupfucs::kickmember(std::string gid, std::string uid2) {
-
+    Client * cp = (Client*)clientp;
+    Socket * sock = cp->getSocket();
+    system("clear");
+    if(!(viewgp.managelist.count(uid2) && u.uid == viewgp.owner)){
+        if(uid2 == viewgp.owner || viewgp.managelist.count(uid2)){
+            if(uid2 == u.uid)
+                printf("\033[0;31m你无法将自己踢出群聊。\n\033[0m");
+            else if(uid2 == viewgp.owner)
+                printf("\033[0;31m你无法将群主踢出群聊。\n\033[0m");    
+            else if(viewgp.managelist.count(uid2)) 
+                printf("\033[0;31m你无法将其他管理员踢出群聊。\n\033[0m");
+            printf("\033[0;31m请按任意键继续...\033[0m");
+            charget();
+            return;
+        }
+    }
+    //发uid，获取是管理员的群聊列表
+    sock->sendMsg("gtnm:"+uid2);
+    std::string nm = EchoMsgQueue.wait_and_pop(), rev;
+    printf("\033[0;32m确定踢出成员\033[0m \033[0;31m%s\033[0m \033[0;32m？（Y/N）\033[0m\n", nm.c_str());
+    fflush(stdout);
+    char input;
+    while(1){
+        input = charget();
+        if(input == 27) return;
+        if(input != 'Y' && input != 'N' && input != 'y' && input != 'n') continue;
+        if(input == 'Y' || input == 'y') break;
+        else return;
+        break;
+    }
+    //确定设置uid2为管理员
+    sock->sendMsg("kcmb:"+gid+":"+ uid2+":"+u.uid);
+    rev = EchoMsgQueue.wait_and_pop();
+    if(rev == "false"){
+        printf("\033[0;31m数据异常，请稍后再试。\033[0m\n");
+        printf("\033[0;31m请按任意键继续...\033[0m");
+        charget();
+        return ;
+    } else if(rev == "nopms"){
+        printf("\033[0;31m当前不是管理员，权限不足。\033[0m\n");
+        printf("\033[0;31m请按任意键继续...\033[0m");
+        charget();
+        return ;
+    } else if(rev == "pmser"){
+        printf("\033[0;31m你无法将其他管理员踢出群聊。\n\033[0m");
+        printf("\033[0;31m请按任意键继续...\033[0m");
+        charget();
+        return;
+    }
+    //改本地表
+    viewgp.memberlist.erase(uid2);
+    viewgp.managelist.erase(uid2);
+    for(int i = 0; i < fnl.data.size(); i++){
+        if(fnl.data[i] == uid2){
+            fnl.data.erase(fnl.data.begin() + i);
+            break;
+        }
+    }
+    system("clear");
+    printf("\033[0;32m踢出群成员成功。\033[0m\n");
+    printf("\033[0;32m请按任意键继续...\033[0m");
+    fflush(stdout);
+    input = charget();
 }
 
 //当前用户设置uid2为管理员

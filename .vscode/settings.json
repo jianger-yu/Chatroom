@@ -71,6 +71,11 @@
         "list": "cpp",
         "ranges": "cpp",
         "*.inc": "cpp",
-        "__config": "cpp"
+        "__config": "cpp",
+        "valarray": "cpp",
+        "__tree": "cpp",
+        "map": "cpp",
+        "set": "cpp",
+        "unordered_set": "cpp"
     }
 }

@@ -47,6 +47,7 @@ public:
     //选中功能
     void select(char, int);
     void manage();
+    void managelist(char);
 
     //权限功能
     void disband(char , int);
@@ -239,8 +240,8 @@ void groupfucs::handlequit(char c, int fg){
     int i = 5*page + c - '0' - 1, j = 0;
     if(fg == 1)
         if(i >= u.grouplist.size()) return;
-    // else if(fg == 2)
-    //     if(i >= fnl.data.size()) return;
+    else if(fg == 2)
+        if(i >= grouplist.data.size()) return;
     std::string sd;
     if(fg == 1){
         for(std::string str : u.grouplist){
@@ -251,15 +252,15 @@ void groupfucs::handlequit(char c, int fg){
             j++;
         }
     }
-    // } else if(fg == 2){
-    //     for(std::string str : fnl.data){
-    //         if(j == i){
-    //             sd = str;
-    //             break;
-    //         }
-    //         j++;
-    //     }
-    // }
+    else if(fg == 2){
+        for(std::string str : grouplist.data){
+            if(j == i){
+                sd = str;
+                break;
+            }
+            j++;
+        }
+    }
     sock->sendMsg("gtgp:"+sd);
     std::string nm = EchoMsgQueue.wait_and_pop(), rev;
     if(nm == "norepeat"){
@@ -297,9 +298,12 @@ void groupfucs::handlequit(char c, int fg){
         return ;
     }
     //删除本地列表中的gid
-    u.grouplist.erase(sd);
-    // for(int i = 0; i < fnl.data.size(); i++)
-    // if(fnl.data[i] == sd) fnl.data.erase(fnl.data.begin() + i);
+    if(fg == 1)
+        u.grouplist.erase(sd);
+    else if(fg == 2){
+        for(int i = 0; i < grouplist.data.size(); i++)
+            if(grouplist.data[i] == sd) grouplist.data.erase(grouplist.data.begin() + i);
+    }
 }
 
 void groupfucs::quitgroup(){
@@ -424,8 +428,8 @@ void groupfucs::view(char c, int fg, int hdl){
     int i = 5*page + c - '0' - 1, j = 0;
     if(fg == 1)
         if(i >= u.grouplist.size()) return;
-    // else if(fg == 2)
-    //     if(i >= fnl.data.size()) return;
+    else if(fg == 2)
+        if(i >= grouplist.data.size()) return;
     if(fg == 1){
         for(std::string str : u.grouplist){
             if(j == i){
@@ -435,15 +439,15 @@ void groupfucs::view(char c, int fg, int hdl){
             j++;
         }
     }
-    // } else if(fg == 2){
-    //     for(std::string str : fnl.data){
-    //         if(j == i){
-    //             sd = str;
-    //             break;
-    //         }
-    //         j++;
-    //     }
-    // }
+    else if(fg == 2){
+        for(std::string str : grouplist.data){
+            if(j == i){
+                sd = str;
+                break;
+            }
+            j++;
+        }
+    }
     //获取群成员列表
     sprintf( arr, "gtgp:%s", sd.c_str());
     sock->sendMsg(arr);
@@ -651,8 +655,8 @@ void groupfucs::handlechat(char c, int fg){
     if(fg == 1){
         if(i >= u.grouplist.size()) return;
     }
-    // else if(fg == 2)
-    //     if(i >= fnl.data.size()) return;
+    else if(fg == 2)
+        if(i >= grouplist.data.size()) return;
     std::string gid;
     if(fg == 1){
         for(std::string str : u.grouplist){
@@ -663,15 +667,15 @@ void groupfucs::handlechat(char c, int fg){
             j++;
         }
     } 
-    // else if (fg == 2){
-    //     for(std::string str : fnl.data){
-    //         if(j == i){
-    //             gid = str;
-    //             break;
-    //         }
-    //         j++;
-    //     }
-    // }
+    else if (fg == 2){
+        for(std::string str : grouplist.data){
+            if(j == i){
+                gid = str;
+                break;
+            }
+            j++;
+        }
+    }
     sock->sendMsg("gtgp:"+ gid);
     std::string js = EchoMsgQueue.wait_and_pop();
     if(js == "norepeat"){
@@ -979,7 +983,7 @@ int groupfucs::selectmenu(char c, int fg){
     if(fg == 1)
         if(i >= u.grouplist.size()) return 0;
     else if(fg == 2)
-        if(i >= fnl.data.size()) return 0;
+        if(i >= grouplist.data.size()) return 0;
     std::string sd;
     if(fg == 1){
         for(std::string str : u.grouplist){
@@ -990,7 +994,7 @@ int groupfucs::selectmenu(char c, int fg){
             j++;
         }
     } else if (fg == 2){
-        for(std::string str : fnl.data){
+        for(std::string str : grouplist.data){
             if(j == i){
                 sd = str;
                 break;
@@ -1069,21 +1073,21 @@ void groupfucs::select(char c, int fg){
         }
         case '2':{
             if(identity == "群主"){
-                disband(c, 1);
+                disband(c, fg);
             }
-            else handlequit(c, 1);
+            else handlequit(c, fg);
             flag = true;
             return;
         }
         case '3':{
-            view(c, 1);
+            view(c, fg);
             flag = true;
             break;
         }
         case '4':{
             //踢人
             if(identity != "成员"){
-                view(c, 1, 3);
+                view(c, fg, 3);
                 flag = true;
             }
             break;
@@ -1091,7 +1095,7 @@ void groupfucs::select(char c, int fg){
         case '5':{
             //设置管理员
             if(identity == "群主"){
-                view(c, 1, 1);
+                view(c, fg, 1);
                 flag = true;
             }
             break;
@@ -1099,7 +1103,7 @@ void groupfucs::select(char c, int fg){
         case '6':{
             //删除管理员
             if(identity == "群主"){
-                view(c, 1, 2);
+                view(c, fg, 2);
                 flag = true;
             }
             break;
@@ -1120,8 +1124,8 @@ void groupfucs::disband(char c, int fg){
     int i = 5*page + c - '0' - 1, j = 0;
     if(fg == 1)
         if(i >= u.grouplist.size()) return;
-    // else if(fg == 2)
-    //     if(i >= fnl.data.size()) return;
+    else if(fg == 2)
+        if(i >= grouplist.data.size()) return;
     if(fg == 1){
         for(std::string str : u.grouplist){
             if(j == i){
@@ -1131,15 +1135,15 @@ void groupfucs::disband(char c, int fg){
             j++;
         }
     }
-    // } else if(fg == 2){
-    //     for(std::string str : fnl.data){
-    //         if(j == i){
-    //             sd = str;
-    //             break;
-    //         }
-    //         j++;
-    //     }
-    // }
+    else if(fg == 2){
+        for(std::string str :grouplist.data){
+            if(j == i){
+                sd = str;
+                break;
+            }
+            j++;
+        }
+    }
     //获取群成员列表
     char arr[512];
     sprintf( arr, "gtgp:%s", sd.c_str());
@@ -1350,6 +1354,64 @@ void groupfucs::addmanager(std::string gid, std::string uid2){
     input = charget();
 }
 
+void groupfucs::managelist(char c){
+    reportfucs rpf(u, clientp);
+    bool ret = rpf.Getrpt();
+    Client* cp = (Client*) clientp;
+    Socket* sock = cp->getSocket();
+    if(!grouplist.data.size()){
+        printf("\033[0;32m您当前不是任何群的管理员。\n\033[0m");
+        printf("\033[0;32m请按ESC返回...\033[0m");
+        return;
+    }
+    int cnt = 0;
+    cnt = grouplist.data.size();
+    int maxpage = cnt / 5, i = 0;
+    if(cnt % 5 != 0) maxpage++;
+    if(c == '[' && page == 0) ;
+    else if(c == '[') page --;
+    if(c == ']' && page+1 >= maxpage) ;
+    else if(c == ']') page ++;
+    printf("\033[0;36m==========================================================\033[0m\n");
+    reportfucs::newreport(u, clientp);
+    printf("\033[0;32m以下为您有权限的群聊\033[0m\n");
+    printf("\033[0;34m%-6s %-15s %-13s %-12s\033[0m\n", "序号", "群名", "GID", "在群中身份");
+    for(std::string str : grouplist.data){
+        if(i >= 5*page && i < 5*(page+1)){
+            sock->sendMsg("gtgp:"+str);
+            std::string red = EchoMsgQueue.wait_and_pop();
+            if(red == "norepeat") continue;
+            group ud = group::fromJson(red);
+            if(ud.owner == "0"){
+                printf("\033[0;32m当前群组已注销。\n\033[0m");
+                continue;
+            }
+            std::string name = ud.name, status = "成员";
+            const char *color = "\033[0;37m";
+            if(ud.owner == u.uid) {
+                status = "群主";
+                color = "\033[0;31m";
+            } else{
+                for(std::string str : ud.managelist){
+                    if(str == u.uid){
+                        status = "管理员";
+                        color = "\033[0;32m";
+                    }
+                }
+            }
+            printf("\033[0;37m[%d]  %-12s %-14s \033[0m%s%-12s\033[0m",
+                     i - 5 * page + 1,
+                    name.c_str(), ud.gid.c_str(), color,status.c_str());
+            if(rpf.rpt.chatgroup[ud.gid]) printf("   \033[0;31m（%d）\033[0m\n", rpf.rpt.chatgroup[ud.gid]);
+            else puts("");
+        }
+        i++;
+    }
+    printf("                     \033[0;32m(tip:按[和]按键可控制翻页)\n\033[0m");
+    printf("                                \033[0;32m[%d/%d]\033[0m\n",page+1,maxpage);
+    printf("\033[0;36m==========================================================\033[0m\n");
+}
+
 void groupfucs::manage(){
     Client * cp = (Client*)clientp;
     Socket * sock = cp->getSocket();
@@ -1359,15 +1421,15 @@ void groupfucs::manage(){
     std::string rev = EchoMsgQueue.wait_and_pop();
     grouplist = friendnamelist::fromJson(rev);
     if(!grouplist.data.size()){
-        printf("\033[0;32m没有包含该字段的好友。\n\033[0m");
+        printf("\033[0;32m您当前不是任何群的管理员。\n\033[0m");
         printf("\033[0;32m请按任意键继续...\033[0m");
         charget();
         return;
     }
 
     page = 0;
-    //searchlist('0');
-    if(fnl.data.size())
+    managelist('0');
+    if(grouplist.data.size())
         printf("\033[0;32m输入序号可进行操作:>\033[0m");
     fflush(stdout); // 手动刷新标准输出缓冲区
     bool flag = false;
@@ -1383,8 +1445,13 @@ void groupfucs::manage(){
         if(ReptMsgQueue.try_pop(msg) || flag){
             flag = false;
             system("clear");
-            //searchlist('p');
-            if(fnl.data.size())
+            if(msg == "modmanage"){
+                sock->sendMsg("mngl:" + u.uid);
+                rev = EchoMsgQueue.wait_and_pop();
+                grouplist = friendnamelist::fromJson(rev);
+            }
+            managelist('p');
+            if(grouplist.data.size())
                 printf("\033[0;32m输入序号可进行操作:>\033[0m");
             fflush(stdout); // 手动刷新标准输出缓冲区
         }
@@ -1396,20 +1463,25 @@ void groupfucs::manage(){
         case '3':
         case '4':
         case '5':{
-
+            int p = 5*page + input - '0' - 1;
+            if(p >= 0 && p < grouplist.data.size()){
+                select(input, 2);
+                flag = true;
+            }
+            break;
         }
         case '[':{
             system("clear");
-            //searchlist('[');
-            if(fnl.data.size())
+            managelist('[');
+            if(grouplist.data.size())
                 printf("\033[0;32m输入序号可进行操作:>\033[0m");
             fflush(stdout); // 手动刷新标准输出缓冲区
             break;
         }
         case ']':{
             system("clear");
-            //searchlist(']');
-            if(fnl.data.size())
+            managelist(']');
+            if(grouplist.data.size())
                 printf("\033[0;32m输入序号可进行操作:>\033[0m");
             fflush(stdout); // 手动刷新标准输出缓冲区
             break;

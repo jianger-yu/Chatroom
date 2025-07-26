@@ -200,7 +200,8 @@ int userfuc::groupfuc(void){
             break;
         }
         case '7':{
-            
+            grf.manage();
+            flag = true;
             break;
         }
         case 27:{

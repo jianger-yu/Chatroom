@@ -1047,7 +1047,7 @@ void handler::mngl(){
         js = u.GetGroup(gid);
         if(js == "norepeat") continue;
         gp = group::fromJson(js);
-        if(gp.owner == uid || gp.managelist.count(uid)) gnl.data.push_back(js);
+        if(gp.owner == uid || gp.managelist.count(uid)) gnl.data.push_back(gp.gid);
     }
     sendMsg("echo:"+gnl.toJson(), sockfd);
 }
@@ -1094,7 +1094,7 @@ void handler::admn(){
         report rpt = report::fromJson(js);
         rpt.notice.insert(rpt.notice.begin(), std::string(result));
         u.svreport( u2, rpt.toJson());
-        if(uid_to_socket.count(u2)) sendMsg("rept:", uid_to_socket[u2]);
+        if(uid_to_socket.count(u2) && u2 != uid2) sendMsg("rept:", uid_to_socket[u2]);
     }
     for(std::string u2 : gp.memberlist){
         js = u.u_report(u2);
@@ -1105,8 +1105,9 @@ void handler::admn(){
         report rpt = report::fromJson(js);
         rpt.notice.insert(rpt.notice.begin(), std::string(result));
         u.svreport( u2, rpt.toJson());
-        if(uid_to_socket.count(u2)) sendMsg("rept:", uid_to_socket[u2]);
+        if(uid_to_socket.count(u2) && u2 != uid2) sendMsg("rept:", uid_to_socket[u2]);
     }
+    if(uid_to_socket.count(uid2)) sendMsg("rept:modmanage", uid_to_socket[uid2]);
     sendMsg("echo:right", sockfd);
 }
 
@@ -1152,7 +1153,7 @@ void handler::dlmn(){
         report rpt = report::fromJson(js);
         rpt.notice.insert(rpt.notice.begin(), std::string(result));
         u.svreport( u2, rpt.toJson());
-        if(uid_to_socket.count(u2)) sendMsg("rept:", uid_to_socket[u2]);
+        if(uid_to_socket.count(u2) && u2 != uid2) sendMsg("rept:", uid_to_socket[u2]);
     }
     for(std::string u2 : gp.memberlist){
         js = u.u_report(u2);
@@ -1163,8 +1164,9 @@ void handler::dlmn(){
         report rpt = report::fromJson(js);
         rpt.notice.insert(rpt.notice.begin(), std::string(result));
         u.svreport( u2, rpt.toJson());
-        if(uid_to_socket.count(u2)) sendMsg("rept:", uid_to_socket[u2]);
+        if(uid_to_socket.count(u2) && u2 != uid2) sendMsg("rept:", uid_to_socket[u2]);
     }
+    if(uid_to_socket.count(uid2)) sendMsg("rept:modmanage", uid_to_socket[uid2]);
     sendMsg("echo:right", sockfd);
 }
 

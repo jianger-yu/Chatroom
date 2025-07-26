@@ -300,8 +300,12 @@ void friendfucs::listfriend(){
         case '3':
         case '4':
         case '5':{
-            if(u.friendlist.size())
+            int p = 5*page + input - '0' - 1;
+            if(p >= 0 && p < u.friendlist.size()){
                 select(input, 1);
+                flag = true;
+            }
+            break;
         }
         case '[':{
             system("clear");
@@ -1132,8 +1136,12 @@ void friendfucs::searchfriend(){
         case '3':
         case '4':
         case '5':{
-            if(fnl.data.size())
+            int p = 5*page + input - '0' - 1;
+            if(p >= 0 && p < fnl.data.size()){
                 select(input, 2);
+                flag = true;
+            }
+            break;
         }
         case '[':{
             system("clear");

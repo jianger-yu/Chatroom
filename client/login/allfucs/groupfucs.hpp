@@ -43,13 +43,13 @@ public:
     //查看群聊列表
     void list_group();
     //选中的菜单，选中群聊后触发的对应流程
-    void selectmenu(char c, int fg);
+    int selectmenu(char c, int fg);
     //选中功能
     void select(char, int);
     void manage();
 
     //权限功能
-    void disband();
+    void disband(char , int);
     void addmanager(std::string gid, std::string uid2);
     void delmanager(std::string gid, std::string uid2);
     void kickmember(std::string gid, std::string uid2);
@@ -102,6 +102,9 @@ void groupfucs::addgroup(){
             return;
         } else if(red == "ingrp"){
             printf("\033[0;31m已在该群内，不能重复加入。\033[0m\n>");
+            continue;
+        } else if(red == "disgp"){
+            printf("\033[0;31m该群已注销，无法加入。\033[0m\n>");
             continue;
         } else{
             printf("\033[0;31m\n数据异常，请稍后再试。\033[0m\n");
@@ -196,6 +199,12 @@ void groupfucs::list(char c){
             std::string red = EchoMsgQueue.wait_and_pop();
             if(red == "norepeat") continue;
             group ud = group::fromJson(red);
+            if(ud.owner == "0"){
+                printf("\033[0;32m当前群组已注销。\n\033[0m");
+                printf("\033[0;32m请按任意键继续...\033[0m");
+                charget();
+                return;
+            }
             std::string name = ud.name, status = "成员";
             const char *color = "\033[0;37m";
             if(ud.owner == u.uid) {
@@ -275,8 +284,11 @@ void groupfucs::handlequit(char c, int fg){
         else return;
         break;
     }
-    //确定删除该好友,uid1删gp
-    sock->sendMsg("rmgp:"+u.uid+":"+sd);
+    //确定退出该群聊
+    if(gp.owner == u.uid)
+        sock->sendMsg("disg:"+gp.gid);
+    else
+        sock->sendMsg("rmgp:"+u.uid+":"+sd);
     rev = EchoMsgQueue.wait_and_pop();
     if(rev != "right"){
         printf("\033[0;31m数据异常，请稍后再试。\033[0m\n");
@@ -958,16 +970,16 @@ void groupfucs::list_group(){
     return ;
 }
 
-void groupfucs::selectmenu(char c, int fg){
+int groupfucs::selectmenu(char c, int fg){
     Client * cp = (Client*)clientp;
     Socket * sock = cp->getSocket();
     system("clear");
     //找到对应消息
     int i = 5*page + c - '0' - 1, j = 0;
     if(fg == 1)
-        if(i >= u.grouplist.size()) return;
+        if(i >= u.grouplist.size()) return 0;
     else if(fg == 2)
-        if(i >= fnl.data.size()) return;
+        if(i >= fnl.data.size()) return 0;
     std::string sd;
     if(fg == 1){
         for(std::string str : u.grouplist){
@@ -992,7 +1004,7 @@ void groupfucs::selectmenu(char c, int fg){
         printf("\033[0;31m数据异常，请稍后再试。\033[0m\n]]");
         printf("\033[0;31m请按任意键继续...\033[0m\n");
         charget();
-        return;
+        return -1;
     }
     group gp = group::fromJson(rev);
     system("clear");
@@ -1023,6 +1035,7 @@ void groupfucs::selectmenu(char c, int fg){
     printf("\033[0;36m==========================================================\033[0m\n");
     printf("\033[0;32m输入序号可进行操作:>\033[0m");
     fflush(stdout); // 手动刷新标准输出缓冲区
+    return 0;
 }
 
 //fg == 1为正常选中，fg == 2则为搜索选中
@@ -1042,6 +1055,7 @@ void groupfucs::select(char c, int fg){
         if(ReptMsgQueue.try_pop(msg) || flag){
             flag = false;
             system("clear");
+            if(msg == "disg") return;
             selectmenu(c, fg);
             fflush(stdout); // 手动刷新标准输出缓冲区
         }
@@ -1055,7 +1069,7 @@ void groupfucs::select(char c, int fg){
         }
         case '2':{
             if(identity == "群主"){
-                ;
+                disband(c, 1);
             }
             else handlequit(c, 1);
             flag = true;
@@ -1098,6 +1112,85 @@ void groupfucs::select(char c, int fg){
     }
     return ;
 }
+
+void groupfucs::disband(char c, int fg){
+    Client * cp = (Client*)clientp;
+    Socket * sock = cp->getSocket();
+    std::string sd, str;
+    int i = 5*page + c - '0' - 1, j = 0;
+    if(fg == 1)
+        if(i >= u.grouplist.size()) return;
+    // else if(fg == 2)
+    //     if(i >= fnl.data.size()) return;
+    if(fg == 1){
+        for(std::string str : u.grouplist){
+            if(j == i){
+                sd = str;
+                break;
+            }
+            j++;
+        }
+    }
+    // } else if(fg == 2){
+    //     for(std::string str : fnl.data){
+    //         if(j == i){
+    //             sd = str;
+    //             break;
+    //         }
+    //         j++;
+    //     }
+    // }
+    //获取群成员列表
+    char arr[512];
+    sprintf( arr, "gtgp:%s", sd.c_str());
+    sock->sendMsg(arr);
+    str = EchoMsgQueue.wait_and_pop();
+    if(str == "norepeat"){
+        printf("\033[0;31m数据异常，请稍后再试。\033[0m\n");
+        printf("\033[0;31m请按任意键继续...\033[0m");
+        charget();
+        return ;
+    }
+    viewgp = group::fromJson(str);
+
+    system("clear");
+    printf("\033[0;31m确定要解散群聊 %s ？（Y/N）\033[0m\n", viewgp.name.c_str());
+    fflush(stdout);
+    char input;
+    bool off = false;
+    while(1){
+        input = charget();
+        if(input == 27) break;
+        if(input != 'Y' && input != 'N' && input != 'y' && input != 'n') continue;
+        if(input == 'Y' || input == 'y') off = true;
+        break;
+    }
+    if(!off) return ;
+    off = false;   
+    printf("\033[0;31m真的确定要解散群聊 %s ？（T/F）\033[0m\n", viewgp.name.c_str());
+    while(1){
+        input = charget();
+        if(input == 27) break;
+        if(input != 'T' && input != 't' && input != 'F' && input != 'f') continue;
+        if(input == 'T' || input == 't') off = true;
+        break;
+    }
+    if(!off) return ;
+
+    sock->sendMsg("disg:"+viewgp.gid);
+    str = EchoMsgQueue.wait_and_pop();
+    if(str != "right"){
+        printf("\033[0;31m数据异常，请稍后再试。\033[0m\n");
+        printf("\033[0;31m请按任意键继续...\033[0m");
+        charget();
+        return ;
+    }
+    printf("\033[0;32m已解散该群聊\033[0m\n");
+    printf("\033[0;32m请按任意键继续...\033[0m");
+    charget();
+    return ;
+}
+
 
 void groupfucs::delmanager(std::string gid, std::string uid2) {
     Client * cp = (Client*)clientp;
@@ -1218,6 +1311,11 @@ void groupfucs::addmanager(std::string gid, std::string uid2){
         printf("\033[0;31m请按任意键继续...\033[0m");
         charget();
         return;
+    } else if(viewgp.managelist.count(uid2)){
+        printf("\033[0;31m该成员已是管理员。\n\033[0m");
+        printf("\033[0;31m请按任意键继续...\033[0m");
+        charget();
+        return;
     }
     //发uid，获取是管理员的群聊列表
     sock->sendMsg("gtnm:"+uid2);
@@ -1324,3 +1422,4 @@ void groupfucs::manage(){
     }
     return;
 }
+

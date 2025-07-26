@@ -73,6 +73,9 @@ public:
     void savechat(std::string js);
     void savechat2(std::string js);
     void savegchat(std::string js);
+
+    //根据gid注销群聊的后端数据
+    void disbandgroup(std::string gid, std::string gname);
 };
 
 
@@ -382,5 +385,13 @@ void userdata::savegchat(std::string js){
     message sendm = message::fromJson(js);
     std::string chat_key = "gchat:" + sendm.receiver_uid;
     redisReply* reply = (redisReply*)redisCommand(redis, "LPUSH %s %s", chat_key.c_str(), js.c_str());
+    freeReplyObject(reply);
+}
+
+void userdata::disbandgroup(std::string gid, std::string gname){
+    std::string chat_key = "gchat:" + gid;
+    redisReply* reply = (redisReply*)redisCommand(redis, "DEL %s", chat_key.c_str());
+    freeReplyObject(reply);
+    reply = (redisReply*)redisCommand(redis, "DEL groupname:%s", gname.c_str());
     freeReplyObject(reply);
 }

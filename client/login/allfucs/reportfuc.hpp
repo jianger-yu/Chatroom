@@ -169,6 +169,24 @@ void reportfucs::Analysisnotice(std::string &str, int i){
         else
             printf("\033[0;33m[%d] %d、用户 \033[0m\033[0;34m%s\033[0m\033[0;33m 被踢出了群聊 \033[0m\033[0;34m%s\033[0m 。\033[0m\n", i-5*page+1, i + 1,  uname.c_str(), gname.c_str());
     }
+    else if(str[0] == 'd' && str[1] == 'i' && str[2] == 's'){
+        std::string gname;
+        bool yellow = false;
+        if(str[5] == 'n' || str[3] == 'N') yellow = true;
+        //解析命令"disg(n)%s", gname.c_str()
+        int j = 0;
+        while(str[j] != ')') j++;
+        j++;
+        for(;j < str.size(); j++) gname.push_back(str[j]);
+        if(i == -1){
+            printf("群聊 \033[0;34m%s\033[0m 被群主解散了。\033[0;34m\n", gname.c_str());
+            return;    
+        }
+        if(!yellow) 
+            printf("[%d] %d、群聊 \033[0;34m%s\033[0m  被群主解散了。\n", i-5*page+1, i + 1, gname.c_str());
+        else
+            printf("\033[0;33m[%d] %d、群聊 \033[0m\033[0;34m%s\033[0m\033[0;33m  被群主解散了。\033[0m\033[0m\n", i-5*page+1, i + 1,  gname.c_str());
+    }
 }
 
 
@@ -408,7 +426,12 @@ void reportfucs::handlegroupapply(char c){
     if(sd == "ingrp"){
         printf("\033[0;31m该申请已被处理。\033[0m\n");
         printf("\033[0;31m请按任意键继续...\033[0m");
-        input = charget();
+        charget();
+        return ;
+    } else if(sd == "disgp"){
+        printf("\033[0;31m该群聊已解散。\033[0m\n");
+        printf("\033[0;31m请按任意键继续...\033[0m");
+        charget();
         return ;
     }
     if(sd == "right"){

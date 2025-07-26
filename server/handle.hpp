@@ -101,6 +101,8 @@ private:
     void dlmn();
     //踢出群成员
     void kcmb();
+    //解散群聊
+    void disg();
 
     //根据uid获取用户为管理员的全部群
     void mngl();
@@ -164,6 +166,7 @@ int handler::handle(void){
     else if(str[0] == 'g' && str[1] == 'p' && str[2] == 'l' && str[3] == 't') gplt();
     else if(str[0] == 'm' && str[1] == 'n' && str[2] == 'g' && str[3] == 'l') mngl();
     else if(str[0] == 'k' && str[1] == 'c' && str[2] == 'm' && str[3] == 'b') kcmb();
+    else if(str[0] == 'd' && str[1] == 'i' && str[2] == 's' && str[3] == 'g') disg();
 
     return 0;
 }
@@ -339,7 +342,7 @@ void handler::rvlg(){
 
 void handler::adfr(){
     //拿到uid1要加uid2的信息
-    std::string uid1,uid2;
+    std::string uid1,uid2, js;
     int i = 0;
     while(str[i] != ':') i++;
     int j = i + 1;
@@ -348,8 +351,18 @@ void handler::adfr(){
         j++;
     }
     for(int t = j + 1; t < str.size(); t++) uid2.push_back(str[t]);
+    user ud = u.GetUesr(uid1), ud2 = u.GetUesr(uid2);
+    js = u.u_report(uid2);
+    if(js == "none"){
+        sendMsg("echo:false",sockfd);
+        return;
+    }
+    report rpt2 = report::fromJson(js);
+    if(rpt2.friendapply.count(uid1) || ud2.shieldlist.count(uid1)){
+        sendMsg("echo:sendd",sockfd);
+        return;
+    }
     //若1不在2的屏蔽表中，发送申请
-    user ud = u.GetUesr(uid1);
     u.AddFrd(ud.name, uid2);
     sendMsg("echo:right",sockfd);
     if (uid_to_socket.count(uid2)) {
@@ -369,6 +382,10 @@ void handler::adgp(){
     }
     for(int t = j + 1; t < str.size(); t++) gid.push_back(str[t]);
     group gp = group::fromJson(u.GetGroup(gid));
+    if(gp.owner == "0"){
+        sendMsg("echo:disgp", sockfd);
+        return;
+    }
     if(gp.owner == uid1 || gp.managelist.count(uid1) || gp.memberlist.count(uid1)){//已经在群内
         sendMsg("echo:ingrp", sockfd);
         return;
@@ -724,6 +741,10 @@ void handler::sdgm(){
         return;
     }
     group gp = group::fromJson(js);
+    if(gp.owner == "0"){
+        sendMsg("echo:disgp", sockfd);
+        return;
+    }
     bool exist = false;
     if(ud1.uid == gp.owner) exist = true;
     if(gp.managelist.count(ud1.uid)) exist = true;
@@ -948,6 +969,10 @@ void handler::adgok(){
     //拒绝: 去除群主管理员通知中这条申请，给他们发结果通知
     user ud = u.GetUesr(uid);
     group gp = group::fromJson(u.GetGroup(gid));
+    if(gp.owner == "0"){
+        sendMsg("echo:disgp", sockfd);
+        return;
+    }
     if(gp.owner == uid || gp.managelist.count(uid) || gp.memberlist.count(uid)){//已经在群内
         sendMsg("echo:ingrp", sockfd);
         return;
@@ -983,12 +1008,10 @@ void handler::adgok(){
     sendMsg("echo:right", sockfd);
     //给对应用户发送user提醒和可能的通知
     if(uid_to_socket.count(uid)) sendMsg("user:"+ud.toJson(), uid_to_socket[uid]);
-    if(input == 'Y' || input == 'y') {
-        rpt = report::fromJson(u.u_report(uid));
-        rpt.notice.insert(rpt.notice.begin(), result);
-        u.svreport( uid, rpt.toJson());
-        if(uid_to_socket.count(uid)) sendMsg("rept:", uid_to_socket[uid]);
-    }
+    rpt = report::fromJson(u.u_report(uid));
+    rpt.notice.insert(rpt.notice.begin(), result);
+    u.svreport( uid, rpt.toJson());
+    if(uid_to_socket.count(uid)) sendMsg("rept:", uid_to_socket[uid]);
 }
 
 void handler::gplt(){
@@ -1002,6 +1025,10 @@ void handler::gplt(){
         return;
     }
     group gp = group::fromJson(js);
+    if(gp.owner == "0"){
+        sendMsg("echo:disgp", sockfd);
+        return;
+    }
     friendnamelist fnl;
     fnl.data.push_back(gp.owner);
     for(std::string tmp : gp.managelist) fnl.data.push_back(tmp);
@@ -1043,6 +1070,10 @@ void handler::admn(){
         return;
     }
     group gp = group::fromJson(js);
+    if(gp.owner == "0"){
+        sendMsg("echo:disgp", sockfd);
+        return;
+    }
     gp.memberlist.erase(uid2);
     gp.managelist.insert(uid2);
     u.setgtoj( gid, gp.toJson());
@@ -1097,6 +1128,10 @@ void handler::dlmn(){
         return;
     }
     group gp = group::fromJson(js);
+    if(gp.owner == "0"){
+        sendMsg("echo:disgp", sockfd);
+        return;
+    }
     gp.managelist.erase(uid2);
     gp.memberlist.insert(uid2);
     u.setgtoj( gid, gp.toJson());
@@ -1148,8 +1183,12 @@ void handler::kcmb(){
         sendMsg("echo:false", sockfd);
         return;
     }
-    user ud1 = u.GetUesr(handuid) ,ud2 = u.GetUesr(uid2);
     group gp = group::fromJson(js);
+    if(gp.owner == "0"){
+        sendMsg("echo:right", sockfd);
+        return;
+    }
+    user ud1 = u.GetUesr(handuid) ,ud2 = u.GetUesr(uid2);
     if(gp.owner != handuid && gp.managelist.count(handuid) == 0){
         sendMsg("echo:nopms", sockfd);
         return;
@@ -1206,5 +1245,69 @@ void handler::kcmb(){
     }
     
     //给发送者发回声
+    sendMsg("echo:right", sockfd);
+}
+
+void handler::disg(){
+    //拿到数据
+    int i = 0;
+    while(str[i] != ':') i++;
+    std::string gid = str.c_str() + i + 1, js;
+
+    js = u.GetGroup(gid);
+    if(js == "norepeat"){
+        printf("\033[0;31mgid:%s\n\033[0m", gid.c_str());
+        sendMsg("echo:false", sockfd);
+        return;
+    }
+    group gp = group::fromJson(js);
+
+    //解析命令"disg(n)%s", gname.c_str()
+    char result[512];
+    sprintf( result, "disg(n)%s", gp.name.c_str());
+    //删gchat -> owner设置为0标记注销 -> 清groupname键值对
+    //删所有成员列表中的该群，并更新在线时的user，发群聊解散通知 -> 清用户report未读群聊消息表中对应群的消息
+    u.disbandgroup( gp.gid, gp.name);
+
+    //群主
+    user ud = u.GetUesr(gp.owner);
+    ud.grouplist.erase(gp.gid);
+    u.setutoj( gp.owner, ud.toJson());
+    if(uid_to_socket.count(gp.owner)) sendMsg("user:"+ud.toJson(), uid_to_socket[gp.owner]);
+    report rpt = report::fromJson(u.u_report(gp.owner));
+    rpt.total_group_msg -= rpt.chatgroup[gp.gid];
+    rpt.chatgroup.erase(gp.gid);
+    rpt.notice.insert(rpt.notice.begin(), result);
+    u.svreport( gp.owner, rpt.toJson());
+    if(uid_to_socket.count(gp.owner)) sendMsg("rept:disg", uid_to_socket[gp.owner]);
+    gp.owner = "0";
+    u.setgtoj( gp.gid, gp.toJson());
+
+    for(std::string uid : gp.memberlist){
+        ud = u.GetUesr(uid);
+        ud.grouplist.erase(gp.gid);
+        u.setutoj( uid, ud.toJson());
+        if(uid_to_socket.count(uid)) sendMsg("user:"+ud.toJson(), uid_to_socket[uid]);
+        rpt = report::fromJson(u.u_report(uid));
+        rpt.total_group_msg -= rpt.chatgroup[gp.gid];
+        rpt.chatgroup.erase(gp.gid);
+        rpt.notice.insert(rpt.notice.begin(), result);
+        u.svreport( uid, rpt.toJson());
+        if(uid_to_socket.count(uid)) sendMsg("rept:disg", uid_to_socket[uid]);
+    }
+
+    for(std::string uid : gp.managelist){
+        ud = u.GetUesr(uid);
+        ud.grouplist.erase(gp.gid);
+        u.setutoj( uid, ud.toJson());
+        if(uid_to_socket.count(uid)) sendMsg("user:"+ud.toJson(), uid_to_socket[uid]);
+        rpt = report::fromJson(u.u_report(uid));
+        rpt.total_group_msg -= rpt.chatgroup[gp.gid];
+        rpt.chatgroup.erase(gp.gid);
+        rpt.notice.insert(rpt.notice.begin(), result);
+        u.svreport( uid, rpt.toJson());
+        if(uid_to_socket.count(uid)) sendMsg("rept:disg", uid_to_socket[uid]);
+    }
+
     sendMsg("echo:right", sockfd);
 }

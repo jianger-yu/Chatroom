@@ -187,6 +187,61 @@ void reportfucs::Analysisnotice(std::string &str, int i){
         else
             printf("\033[0;33m[%d] %d、群聊 \033[0m\033[0;34m%s\033[0m\033[0;33m  被群主解散了。\033[0m\033[0m\n", i-5*page+1, i + 1,  gname.c_str());
     }
+    else if(str[0] == 's' && str[1] == 'd' && str[2] == 'f'){
+        std::string result, uname, recvname, filename;
+        bool yellow = false;
+        if(str[5] == 'n' || str[3] == 'N') yellow = true;
+        //解析命令"sdfu(n)%s:%s:%s", uname.c_str(), recvname.c_str(), filename.c_str()
+        //解析命令"sdfg(n)%s:%s:%s", uname.c_str(), recvgroupname.c_str(), gfilename.c_str()
+        int j = 0;
+        while(str[j] != ')') j++;
+        j++;
+        while(str[j] != ':') uname.push_back(str[j++]);
+        j++;
+        while(str[j] != ':') recvname.push_back(str[j++]);
+        filename = str.c_str() + j + 1;
+        if(u.name == uname){
+            if(i == -1){
+                if(str[3] == 'u')
+                    printf("您对用户 \033[0;34m%s\033[0m 发送文件 \033[0;34m%s\033[0m成功。\n", recvname.c_str(), filename.c_str());
+                else
+                    printf("您对群聊 \033[0;34m%s\033[0m 发送群文件 \033[0;34m%s\033[0m成功。\n", recvname.c_str(), filename.c_str());
+                return;    
+            }
+            if(!yellow){
+                if(str[3] == 'u')
+                    printf("[%d] %d、您对用户 \033[0;34m%s\033[0m 发送文件 \033[0;34m%s\033[0m成功。\n", i-5*page+1, i + 1, recvname.c_str(), filename.c_str());
+                else
+                    printf("[%d] %d、您对群聊 \033[0;34m%s\033[0m 发送群文件 \033[0;34m%s\033[0m成功。\n", i-5*page+1, i + 1, recvname.c_str(), filename.c_str());
+            }
+            else{
+                if(str[3] == 'u')
+                    printf("\033[0;33m[%d] %d、您对用户 \033[0m\033[0;34m%s\033[0m\033[0;33m 发送文件 \033[0m\033[0;34m%s\033[0m \033[0;33m成功。\033[0m\n", i-5*page+1, i + 1, recvname.c_str(), filename.c_str());
+                else
+                    printf("\033[0;33m[%d] %d、您对群聊 \033[0m\033[0;34m%s\033[0m\033[0;33m 发送群文件 \033[0m\033[0;34m%s\033[0m \033[0;33m成功。\033[0m\n", i-5*page+1, i + 1, recvname.c_str(), filename.c_str());
+            }
+            return;
+        }
+        if(i == -1){
+            if(str[3] == 'u')
+                printf("用户 \033[0;34m%s\033[0m 对您发送了文件 \033[0;34m%s\033[0m 。\n", uname.c_str(), filename.c_str());
+            else 
+                printf("用户 \033[0;34m%s\033[0m 在群聊 \033[0;34m%s\033[0m 发送了群文件 \033[0;34m%s\033[0m 。\n", uname.c_str(), recvname.c_str(), filename.c_str());
+            return;    
+        }
+        if(!yellow){
+            if(str[3] == 'u')
+                printf("[%d] %d、用户 \033[0;34m%s\033[0m 对您发送了文件 \033[0;34m%s\033[0m 。\n", i-5*page+1, i + 1,  uname.c_str(), filename.c_str());
+            else 
+                printf("[%d] %d、用户 \033[0;34m%s\033[0m 在群聊 \033[0;34m%s\033[0m 发送了群文件 \033[0;34m%s\033[0m 。\n", i-5*page+1, i + 1,  uname.c_str(), recvname.c_str(), filename.c_str());
+        }
+        else{
+            if(str[3] == 'u')
+                printf("\033[0;33m[%d] %d、用户 \033[0m\033[0;34m%s\033[0m\033[0;33m 对您发送了文件 \033[0m\033[0;34m%s\033[0m \033[0;33m。\033[0m\n", i-5*page+1, i + 1,  uname.c_str(), filename.c_str());
+            else 
+                printf("\033[0;33m[%d] %d、用户 \033[0m\033[0;34m%s\033[0m\033[0;33m 在群聊 \033[0m\033[0;34m%s\033[0m\033[0;33m 发送了群文件 \033[0m\033[0;34m%s\033[0m \033[0;33m。\033[0m\n", i-5*page+1, i + 1,  uname.c_str(), recvname.c_str(), filename.c_str());
+        }
+    }
 }
 
 

@@ -217,7 +217,13 @@ int userfuc::filefuc(void){
     char input = 0;
     std::string msg;
     system("clear");
-    filefucs(u, clientp);
+    filefucs ffc(u, clientp);
+    if(ffc.conntect_filepth() == false){
+        printf("\033[0;31m连接服务器文件传输线程失败，请稍后再试。\033[0m\n");
+        printf("\033[0;31m请按任意键继续...\033[0m");
+        charget();
+        return ;
+    }
     filemenu(u, clientp);
     bool flag = false;
     fflush(stdout); // 手动刷新标准输出缓冲区
@@ -236,7 +242,7 @@ int userfuc::filefuc(void){
         input = tm_charget(200);
         if(input == -1) continue;
         switch(input){
-        case '1':{//查看与好友的聊天记录
+        case '1':{//给某个好友发文件
             
             flag = true;
             break;

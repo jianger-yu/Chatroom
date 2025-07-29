@@ -86,6 +86,8 @@ typedef struct event{
     pthread_pool pthpool;
     pthread_mutex_t event_mutex; // 事件锁，用于修改红黑树的公共区域
     std::queue<EventContext*> evq;
+    //标记是否为用于数据传输的反应堆
+    bool datareactor = false;
 
     //删除树上节点
     void eventdel(event * ev);
@@ -128,6 +130,7 @@ public:
     readctor();  
     // 带参构造函数
     readctor(unsigned short port);
+    readctor(unsigned short port, unsigned int pthread_cnt, bool datarct = false);
 
     ~readctor();
 };
@@ -227,7 +230,10 @@ void readctor::recvdata(int fd, int events, void*arg){
     std::string str;
     printf("recvdata 准备 recvMsg\n");
     int ret = recvMsg(str, fd);
-
+    if(ret == 10 && !datareactor){
+        std::string uid = socket_to_uid[fd];
+        str = "rvlg:" + uid;
+    }
     printf("recvdata 准备抢 event_mutex\n");
     pthread_mutex_lock(&event_mutex); // 加锁
     printf("recvdata 抢到 event_mutex\n");
@@ -374,9 +380,11 @@ void readctor::readctorinit(unsigned short port){
             if(duration >= 600){//超时，断连
                 printf("[fd = %d] timeout\n", r_events[chekckpos].fd);
                 pthread_mutex_lock(&event_mutex); // 加锁
-                std::string uid = socket_to_uid[r_events[chekckpos].fd];
-                handler hd({}, r_events[chekckpos].fd);
-                hd.uulg(uid);
+                if(!datareactor){
+                    std::string uid = socket_to_uid[r_events[chekckpos].fd];
+                    handler hd({}, r_events[chekckpos].fd);
+                    hd.uulg(uid);
+                }
                 eventdel(&r_events[chekckpos]);
                 close(r_events[chekckpos].fd);
                 pthread_mutex_unlock(&event_mutex); // 加锁
@@ -422,6 +430,9 @@ readctor::readctor(){
 }          
 // 带参构造函数
 readctor::readctor(unsigned short port){
+    readctorinit(port);
+}   
+readctor::readctor(unsigned short port, unsigned int pthread_cnt, bool datarct = false):pthpool(pthread_cnt),datareactor(datarct){
     readctorinit(port);
 }   
 

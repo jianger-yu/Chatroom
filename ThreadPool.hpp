@@ -126,6 +126,7 @@ pthread_pool::pthread_pool(int ThreadCount){
         ret = pthread_create(&pthreads[i], NULL, pthreadrun, this);
         sys_err(ret, "pthread_create");
     }
+    printf("\033[0;31m线程池构造，生成%d个线程\033[0m\n", ThreadCount);
     stop = false;
 }
 

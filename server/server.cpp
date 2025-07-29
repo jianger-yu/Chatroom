@@ -1,5 +1,6 @@
 #include "../socket/socket.h"
 #include "EpollReactor.hpp"
+#include <thread>
 
 server::server()
     : listenfd_(socket(AF_INET, SOCK_STREAM, 0)), socket_(nullptr) {
@@ -33,6 +34,11 @@ bool server::acceptConn() {
   return true;
 }
 
+// 文件传输服务监听函数
+void fileTransferThread() {
+    readctor file_rct(5513, 4, true);  // 文件传输监听端口 5513，线程池 4 线程
+}
+
 int main(){
   redisContext* redis = connectRedis();
   
@@ -48,9 +54,21 @@ int main(){
       freeReplyObject(reply);
       reply = (redisReply*)redisCommand(redis, "SET newgid 1000");
   }
+
+  reply = (redisReply*)redisCommand(redis, "EXISTS newfid");
+  if (reply->integer == 0) {
+      freeReplyObject(reply);
+      reply = (redisReply*)redisCommand(redis, "SET newfid 1000");
+  }
+
+
   freeReplyObject(reply);
 
-  readctor rct(4413);
+  // 启动文件传输监听线程
+  std::thread file_thread(fileTransferThread);
+  file_thread.detach();  // 后台运行，不阻塞主线程
+
+  readctor rct(4413, 16);
   while(1){
     
   }

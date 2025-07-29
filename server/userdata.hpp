@@ -34,10 +34,12 @@ public:
     //获取一个未使用的uid
     std::string newuid(void);
     std::string newgid(void);
+    std::string newfid();
 
     //根据用户名返回用户id，若用户不存在则返回“norepeat”
     std::string Getuid(const char *);
     std::string Getgid(const char * buf);
+    std::string Getfid(std::string&, std::string&, bool isgroupfile);
 
     //根据用户uid返回用户结构体
     user GetUesr(std::string);
@@ -164,6 +166,18 @@ std::string userdata::newgid(){
     return buf;
 }
 
+std::string userdata::newfid(){
+    int i;
+    redisReply* reply = NULL;
+    reply = (redisReply*)redisCommand(redis, "INCR newfid");
+    i = reply->integer;
+    char buf[20];
+    sprintf(buf, "%d", i);
+    if(reply != NULL)
+        freeReplyObject(reply);
+    return buf;
+}
+
 
 bool userdata::RepeatEmail(const char * buf){
     int i = 0;
@@ -203,6 +217,29 @@ std::string userdata::Getgid(const char * buf){
         return ret;
     }
 }
+
+
+std::string userdata::Getfid(std::string &uid, std::string &path, bool isgroupfile){
+    redisReply* reply;
+    if(isgroupfile == false)
+        reply = (redisReply*)redisCommand(redis, "GET filehash:%s:%s", uid.c_str(), path.c_str());
+    else reply = (redisReply*)redisCommand(redis, "GET gfilehash:%s:%s", uid.c_str(), path.c_str());
+    if(reply->type == REDIS_REPLY_NIL){
+        freeReplyObject(reply);
+        std::string fid = newfid();
+        if(isgroupfile == false)
+            reply = (redisReply*)redisCommand(redis, "SET filehash:%s:%s %s", uid.c_str(), path.c_str(), fid.c_str());
+        else
+            reply = (redisReply*)redisCommand(redis, "SET gfilehash:%s:%s %s", uid.c_str(), path.c_str(), fid.c_str());
+        freeReplyObject(reply);
+        return fid;
+    } else {
+        std::string ret = reply->str;
+        freeReplyObject(reply);
+        return ret;
+    }
+}
+
 
 std::string userdata::EmailGetuid(const char * buf){
     printf("拿到email:%s\n",buf);

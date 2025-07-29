@@ -46,6 +46,8 @@ private:
     void gtgp();
     //根据用户名获取uid的请求
     void gtud();
+    //根据uid+path获取或创建唯一的fid
+    void gtfi();
     //根据uid获取用户名的请求
     void gtnm();
     //根据gid获取用户名的请求
@@ -103,9 +105,14 @@ private:
     void kcmb();
     //解散群聊
     void disg();
-
     //根据uid获取用户为管理员的全部群
     void mngl();
+
+    //处理发送来文件的请求
+    void rvfl();
+    //处理文件结束的通知
+    void fled();
+
 public:
     handler(std::string buf, int fd):str(buf),sockfd(fd){
     }
@@ -130,10 +137,6 @@ int handler::handle(void){
     else if(str[0] == 'e' && str[1] == 'm' && str[2] == 'l' && str[3] == 'g') emlg();
     else if(str[0] == 'u' && str[1] == 'n' && str[2] == 'l' && str[3] == 'g') unlg(str);
     else if(str[0] == 'u' && str[1] == 'u' && str[2] == 'l' && str[3] == 'g') uulg(str);
-    else if(str[0] == 'r' && str[1] == 'v' && str[2] == 'l' && str[3] == 'g') {
-        rvlg();
-        return 1;
-    }
     else if(str[0] == 'a' && str[1] == 'd' && str[2] == 'f' && str[3] == 'r') adfr();
     else if(str[0] == 'a' && str[1] == 'd' && str[2] == 'g' && str[3] == 'p') adgp();
     else if(str[0] == 'a' && str[1] == 'd' && str[2] == 'm' && str[3] == 'n') admn();
@@ -144,6 +147,7 @@ int handler::handle(void){
     else if(str[0] == 'g' && str[1] == 't' && str[2] == 'u' && str[3] == 's') gtus();
     else if(str[0] == 'g' && str[1] == 't' && str[2] == 'g' && str[3] == 'p') gtgp();
     else if(str[0] == 'g' && str[1] == 't' && str[2] == 'u' && str[3] == 'd') gtud();
+    else if(str[0] == 'g' && str[1] == 't' && str[2] == 'f' && str[3] == 'i') gtfi();
     else if(str[0] == 'g' && str[1] == 't' && str[2] == 'n' && str[3] == 'm') gtnm();
     else if(str[0] == 'g' && str[1] == 'g' && str[2] == 'n' && str[3] == 'm') ggnm();
     else if(str[0] == 'r' && str[1] == 'd' && str[2] == 'n' && str[3] == 't') rdnt();
@@ -167,6 +171,15 @@ int handler::handle(void){
     else if(str[0] == 'm' && str[1] == 'n' && str[2] == 'g' && str[3] == 'l') mngl();
     else if(str[0] == 'k' && str[1] == 'c' && str[2] == 'm' && str[3] == 'b') kcmb();
     else if(str[0] == 'd' && str[1] == 'i' && str[2] == 's' && str[3] == 'g') disg();
+    else if(str[0] == 'r' && str[1] == 'v' && str[2] == 'f' && str[3] == 'l') rvfl();
+    else if(str[0] == 'r' && str[1] == 'v' && str[2] == 'l' && str[3] == 'g') {
+        rvlg();
+        return 1;
+    } 
+    else if(str[0] == 'f' && str[1] == 'l' && str[2] == 'e' && str[3] == 'd') {
+        fled();
+        return 1;
+    }
 
     return 0;
 }
@@ -1312,4 +1325,90 @@ void handler::disg(){
     }
 
     sendMsg("echo:right", sockfd);
+}
+
+
+void handler::gtfi(){
+    //拿到数据
+    std::string uid,path;
+    int i = 0;
+    while(str[i] != ':') i++;
+    int j = i + 1;
+    while(str[j] != ':') {
+        uid.push_back(str[j]);
+        j++;
+    }
+    for(int t = j + 1; t < str.size(); t++) path.push_back(str[t]);
+    sendMsg("echo:"+u.Getfid(uid, path, false), sockfd);
+}
+
+void handler::rvfl(){
+    //拿到数据
+    int i = 0;
+    while(str[i] != ':') i++;
+    std::string packet = str.c_str() + i + 1;
+    if (packet.size() < sizeof(uint32_t)) {
+        printf("数据包太短，无法解析\n");
+        return;
+    }
+    //1. 提取前4字节，得到 JSON 字符串长度
+    uint32_t json_len;
+    std::memcpy(&json_len, packet.data(), sizeof(uint32_t));
+    json_len = ntohl(json_len);  // 网络字节序转主机序
+    //2. 检查总长度是否合法
+    if (packet.size() < sizeof(uint32_t) + json_len) {
+        printf("数据包长度不足，缺失 JSON 部分\n");
+        return;
+    }
+    //3. 提取 JSON 字符串
+    std::string json_str = packet.substr(sizeof(uint32_t), json_len);
+    //4. 解析 JSON
+    file_block fb = file_block::fromJson(json_str);
+    //5. 提取数据部分
+    size_t data_offset = sizeof(uint32_t) + json_len;
+    std::string data = packet.substr(data_offset);
+
+    //构造目录路径: ./recvfile/file_<recver_uid>/
+    std::string dir_path = "./recvfile/file_" + fb.receiver_uid;
+    std::filesystem::create_directories(dir_path);  // 若已存在不会报错
+
+    //构造文件名: sender_uid:fid:filename
+    std::string file_name = fb.sender_uid + ":" + fb.fid + ":" + fb.filename;
+    std::string full_path = dir_path + "/" + file_name;
+
+    //写入文件
+    FILE* f = fopen(full_path.c_str(), "r+b");
+    if (!f) {
+        f = fopen(full_path.c_str(), "wb");
+        if (!f) {
+            perror("无法创建文件");
+            return;
+        }
+    }
+
+    fseek(f, fb.offset, SEEK_SET);
+    fwrite(data.data(), 1, data.size(), f);
+    fclose(f);
+
+    printf("写入 %s，偏移 %ld，长度 %zu 字节\n", full_path.c_str(), fb.offset, data.size());
+}
+
+void handler::fled(){
+    //拿到block的json字符串
+    int i = 0;
+    while(str[i] != ':') i++;
+    std::string json_str = str.c_str() + i + 1, js1, js2, result;
+    file_block block = file_block::fromJson(json_str);
+    user ud1 = u.GetUesr(block.sender_uid), ud2 = u.GetUesr(block.receiver_uid);
+    js1 = u.u_report(ud1.uid);
+    js2 = u.u_report(ud2.uid);
+    if(js1 == "none" || js2 == "none"){
+        printf("fled, js1:%s, js2:%s\n", js1.c_str(), js2.c_str());
+        sendMsg("echo:uidfs", sockfd);
+        return;
+    }
+    report rpt1 = report::fromJson(js1), rpt2 = report::fromJson(js2);
+    //构造命令"sdfu(n)%s:%s:%s", uname.c_str(), recvname.c_str(), filename.c_str()
+    result = "sdfu(n)"+ud1.name+":"+ud2.name+":"+block.filename;
+
 }

@@ -1226,7 +1226,7 @@ void groupfucs::delmanager(std::string gid, std::string uid2) {
     if(rev != "right"){
         printf("\033[0;31m数据异常，请稍后再试。\033[0m\n");
         printf("\033[0;31m请按任意键继续...\033[0m");
-        input = charget();
+        charget();
         return ;
     }
     //改本地表
@@ -1236,7 +1236,7 @@ void groupfucs::delmanager(std::string gid, std::string uid2) {
     printf("\033[0;32m解除管理员成功。\033[0m\n");
     printf("\033[0;32m请按任意键继续...\033[0m");
     fflush(stdout);
-    input = charget();
+    charget();
 }
 
 void groupfucs::kickmember(std::string gid, std::string uid2) {

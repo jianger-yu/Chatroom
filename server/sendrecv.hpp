@@ -49,20 +49,14 @@ int recvMsg(std::string& msg,int sockfd_) {
   uint32_t len, slen;
   int ret = recv_all(sockfd_,&len,sizeof len);
   if(!ret) return -1;
-  else if(ret == 10){
-    std::string uid = socket_to_uid[sockfd_];
-    msg = "rvlg:" + uid;
-    return 0;
-  }
+  else if(ret == 10)
+    return 10;
   slen = ntohl(len);
   msg.clear();
   msg.resize(slen);
   ret = recv_all(sockfd_,msg.data(),slen);
   if(!ret) return -1;
-  else if(ret == 10){
-    std::string uid = socket_to_uid[sockfd_];
-    msg = "rvlg:" + uid;
-    return 0;
-  }
+  else if(ret == 10)
+    return 10;
   return 0;
 }

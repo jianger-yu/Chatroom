@@ -33,10 +33,16 @@ class  Client {
   //客户端运行应有功能
   void ctlthread(void);
 
+  //在当前内存位置重新构造对象
+  void reinitialize() {
+        new (this) Client();
+  }
+  
   private:
   // 通信套接字
   int fd_;
   // 通信类对象
   std::unique_ptr<Socket> socket_;
 
+  
 };

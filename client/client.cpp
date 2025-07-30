@@ -3,7 +3,6 @@
 #include "login/login.hpp"
 #include <atomic>
 //定义数据通信伪客户端
-Client dataclient;
 
 Client:: Client()
     : fd_(socket(AF_INET, SOCK_STREAM, 0)),
@@ -14,7 +13,6 @@ Client::~ Client() {
 }
 
 Client client;
-std::atomic<bool> file_sending(false);
 
 bool Client::connectToHost(const char* ip, unsigned short port) {
   struct sockaddr_in addr;

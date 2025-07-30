@@ -35,6 +35,7 @@ class Socket {
    * @return 成功返回0，失败返回-1
    */
   int sendMsg(std::string msg);
+  int sendFILE(const std::string& msg) ;
 
   /**
    * @brief 接收消息
@@ -46,6 +47,7 @@ class Socket {
   void mshutdown(){
     shutdown(sockfd_, SHUT_RDWR);
   }
+  void setNonBlocking();
 
   private:
   /**
@@ -65,6 +67,9 @@ class Socket {
    * @return 成功返回true，失败返回false
    */
   bool recv_all(int sockfd,void * buf,size_t len);
+
+  bool send_allfile(int sockfd, const void* buf, size_t len);
+
   typedef struct bag{
     uint32_t len;
     std::string str;

@@ -393,7 +393,7 @@ void reportfucs::menu(char c, int fg){
     printf("                                \033[0;32m[%d/%d]\033[0m\n",page+1,maxpage);
 
     printf("\033[0;36m==========================================================\033[0m\n");
-    printf("\033[0;32m请输入您要处理的申请前的序号:>\033[0m");
+    printf("\033[0;32m请输入您要处理的通知前的序号:>\033[0m");
 }
 
 void reportfucs::handleapply(char c){
@@ -710,7 +710,7 @@ void reportfucs::chatmenu(char c, user& ud2){
     Socket* sock = cp->getSocket();
     reportfucs rpf(u, clientp);
     bool ret = rpf.Getrpt();
-    if(ret){
+    if(ret && rpf.rpt.chatfriend[ud2.uid]){
         rpf.rpt.total_friend_msg -= rpf.rpt.chatfriend[ud2.uid];
         rpf.rpt.chatfriend[ud2.uid] = 0;
         sock->sendMsg("svrp:"+u.uid+":"+rpf.rpt.toJson());
@@ -995,7 +995,7 @@ void reportfucs::gchatmenu(char c, group& gp){
     Socket* sock = cp->getSocket();
     reportfucs rpf(u, clientp);
     bool ret = rpf.Getrpt();
-    if(ret){
+    if(ret && rpf.rpt.chatgroup[gp.gid]){
         rpf.rpt.total_group_msg -= rpf.rpt.chatgroup[gp.gid];
         rpf.rpt.chatgroup[gp.gid] = 0;
         sock->sendMsg("svrp:"+u.uid+":"+rpf.rpt.toJson());

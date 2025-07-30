@@ -108,8 +108,6 @@ private:
     //根据uid获取用户为管理员的全部群
     void mngl();
 
-    //处理发送来文件的请求
-    void rvfl();
     //处理文件结束的通知
     void fled();
 
@@ -171,7 +169,6 @@ int handler::handle(void){
     else if(str[0] == 'm' && str[1] == 'n' && str[2] == 'g' && str[3] == 'l') mngl();
     else if(str[0] == 'k' && str[1] == 'c' && str[2] == 'm' && str[3] == 'b') kcmb();
     else if(str[0] == 'd' && str[1] == 'i' && str[2] == 's' && str[3] == 'g') disg();
-    else if(str[0] == 'r' && str[1] == 'v' && str[2] == 'f' && str[3] == 'l') rvfl();
     else if(str[0] == 'r' && str[1] == 'v' && str[2] == 'l' && str[3] == 'g') {
         rvlg();
         return 1;
@@ -1342,11 +1339,25 @@ void handler::gtfi(){
     sendMsg("echo:"+u.Getfid(uid, path, false), sockfd);
 }
 
-void handler::rvfl(){
+std::string GetFileName(const char arr[]){
+  int i = strlen(arr) - 1;
+  std::string str;
+  for(;i >= 0; i--){
+    if(arr[i] == '/') break;
+    else str.push_back(arr[i]);
+  }
+  std::reverse(str.begin(), str.end());
+  return str;
+}
+
+void rvfl(std::string &str){
     //拿到数据
     int i = 0;
     while(str[i] != ':') i++;
-    std::string packet = str.c_str() + i + 1;
+    std::string packet = str.substr(i + 1);
+    printf("\033[0;31mrvfl内,str.size():%ld, packet.size():%ld\033[0m\n", str.size(), packet.size());
+    printf("\033[0;31mrvfl内,str:%s, packet:%s\033[0m\n", str.c_str(), packet.c_str());
+
     if (packet.size() < sizeof(uint32_t)) {
         printf("数据包太短，无法解析\n");
         return;
@@ -1373,7 +1384,7 @@ void handler::rvfl(){
     std::filesystem::create_directories(dir_path);  // 若已存在不会报错
 
     //构造文件名: sender_uid:fid:filename
-    std::string file_name = fb.sender_uid + ":" + fb.fid + ":" + fb.filename;
+    std::string file_name = fb.sender_uid + ":" + fb.fid + ":" + GetFileName(fb.filename.data());
     std::string full_path = dir_path + "/" + file_name;
 
     //写入文件
@@ -1390,7 +1401,7 @@ void handler::rvfl(){
     fwrite(data.data(), 1, data.size(), f);
     fclose(f);
 
-    printf("写入 %s，偏移 %ld，长度 %zu 字节\n", full_path.c_str(), fb.offset, data.size());
+    printf("写入 %s，偏移 %d，长度 %zu 字节\n", full_path.c_str(), fb.offset, data.size());
 }
 
 void handler::fled(){
@@ -1410,5 +1421,11 @@ void handler::fled(){
     report rpt1 = report::fromJson(js1), rpt2 = report::fromJson(js2);
     //构造命令"sdfu(n)%s:%s:%s", uname.c_str(), recvname.c_str(), filename.c_str()
     result = "sdfu(n)"+ud1.name+":"+ud2.name+":"+block.filename;
-
+    rpt1.notice.insert(rpt1.notice.begin(), result);
+    rpt2.notice.insert(rpt2.notice.begin(), result);
+    u.svreport(ud1.uid, rpt1.toJson());
+    u.svreport(ud2.uid, rpt2.toJson());
+    //通知rept有变化
+    if(uid_to_socket.count(ud1.uid)) sendMsg("rept:", uid_to_socket[ud1.uid]);
+    if(uid_to_socket.count(ud2.uid)) sendMsg("rept:", uid_to_socket[ud2.uid]);
 }

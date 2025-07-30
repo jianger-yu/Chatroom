@@ -604,7 +604,7 @@ void groupfucs::chatmenu(char c, group& gp){
     Socket* sock = cp->getSocket();
     reportfucs rpf(u, clientp);
     bool ret = rpf.Getrpt();
-    if(ret){
+    if(ret && rpf.rpt.chatgroup[gp.gid]){
         rpf.rpt.total_group_msg -= rpf.rpt.chatgroup[gp.gid];
         rpf.rpt.chatgroup[gp.gid] = 0;
         sock->sendMsg("svrp:"+u.uid+":"+rpf.rpt.toJson());

@@ -5,6 +5,8 @@
 #include <unordered_map>
 #include <filesystem>
 
+std::atomic<bool> file_sending(false);
+
 class filefucs{
 private:
     user& u;
@@ -15,6 +17,8 @@ private:
     char path[3072];
     std::string fid;
     std::string sd;
+    Client dataclient;
+
 public:
 
     filefucs(user& arg1, void*p):u(arg1),clientp(p){
@@ -45,6 +49,8 @@ std::string filefucs::GetFileName(const char arr[]){
 
 bool filefucs::conntect_filepth(){
     return dataclient.connectToHost("127.0.0.1", 5513);
+    Socket* sock = dataclient.getSocket();
+    sock->setNonBlocking();
 }
 
 
@@ -58,6 +64,7 @@ void filefucs::sendfile_touser(char c){
         charget();
         return ;
     }
+
     //找到对应消息
     int i = 5*page + c - '0' - 1, j = 0;
     if(i >= u.friendlist.size()) return;
@@ -92,7 +99,7 @@ void filefucs::sendfile_touser(char c){
         }
         if(arr[0] == '\n') {
             system("clear");
-            printf("STOR\n\033[0;32m路径有误,请重新输入:>\033[0m");
+            printf("\033[0;32m输入包含ESC的语句可回到上一级页面。\n路径有误,请重新输入:>\033[0m");
             continue;
         }
         arr[ret - 1] = '\0';
@@ -106,7 +113,8 @@ void filefucs::sendfile_touser(char c){
         file = fopen(path, "rb");
         if (file == NULL) {
             system("clear");
-            printf("STOR\n\033[0;32m路径有误,请重新输入:>\033[0m");
+            for(int i = 0; i < strlen(arr); i++) if(arr[i] == 27) return;
+            printf("\033[0;32m输入包含ESC的语句可回到上一级页面。\n路径有误,请重新输入:>\033[0m");
             continue;
         }
         else break;
@@ -134,7 +142,7 @@ void filefucs::sendfile_touser(char c){
         charget();
         return ;
     }
-    std::thread sendfilepth(upload_file_with_offset);
+    std::thread sendfilepth(&filefucs::upload_file_with_offset, this);
     sendfilepth.detach();  //后台运行，不阻塞主线程
 
     printf("\033[0;31m请按任意键继续...\033[0m");
@@ -149,7 +157,7 @@ void filefucs::upload_file_with_offset() {
     char buf[block_size];
     off_t offset = 0;
     size_t bytesRead;
-    
+    int i = 0;
     file_block block;
     while ((bytesRead = fread(buf, 1, block_size, file)) > 0) {
         // 构造 file_block
@@ -170,8 +178,9 @@ void filefucs::upload_file_with_offset() {
         packet.append(reinterpret_cast<const char*>(&json_len), sizeof(json_len));
         packet.append(json_str);
         packet.append(buf, bytesRead);
-
-        if (datasock->sendMsg("rvfl:"+packet) == -1) {
+        // printf("[%d]\njson_len:%d packet.size():%ld\njson_str:%s\n", ++i, json_len,packet.size(), json_str.c_str());
+        // printf("\n");
+        if (datasock->sendFILE("rvfl:"+packet) == -1) {
             printf("发送失败，连接异常\n");
             fclose(file);
             file_sending = false;
@@ -183,7 +192,6 @@ void filefucs::upload_file_with_offset() {
 
     fclose(file);
     datasock->sendMsg("fled:"+block.toJson());  // 通知结束
-    std::string ret = EchoMsgQueue.wait_and_pop();
     file_sending = false;
 }
 
@@ -242,7 +250,7 @@ void filefucs::listfriend(){
     if(u.friendlist.size())
         printf("\033[0;32m选择您要传文件的好友:>\033[0m");
     fflush(stdout); // 手动刷新标准输出缓冲区
-    bool flag = false;
+    bool flag = false, sendfileok = false;
     std::string msg;
     while(1){
         //判断用户信息是否变动
@@ -252,7 +260,12 @@ void filefucs::listfriend(){
             flag = true;
         }
         //判断是否有新通知
-        if(ReptMsgQueue.try_pop(msg) || flag){
+        if(ReptMsgQueue.try_pop(msg) || flag || sendfileok){
+            if(sendfileok){
+                dataclient.reinitialize();
+                conntect_filepth();
+                sendfileok = false;
+            }
             flag = false;
             system("clear");
             list('p');
@@ -272,6 +285,7 @@ void filefucs::listfriend(){
             if(p >= 0 && p < u.friendlist.size()){
                 sendfile_touser(input);
                 flag = true;
+                sendfileok = true;
             }
             break;
         }

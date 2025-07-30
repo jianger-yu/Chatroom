@@ -218,11 +218,11 @@ int userfuc::filefuc(void){
     std::string msg;
     system("clear");
     filefucs ffc(u, clientp);
-    if(ffc.conntect_filepth() == false){
+    if(!file_sending && ffc.conntect_filepth() == false){
         printf("\033[0;31m连接服务器文件传输线程失败，请稍后再试。\033[0m\n");
         printf("\033[0;31m请按任意键继续...\033[0m");
         charget();
-        return ;
+        return 0;
     }
     filemenu(u, clientp);
     bool flag = false;
@@ -243,7 +243,7 @@ int userfuc::filefuc(void){
         if(input == -1) continue;
         switch(input){
         case '1':{//给某个好友发文件
-            
+            ffc.listfriend();
             flag = true;
             break;
         }

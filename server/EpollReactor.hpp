@@ -21,7 +21,7 @@
 #include "handle.hpp"
 
 #define MAX_EVENTS 1024     //监听上限数
-#define BUFLEN 4096
+#define BUFLEN 5120
 #define SERV_PORT 1145
 #define MAX_PORT 65535      //端口上限
 #define DATASENDIP "127.0.0.1"
@@ -155,9 +155,7 @@ void readctor::acceptconn(int lfd,int tmp, void * arg){
     
     ev->poolrs = false;
 
-    printf("监听回调 准备抢 event_mutex\n");
     pthread_mutex_lock(&event_mutex); // 加锁
-    printf("监听回调 抢到 event_mutex\n");
 
     if((cfd = accept(lfd, (struct sockaddr *)&caddr,&len)) == -1){
         if(errno != EAGAIN && errno != EINTR){
@@ -187,7 +185,6 @@ void readctor::acceptconn(int lfd,int tmp, void * arg){
     }while(0);
 
     pthread_mutex_unlock(&event_mutex); // 解锁
-    printf("监听回调 解开 event_mutex\n");
 
 
     printf("new connect [%s:%d][time:%ld], pos[%d]\n",
@@ -200,12 +197,14 @@ void readctor::acceptconn(int lfd,int tmp, void * arg){
 void readctor::senddata(int fd,int tmp, void * arg){
     event * ev = (event*)arg;
     printf("处理回调被执行,ev->buf:%s\n",ev->buf);
-
-    handler hand(ev->buf, fd);
-    int ret = hand.handle();
-    printf("senddata 准备抢 event_mutex\n");
+    std::string str(ev->buf, ev->len);
+    int ret;
+    if(datareactor && str[0] == 'r' && str[1] == 'v' && str[2] == 'f' && str[3] == 'l') rvfl(str);
+    else {
+        handler hand(str, fd);
+        ret = hand.handle();
+    }
     pthread_mutex_lock(&event_mutex); // 修改红黑树公共区域，加事件锁
-    printf("senddata 抢到 event_mutex\n");
 
     eventdel(ev);
     if(ret == 1) {
@@ -219,7 +218,6 @@ void readctor::senddata(int fd,int tmp, void * arg){
     eventadd(EPOLLIN, ev);   
 
     pthread_mutex_unlock(&event_mutex); // 解锁
-    printf("senddata 解除 event_mutex\n");
 }
 
 
@@ -228,15 +226,14 @@ void readctor::recvdata(int fd, int events, void*arg){
     event *ev = (event *) arg;
     int len;
     std::string str;
-    printf("recvdata 准备 recvMsg\n");
     int ret = recvMsg(str, fd);
-    if(ret == 10 && !datareactor){
-        std::string uid = socket_to_uid[fd];
-        str = "rvlg:" + uid;
+    if(ret == 10){
+        if(!datareactor){
+            std::string uid = socket_to_uid[fd];
+            str = "rvlg:" + uid;
+        }
     }
-    printf("recvdata 准备抢 event_mutex\n");
     pthread_mutex_lock(&event_mutex); // 加锁
-    printf("recvdata 抢到 event_mutex\n");
 
     if(ret == -1){//失败处理
         close(ev->fd);
@@ -245,7 +242,7 @@ void readctor::recvdata(int fd, int events, void*arg){
         return;
     }
     memset(ev->buf, 0, sizeof ev->buf);
-    strcpy(ev->buf,str.c_str());
+    memcpy(ev->buf, str.data(), str.size());
     len = str.size();
 
     eventdel(ev);//将该节点从红黑树摘除
@@ -267,7 +264,6 @@ void readctor::recvdata(int fd, int events, void*arg){
     }
 
     pthread_mutex_unlock(&event_mutex); // 解锁
-    printf("recvdata 解除 event_mutex\n");
 
 }
 
@@ -377,7 +373,7 @@ void readctor::readctorinit(unsigned short port){
                 continue;
             
             long duration = now - r_events[chekckpos].last_active;   //计算客户端不活跃的时间
-            if(duration >= 600){//超时，断连
+            if(duration >= 3600){//超时，断连
                 printf("[fd = %d] timeout\n", r_events[chekckpos].fd);
                 pthread_mutex_lock(&event_mutex); // 加锁
                 if(!datareactor){
@@ -432,7 +428,7 @@ readctor::readctor(){
 readctor::readctor(unsigned short port){
     readctorinit(port);
 }   
-readctor::readctor(unsigned short port, unsigned int pthread_cnt, bool datarct = false):pthpool(pthread_cnt),datareactor(datarct){
+readctor::readctor(unsigned short port, unsigned int pthread_cnt, bool datarct):pthpool(pthread_cnt),datareactor(datarct){
     readctorinit(port);
 }   
 

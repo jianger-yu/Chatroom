@@ -456,7 +456,7 @@ void friendfucs::chatmenu(char c, user& ud2){
     Socket* sock = cp->getSocket();
     reportfucs rpf(u, clientp);
     bool ret = rpf.Getrpt();
-    if(ret){
+    if(ret && rpf.rpt.chatfriend[ud2.uid]){
         rpf.rpt.total_friend_msg -= rpf.rpt.chatfriend[ud2.uid];
         rpf.rpt.chatfriend[ud2.uid] = 0;
         sock->sendMsg("svrp:"+u.uid+":"+rpf.rpt.toJson());

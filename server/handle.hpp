@@ -114,7 +114,7 @@ private:
 public:
     handler(std::string buf, int fd):str(buf),sockfd(fd){
     }
-
+    
     //利用uid处理用户下线的请求
     void uulg(std::string);
     //处理用户传来的请求

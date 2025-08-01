@@ -43,7 +43,8 @@ typedef struct event{
     void (readctor::*call_back)(int fd, int events, void * arg); //回调函数
     int status;     //是否在红黑树上，1->在，0->不在
     //读入的信息及长度
-    char buf[BUFLEN];
+    //char buf[BUFLEN];
+    std::string buf;
     int len;
     //用于监听的文件描述符
     int lisfd;
@@ -196,14 +197,24 @@ void readctor::acceptconn(int lfd,int tmp, void * arg){
 //处理回调
 void readctor::senddata(int fd,int tmp, void * arg){
     event * ev = (event*)arg;
-    printf("处理回调被执行,ev->buf:%s\n",ev->buf);
-    std::string str(ev->buf, ev->len);
+    printf("处理回调被执行,ev->buf:%s\n",ev->buf.c_str());
     int ret;
-    if(datareactor && str[0] == 'r' && str[1] == 'v' && str[2] == 'f' && str[3] == 'l') rvfl(str);
-    else {
-        handler hand(str, fd);
-        ret = hand.handle();
+    while(ev->buf.size() >= 4){
+        uint32_t len, slen;
+        std::memcpy(&len, ev->buf.data(), sizeof(len));
+        slen = ntohl(len);
+        if(ev->buf.size() < 4 + slen) break;
+        std::string str = ev->buf.substr(4, slen);
+        ev->buf.erase(0, 4+slen);
+        printf("处理回调取出slen:%d, str,size():%ld, str:%s\n", slen,str.size(),str.c_str());
+        
+        if(datareactor && str[0] == 'r' && str[1] == 'v' && str[2] == 'f' && str[3] == 'l') rvfl(str);
+        else {
+            handler hand(str, fd);
+            ret = hand.handle();
+        }
     }
+    printf("handle处理完毕\n");
     pthread_mutex_lock(&event_mutex); // 修改红黑树公共区域，加事件锁
 
     eventdel(ev);
@@ -212,8 +223,7 @@ void readctor::senddata(int fd,int tmp, void * arg){
         pthread_mutex_unlock(&event_mutex); // 解锁
         return;
     }
-    
-    memset(ev->buf, 0, sizeof ev->buf);
+    //memset(ev->buf, 0, sizeof ev->buf);
     eventset(ev,fd,&readctor::recvdata,ev);
     eventadd(EPOLLIN, ev);   
 
@@ -226,11 +236,13 @@ void readctor::recvdata(int fd, int events, void*arg){
     event *ev = (event *) arg;
     int len;
     std::string str;
-    int ret = recvMsg(str, fd);
+    int ret = recvfull(str, fd);
     if(ret == 10){
         if(!datareactor){
             std::string uid = socket_to_uid[fd];
             str = "rvlg:" + uid;
+            uint32_t slen = htonl(str.size());
+            str.insert(0, reinterpret_cast<const char*>(&slen), sizeof(slen));
         }
     }
     pthread_mutex_lock(&event_mutex); // 加锁
@@ -241,16 +253,17 @@ void readctor::recvdata(int fd, int events, void*arg){
         pthread_mutex_unlock(&event_mutex); // 解锁
         return;
     }
-    memset(ev->buf, 0, sizeof ev->buf);
-    memcpy(ev->buf, str.data(), str.size());
+    ev->buf.append(str);
+    // memset(ev->buf, 0, sizeof ev->buf);
+    // memcpy(ev->buf, str.data(), str.size());
     len = str.size();
 
     eventdel(ev);//将该节点从红黑树摘除
 
     if(len > 0){
         ev->len = len;
-        ev->buf[len] ='\0';
-        printf("C[%d]:%s",fd,ev->buf);
+        //ev->buf[len] ='\0';
+        printf("C[%d]:%s",fd,ev->buf.c_str());
 
         eventset(ev,fd,&readctor::senddata,ev);    //设置该fd对应的回调函数为senddata
         eventadd(EPOLLOUT, ev);         //将fd加入红黑树中，监听其写事件
@@ -266,6 +279,7 @@ void readctor::recvdata(int fd, int events, void*arg){
     pthread_mutex_unlock(&event_mutex); // 解锁
 
 }
+
 
 //初始化事件
 void readctor::eventset(event * ev, int fd, void (readctor::* call_back)(int ,int , void *), void * arg){

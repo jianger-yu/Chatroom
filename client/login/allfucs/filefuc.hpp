@@ -6,18 +6,20 @@
 #include <filesystem>
 
 std::atomic<bool> file_sending(false);
+Client dataclient;
+FILE* file;
+char arr[1024];
+char path[3072];
+std::string fid;
+std::string sd;
+std::string uuid;
 
 class filefucs{
 private:
     user& u;
     void* clientp;
     int page = 0;
-    FILE* file;
-    char arr[1024];
-    char path[3072];
-    std::string fid;
-    std::string sd;
-    Client dataclient;
+    
 
 public:
 
@@ -75,7 +77,7 @@ void filefucs::sendfile_touser(char c){
         }
         j++;
     }
-
+    uuid = u.uid;
     std::string str = "STOR";
     int ret = sock->sendMsg(str);
     if(ret == -1){
@@ -142,7 +144,8 @@ void filefucs::sendfile_touser(char c){
         charget();
         return ;
     }
-    std::thread sendfilepth(&filefucs::upload_file_with_offset, this);
+    //std::thread sendfilepth(&filefucs::upload_file_with_offset, this);
+    std::thread sendfilepth(std::bind(&filefucs::upload_file_with_offset, this));
     sendfilepth.detach();  //后台运行，不阻塞主线程
 
     printf("\033[0;31m请按任意键继续...\033[0m");
@@ -161,7 +164,7 @@ void filefucs::upload_file_with_offset() {
     file_block block;
     while ((bytesRead = fread(buf, 1, block_size, file)) > 0) {
         // 构造 file_block
-        block.sender_uid = u.uid;
+        block.sender_uid = uuid;
         block.receiver_uid = sd;
         block.fid = fid;
         block.filename = arr;

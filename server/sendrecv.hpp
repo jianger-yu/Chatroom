@@ -17,6 +17,13 @@ bool send_all(int sockfd,const void * buf,size_t len){
   return true;
 }
 
+int sendMsg(std::string msg,int sockfd_) {
+  uint32_t len = htonl(msg.size());
+  if(!send_all(sockfd_,&len,sizeof len)) return -1;
+  if(!send_all(sockfd_,msg.data(),msg.size())) return -1;
+  return 0;
+}
+
 int recv_all(int sockfd,void * buf,size_t len){
   char* p = static_cast<char*>(buf);
   int n;
@@ -38,13 +45,6 @@ int recv_all(int sockfd,void * buf,size_t len){
   return true;
 }
 
-int sendMsg(std::string msg,int sockfd_) {
-  uint32_t len = htonl(msg.size());
-  if(!send_all(sockfd_,&len,sizeof len)) return -1;
-  if(!send_all(sockfd_,msg.data(),msg.size())) return -1;
-  return 0;
-}
-
 int recvMsg(std::string& msg,int sockfd_) {
   uint32_t len, slen;
   int ret = recv_all(sockfd_,&len,sizeof len);
@@ -60,3 +60,31 @@ int recvMsg(std::string& msg,int sockfd_) {
     return 10;
   return 0;
 }
+
+int recvfull(std::string& str, int sockfd) {
+    char buf[4096];
+    while (true) {
+        ssize_t n = recv(sockfd, buf, sizeof(buf), 0);
+        if (n > 0) {
+            str.append(buf, n); // 追加读到的数据
+        } else if (n == 0) {
+            // 对端关闭连接
+            return 10; // 约定的关闭标志
+        } else {
+            if (errno == EAGAIN || errno == EWOULDBLOCK) {
+                // 读完了，缓冲区空
+                break;
+            } else if (errno == EINTR) {
+                // 信号中断，继续读
+                continue;
+            } else {
+                // 其他错误
+                return -1;
+            }
+        }
+    }
+    return 0;
+}
+
+
+

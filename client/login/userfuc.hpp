@@ -252,6 +252,10 @@ int userfuc::filefuc(void){
             break;
         }
         case 27:{
+            if(!file_sending) {
+                dataclient.~Client();
+                dataclient.reinitialize();
+            }
             return 0;
         }
         default:continue;

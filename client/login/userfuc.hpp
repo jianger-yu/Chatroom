@@ -219,10 +219,13 @@ int userfuc::filefuc(void){
     system("clear");
     filefucs ffc(u, clientp);
     if(!file_sending && ffc.conntect_filepth() == false){
-        printf("\033[0;31m连接服务器文件传输线程失败，请稍后再试。\033[0m\n");
-        printf("\033[0;31m请按任意键继续...\033[0m");
-        charget();
-        return 0;
+        dataclient.reinitialize();
+        if(!ffc.conntect_filepth()){
+            printf("\033[0;31m连接服务器文件传输线程失败，请稍后再试。\033[0m\n");
+            printf("\033[0;31m请按任意键继续...\033[0m");
+            charget();
+            return 0;
+        }
     }
     filemenu(u, clientp);
     bool flag = false;
@@ -252,7 +255,7 @@ int userfuc::filefuc(void){
             break;
         }
         case 27:{
-            if(!file_sending) {
+            if(!file_sending){
                 dataclient.~Client();
                 dataclient.reinitialize();
             }

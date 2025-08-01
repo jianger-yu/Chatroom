@@ -94,7 +94,6 @@ void filefucs::sendfile_touser(char c){
         memset(arr,0,sizeof arr);
         //获取输入文件名
         ret = read(STDIN_FILENO,arr,sizeof arr);
-        printf("输入路径为：%s",arr);
         if(ret <= 0){
             printf("输入错误:%s\n",strerror(errno));
             exit(1);

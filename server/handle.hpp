@@ -107,10 +107,15 @@ private:
     void disg();
     //根据uid获取用户为管理员的全部群
     void mngl();
+    //根据uid获取用户所有传来的文件
+    void gtrl();
 
     //处理文件结束的通知
     void fled();
-
+    //获取文件大小
+    void flsz();
+    //处理用户接收完文件的通知
+    void rved();
 public:
     handler(std::string buf, int fd):str(buf),sockfd(fd){
     }
@@ -119,6 +124,8 @@ public:
     void uulg(std::string);
     //处理用户传来的请求
     int handle();
+    //处理下载文件的请求
+    void sdfl();
 };
 
 //处理用户传来的请求
@@ -166,9 +173,11 @@ int handler::handle(void){
     else if(str[0] == 's' && str[1] == 'h' && str[2] == 'e' && str[3] == 'x') shex();
     else if(str[0] == 'f' && str[1] == 'd' && str[2] == 'l' && str[3] == 't') fdlt();
     else if(str[0] == 'g' && str[1] == 'p' && str[2] == 'l' && str[3] == 't') gplt();
+    else if(str[0] == 'g' && str[1] == 't' && str[2] == 'r' && str[3] == 'l') gtrl();
     else if(str[0] == 'm' && str[1] == 'n' && str[2] == 'g' && str[3] == 'l') mngl();
     else if(str[0] == 'k' && str[1] == 'c' && str[2] == 'm' && str[3] == 'b') kcmb();
     else if(str[0] == 'd' && str[1] == 'i' && str[2] == 's' && str[3] == 'g') disg();
+    else if(str[0] == 'f' && str[1] == 'l' && str[2] == 's' && str[3] == 'z') flsz();
     else if(str[0] == 'r' && str[1] == 'v' && str[2] == 'l' && str[3] == 'g') {
         rvlg();
         return 1;
@@ -1404,6 +1413,28 @@ void rvfl(std::string &str){
     printf("写入 %s，偏移 %d，长度 %zu 字节\n", full_path.c_str(), fb.offset, data.size());
 }
 
+void handler::gtrl(){
+    //拿到数据
+    int i = 0;
+    while(str[i] != ':') i++;
+    std::string uid = str.substr(i + 1);
+    std::string dir_path = "./recvfile/file_" + uid;
+    friendnamelist fnl;
+    //打开目录
+    DIR* dp=opendir(dir_path.c_str());
+    struct dirent * di;
+    if(dp==NULL){
+        sendMsg("echo:nofile", sockfd);
+        return;
+    }
+    //读目录
+    while((di=readdir(dp))!=NULL){
+        if(di->d_name[0]=='.')continue;
+        fnl.data.push_back(di->d_name);
+    }
+    sendMsg("echo:"+fnl.toJson(), sockfd);
+}
+
 void handler::fled(){
     //拿到block的json字符串
     int i = 0;
@@ -1428,4 +1459,94 @@ void handler::fled(){
     //通知rept有变化
     if(uid_to_socket.count(ud1.uid)) sendMsg("rept:", uid_to_socket[ud1.uid]);
     if(uid_to_socket.count(ud2.uid)) sendMsg("rept:", uid_to_socket[ud2.uid]);
+}
+
+void handler::flsz(){
+    //拿到文件名
+    int i = 0;
+    while(str[i] != ':') i++;
+    std::string filename = str.c_str() + i + 1, uid1;
+    if(socket_to_uid.count(sockfd)){
+        uid1 = socket_to_uid[sockfd];
+    } else{
+        sendMsg("echo:error", sockfd);
+        return;
+    }
+    std::string dir_path = "./recvfile/file_" + uid1;
+    struct stat st;
+    std::string full_path = dir_path + "/" + filename;
+    if (stat(full_path.c_str(), &st) != 0){
+        sendMsg("echo:error", sockfd);
+        return;
+    }
+    char arr[512];
+    sprintf(arr, "%ld", st.st_size);
+    sendMsg("echo:"+std::string(arr), sockfd);
+}
+
+void handler::sdfl(){
+    //拿到文件名
+    std::string uid1;
+    int i = 0, j;
+    while(str[i] != ':') i++;
+    for(j = i+1; str[j] != ':'; j++) uid1.push_back(str[j]);
+    std::string filename = str.c_str() + j + 1;
+    std::string uid2, fid, fname;
+    int m = 0, t;
+    while(str[m] != ':') uid2.push_back(str[m++]);
+    j = m + 1;
+    while(str[j] != ':') fid.push_back(str[j++]);
+    for(int k = j + 1; k < str.size(); k++) fname.push_back(str[k]);
+    std::string dir_path = "./recvfile/file_" + uid1;
+    std::string path = dir_path + "/" + filename;
+    struct stat st;
+    int sockfd2 = uid_to_socket[uid1];
+    if(lstat(path.c_str(),&st) == -1){//获取文件状态
+        printf("lstat error\n");
+        sendMsg("echo:error", sockfd2);
+        return ;
+    }
+    FILE* file = fopen(path.c_str(), "rb");
+    if (file == NULL) {
+        printf("fopen error\n");
+        sendMsg("echo:error", sockfd2);
+        return;
+    }
+    printf("sdfl start\n");
+    sendMsg("echo:start", sockfd2);
+    const size_t block_size = 4096;
+    char buf[block_size];
+    off_t offset = 0;
+    size_t bytesRead;
+    file_block block;
+    while ((bytesRead = fread(buf, 1, block_size, file)) > 0) {
+        // 构造 file_block
+        block.sender_uid = uid2;
+        block.receiver_uid = uid1;
+        block.fid = fid;
+        block.filename = fname;
+        block.timestamp = file_block::get_beijing_time();
+        block.offset = offset;
+        block.is_group = false;
+        block.is_file = true;
+
+        std::string json_str = block.toJson();
+        uint32_t json_len = htonl(json_str.size());
+
+        // 构造完整消息
+        std::string packet;
+        packet.append(reinterpret_cast<const char*>(&json_len), sizeof(json_len));
+        packet.append(json_str);
+        packet.append(buf, bytesRead);
+        printf("[%d]\njson_len:%d packet.size():%ld\njson_str:%s\n", ++i, json_len,packet.size(), json_str.c_str());
+        printf("\n");
+        if (sendMsg(packet, sockfd) == -1) {
+            sendMsg("error", sockfd);
+            return;
+        }
+        offset += bytesRead;
+    }
+
+    sendMsg("end", sockfd);
+
 }

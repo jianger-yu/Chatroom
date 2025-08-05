@@ -86,3 +86,29 @@ int Socket::sendFILE(const std::string& msg) {
     if (!send_allfile(sockfd_, msg.data(), msg.size())) return -1;
     return 0;
 }
+
+
+int Socket::recvfull(std::string& str) {
+    char buf[4096];
+    while (true) {
+        ssize_t n = recv(sockfd_, buf, sizeof(buf), 0);
+        if (n > 0) {
+            str.append(buf, n); // 追加读到的数据
+        } else if (n == 0) {
+            // 对端关闭连接
+            return 10; // 约定的关闭标志
+        } else {
+            if (errno == EAGAIN || errno == EWOULDBLOCK) {
+                // 读完了，缓冲区空
+                break;
+            } else if (errno == EINTR) {
+                // 信号中断，继续读
+                continue;
+            } else {
+                // 其他错误
+                return -1;
+            }
+        }
+    }
+    return 0;
+}

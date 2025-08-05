@@ -211,7 +211,8 @@ void readctor::senddata(int fd,int tmp, void * arg){
         if(datareactor && str[0] == 'r' && str[1] == 'v' && str[2] == 'f' && str[3] == 'l') rvfl(str);
         else {
             handler hand(str, fd);
-            ret = hand.handle();
+            if(datareactor && str[0] == 's' && str[1] == 'd' && str[2] == 'f' && str[3] == 'l') hand.sdfl();
+            else ret = hand.handle();
         }
     }
     printf("handle处理完毕\n");

@@ -254,6 +254,15 @@ int userfuc::filefuc(void){
             
             break;
         }
+        case '3':{
+            ffc.downloadfile();
+            flag = true;
+            break;
+        }
+        case '4':{
+            
+            break;
+        }
         case 27:{
             if(!file_sending){
                 dataclient.~Client();

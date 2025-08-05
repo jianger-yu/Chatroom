@@ -36,6 +36,7 @@ class Socket {
    */
   int sendMsg(std::string msg);
   int sendFILE(const std::string& msg) ;
+  int recvfull(std::string& str);
 
   /**
    * @brief 接收消息

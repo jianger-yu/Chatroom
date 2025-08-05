@@ -1566,11 +1566,12 @@ void handler::rved(){
     for(int t = 0; fname[t] != ':'; t++) uid2.push_back(fname[t]);
     std::string js = u.u_report(uid1);
     if(js == "none") return ;
-    report rpt = report::fromJson(js);
 
-    user u2 = u.GetUesr(uid2.c_str());
+    report rpt = report::fromJson(js);
+    user ud2 = u.GetUesr(uid2.c_str());
     char report[4096];
     //构造通知"rvfu(n):%s:%s", sendname.c_str(), filename.c_str()
-    //sprintf( report, "rvfu(n):%s:%s", );
-    
+    sprintf( report, "rvfu(n):%s:%s", ud2.name.c_str(), GetFileName(fname.c_str()));
+    rpt.notice.insert(rpt.notice.begin(), report);
+
 }

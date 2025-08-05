@@ -24,7 +24,7 @@
 #define BUFLEN 5120
 #define SERV_PORT 1145
 #define MAX_PORT 65535      //端口上限
-#define DATASENDIP "127.0.0.1"
+#define DATASENDIP "10.30.0.109"
 #define  FILEROAD "/home/jianger/codes/ server/server/ file"
 #define max_road 4096
 

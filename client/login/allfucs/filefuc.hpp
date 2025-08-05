@@ -61,7 +61,7 @@ std::string filefucs::GetFileName(const char arr[]){
 }
 
 bool filefucs::conntect_filepth(){
-    return dataclient.connectToHost("127.0.0.1", 5513);
+    return dataclient.connectToHost("10.30.0.109", 5513);
     Socket* sock = dataclient.getSocket();
     sock->setNonBlocking();
 }

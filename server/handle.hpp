@@ -126,6 +126,7 @@ public:
     int handle();
     //处理下载文件的请求
     void sdfl();
+    
 };
 
 //处理用户传来的请求
@@ -178,6 +179,7 @@ int handler::handle(void){
     else if(str[0] == 'k' && str[1] == 'c' && str[2] == 'm' && str[3] == 'b') kcmb();
     else if(str[0] == 'd' && str[1] == 'i' && str[2] == 's' && str[3] == 'g') disg();
     else if(str[0] == 'f' && str[1] == 'l' && str[2] == 's' && str[3] == 'z') flsz();
+    else if(str[0] == 'r' && str[1] == 'v' && str[2] == 'e' && str[3] == 'd') rved();
     else if(str[0] == 'r' && str[1] == 'v' && str[2] == 'l' && str[3] == 'g') {
         rvlg();
         return 1;
@@ -1548,5 +1550,27 @@ void handler::sdfl(){
     }
 
     sendMsg("end", sockfd);
+}
 
+void handler::rved(){
+    //拿到数据
+    std::string uid1,fname, uid2;
+    int i = 0;
+    while(str[i] != ':') i++;
+    int j = i + 1;
+    while(str[j] != ':') {
+        uid1.push_back(str[j]);
+        j++;
+    }
+    for(int t = j + 1; t < str.size(); t++) fname.push_back(str[t]);
+    for(int t = 0; fname[t] != ':'; t++) uid2.push_back(fname[t]);
+    std::string js = u.u_report(uid1);
+    if(js == "none") return ;
+    report rpt = report::fromJson(js);
+
+    user u2 = u.GetUesr(uid2.c_str());
+    char report[4096];
+    //构造通知"rvfu(n):%s:%s", sendname.c_str(), filename.c_str()
+    //sprintf( report, "rvfu(n):%s:%s", );
+    
 }

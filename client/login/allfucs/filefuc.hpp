@@ -224,7 +224,6 @@ void filefucs::download_file_with_offset(std::string sd){
         if(sendfileok && !buf.size()) break;
         datasock->recvfull(buf);
         //printf("buf.size():%ld\n", buf.size());
-        fflush(stdout);
         if(buf.size() >= 4){
             uint32_t len, slen;
             std::memcpy(&len, buf.data(), sizeof(len));
@@ -293,7 +292,7 @@ void filefucs::download_file_with_offset(std::string sd){
     }
 
     fclose(f);
-    datasock->sendMsg("rved:"+sd);  // 通知结束
+    datasock->sendMsg("rved:"+u.uid+":"+sd);  // 通知结束
     file_recving = false;
 }
 

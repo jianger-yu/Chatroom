@@ -242,6 +242,40 @@ void reportfucs::Analysisnotice(std::string &str, int i){
                 printf("\033[0;33m[%d] %d、用户 \033[0m\033[0;34m%s\033[0m\033[0;33m 在群聊 \033[0m\033[0;34m%s\033[0m\033[0;33m 发送了群文件 \033[0m\033[0;34m%s\033[0m \033[0;33m。\033[0m\n", i-5*page+1, i + 1,  uname.c_str(), recvname.c_str(), filename.c_str());
         }
     }
+    else if(str[0] == 'r' && str[1] == 'v' && str[2] == 'f'){
+        //解析命令"rvfu(n)%s:%s:%s", uname.c_str(), sendname.c_str(), filename.c_str()
+        //解析命令"rvfg(n)%s:%s:%s", uname.c_str(), recvgroupname.c_str(), gfilename.c_str()
+         std::string result, uname, sendname, filename;
+        bool yellow = false;
+        if(str[5] == 'n' || str[3] == 'N') yellow = true;
+        int j = 0;
+        while(str[j] != ')') j++;
+        j++;
+        while(str[j] != ':') uname.push_back(str[j++]);
+        j++;
+        while(str[j] != ':') sendname.push_back(str[j++]);
+        filename = str.c_str() + j + 1;
+        if(i == -1){
+            if(str[3] == 'u')
+                printf("您成功接收了用户 \033[0;34m%s\033[0m 发送的文件 \033[0;34m%s\033[0m。\n", sendname.c_str(), filename.c_str());
+            else
+                printf("您成功接收了群聊 \033[0;34m%s\033[0m 的群文件 \033[0;34m%s\033[0m。\n", sendname.c_str(), filename.c_str());
+            return;    
+        }
+        if(!yellow){
+            if(str[3] == 'u')
+                printf("[%d] %d、您成功接收了用户 \033[0;34m%s\033[0m 发送的文件 \033[0;34m%s\033[0m。\n", i-5*page+1, i + 1, sendname.c_str(), filename.c_str());
+            else
+                printf("[%d] %d、您成功接收了群聊 \033[0;34m%s\033[0m 的群文件 \033[0;34m%s\033[0m。\n", i-5*page+1, i + 1, sendname.c_str(), filename.c_str());
+        }
+        else{
+            if(str[3] == 'u')
+                printf("\033[0;33m[%d] %d、您成功接收了用户 \033[0m\033[0;34m%s\033[0m\033[0;33m 发送的文件 \033[0m\033[0;34m%s\033[0m \033[0;33m。\033[0m\n", i-5*page+1, i + 1, sendname.c_str(), filename.c_str());
+            else
+                printf("\033[0;33m[%d] %d、您成功接收了群聊 \033[0m\033[0;34m%s\033[0m\033[0;33m 的群文件 \033[0m\033[0;34m%s\033[0m \033[0;33m。\033[0m\n", i-5*page+1, i + 1, sendname.c_str(), filename.c_str());
+        }
+        return;
+    }
 }
 
 

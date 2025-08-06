@@ -1571,7 +1571,10 @@ void handler::rved(){
     user ud2 = u.GetUesr(uid2.c_str());
     char report[4096];
     //构造通知"rvfu(n):%s:%s", sendname.c_str(), filename.c_str()
-    sprintf( report, "rvfu(n):%s:%s", ud2.name.c_str(), GetFileName(fname.c_str()));
+    sprintf( report, "rvfu(n):%s:%s", ud2.name.c_str(), GetFileName(fname.c_str()).c_str());
     rpt.notice.insert(rpt.notice.begin(), report);
-
+    
+    u.svreport( uid1, rpt.toJson());
+    if(uid_to_socket.count(uid1))
+        sendMsg("rept:", uid_to_socket[uid1]);
 }

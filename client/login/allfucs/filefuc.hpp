@@ -212,7 +212,7 @@ void filefucs::download_file_with_offset(std::string sd){
     bool sendfileok = false, first = true;
     Socket* datasock = dataclient.getSocket();
     datasock->setNonBlocking();
-    datasock->sendMsg("sdfl:"+u.uid+":"+sd);
+    datasock->sendMsg("sdfl:"+uuid+":"+sd);
     std::string ret = EchoMsgQueue.wait_and_pop(), packet;
     if(ret == "error"){
         printf("接收失败，连接异常\n");
@@ -292,7 +292,7 @@ void filefucs::download_file_with_offset(std::string sd){
     }
 
     fclose(f);
-    datasock->sendMsg("rved:"+u.uid+":"+sd);  // 通知结束
+    datasock->sendMsg("rved:"+uuid+":"+sd);  // 通知结束
     file_recving = false;
 }
 
@@ -671,10 +671,11 @@ void filefucs::download(char c){
         else return;
         break;
     }
-    download_file_with_offset(sd);
+    uuid = u.uid;
+
     std::thread sendfilepth(std::bind(&filefucs::download_file_with_offset, this, sd));
     sendfilepth.detach();  //后台运行，不阻塞主线程
-
+    
     printf("\033[0;31m正在后台接收文件，请按任意键继续...\033[0m");
     charget();
 }
@@ -738,7 +739,7 @@ void filefucs::downloadfile(){
             if(p >= 0 && p < fnl.data.size()){
                 download(input);
                 flag = true;
-                //recvfileok = true;
+                recvfileok = true;
             }
             break;
         }

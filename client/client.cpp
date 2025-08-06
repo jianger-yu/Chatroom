@@ -63,10 +63,13 @@ int main(){
   sigaddset(&set,SIGINT);
   sigaddset(&set,SIGQUIT);
   sigprocmask(SIG_BLOCK,&set,NULL);
-  while(client.connectToHost("127.0.0.1", CONPORT)==false){
+  int tmp = 20;
+  while(client.connectToHost("10.30.0.109", CONPORT)==false){
     printf("连接服务器%d端口失败,error:%s\n",CONPORT,strerror(errno));
     printf("正在重新连接...\n");
     sleep(1);
+    tmp--;
+    if(tmp == 0) exit(1);
   }
   recv_running = true;
   std::thread recvThread = std::thread(recv_thread, client.getSocket());

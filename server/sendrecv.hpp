@@ -10,7 +10,11 @@ bool send_all(int sockfd,const void * buf,size_t len){
   const char*p = static_cast<const char*>(buf);
   while(len > 0){
     int n = send(sockfd,p,len,0);
-    if(n <= 0) return false;
+    if (n <= 0) {
+        perror("send failed:");
+        return false;
+    }
+    //if(n <= 0) return false;
     p += n;
     len -= n;
   }
@@ -87,4 +91,33 @@ int recvfull(std::string& str, int sockfd) {
 }
 
 
+bool send_allfile(int sockfd, const void* buf, size_t len) {
+    const char* p = static_cast<const char*>(buf);
+    int retry = 0;
+    const int MAX_RETRY = 100000;
+
+    while (len > 0) {
+        int n = send(sockfd, p, len, 0);
+        if (n > 0) {
+            p += n;
+            len -= n;
+            retry = 0;
+        } else if (errno == EAGAIN || errno == EWOULDBLOCK) {
+            if (++retry > MAX_RETRY) return false;
+            usleep(1000); // 等待缓冲区腾出空间
+            //printf("重试次数:%d", retry);
+        } else {
+            return false; // 连接异常
+        }
+    }
+    return true;
+}
+
+
+int sendFILE(const std::string& msg,int sockfd_) {
+    uint32_t len = htonl(msg.size());
+    if (!send_allfile(sockfd_, &len, sizeof len)) return -1;
+    if (!send_allfile(sockfd_, msg.data(), msg.size())) return -1;
+    return 0;
+}
 

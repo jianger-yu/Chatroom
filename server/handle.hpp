@@ -379,7 +379,7 @@ void handler::adfr(){
         return;
     }
     report rpt2 = report::fromJson(js);
-    if(rpt2.friendapply.count(uid1) || ud2.shieldlist.count(uid1)){
+    if(rpt2.friendapply.count(ud.name) || ud2.shieldlist.count(uid1)){
         sendMsg("echo:sendd",sockfd);
         return;
     }
@@ -914,6 +914,10 @@ void handler::shfd(){
     for(int t = j + 1; t < str.size(); t++) uid2.push_back(str[t]);
     //在uid1的屏蔽表添加uid2
     user ud1 = u.GetUesr(uid1);
+    if(ud1.shieldlist.count(uid2)){
+        sendMsg("echo:sheld", sockfd);
+        return;
+    }
     ud1.shieldlist.insert(uid2); 
     //保存屏蔽结果
     u.setutoj( uid1, ud1.toJson());
@@ -1540,15 +1544,16 @@ void handler::sdfl(){
         packet.append(reinterpret_cast<const char*>(&json_len), sizeof(json_len));
         packet.append(json_str);
         packet.append(buf, bytesRead);
-        printf("[%d]\njson_len:%d packet.size():%ld\njson_str:%s\n", ++i, json_len,packet.size(), json_str.c_str());
+        printf("[%d]\njson_len:%ld packet.size():%ld\njson_str:%s\n", ++i, json_str.size(),packet.size(), json_str.c_str());
         printf("\n");
-        if (sendMsg(packet, sockfd) == -1) {
+        if (sendFILE(packet, sockfd) == -1) {
             sendMsg("error", sockfd);
             return;
         }
         offset += bytesRead;
     }
 
+    printf("文件内容已经发完\n");
     sendMsg("end", sockfd);
 }
 

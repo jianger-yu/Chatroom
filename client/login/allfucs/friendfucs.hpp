@@ -801,7 +801,13 @@ void friendfucs::shield(char c, int fg){
     //确定屏蔽该好友,uid1屏蔽uid2
     sock->sendMsg("shfd:"+u.uid+":"+sd);
     rev = EchoMsgQueue.wait_and_pop();
-    if(rev != "right"){
+    if(rev == "sheld"){
+        printf("\033[0;31m已经屏蔽过该用户，无需重新屏蔽。\033[0m\n");
+        printf("\033[0;31m请按任意键继续...\033[0m");
+        input = charget();
+        return ;
+    }
+    else if(rev != "right"){
         printf("\033[0;31m数据异常，请稍后再试。\033[0m\n");
         printf("\033[0;31m请按任意键继续...\033[0m");
         input = charget();

@@ -186,7 +186,7 @@ void filefucs::upload_file_with_offset() {
         packet.append(buf, bytesRead);
         // printf("[%d]\njson_len:%d packet.size():%ld\njson_str:%s\n", ++i, json_len,packet.size(), json_str.c_str());
         // printf("\n");
-        if (datasock->sendMsg("rvfl:"+packet) == -1) {
+        if (datasock->sendFILE("rvfl:"+packet) == -1) {
             printf("发送失败，连接异常\n");
             fclose(file);
             file_sending = false;
@@ -222,14 +222,15 @@ void filefucs::download_file_with_offset(std::string sd){
     FILE* f;
     while(1){
         if(sendfileok && !buf.size()) break;
-        datasock->recvfull(buf);
+        if(buf.size() <= 524288) //512*1024
+            datasock->recvfull(buf);
         //printf("buf.size():%ld\n", buf.size());
         if(buf.size() >= 4){
             uint32_t len, slen;
             std::memcpy(&len, buf.data(), sizeof(len));
             slen = ntohl(len);
             if(buf.size() < 4 + slen) {
-                //printf("buf.size():%ld < 4 + slen%d", buf.size(), slen);
+                //printf("buf.size():%ld < 4 + slen%d\n", buf.size(), slen);
                 continue;
             }
             packet = buf.substr(4, slen);

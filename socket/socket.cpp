@@ -60,7 +60,7 @@ void Socket::setNonBlocking() {
 bool Socket::send_allfile(int sockfd, const void* buf, size_t len) {
     const char* p = static_cast<const char*>(buf);
     int retry = 0;
-    const int MAX_RETRY = 10000;
+    const int MAX_RETRY = 100000;
 
     while (len > 0) {
         int n = send(sockfd, p, len, 0);

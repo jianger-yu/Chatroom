@@ -6,10 +6,25 @@
 #include <unistd.h>
 #include <cstring>
 #include "../MessageQueue.hpp"
+#include <chrono>
+
+extern user us;
+extern report rpt;
+
+// 全局变量
+std::chrono::steady_clock::time_point start_time;
+void startTime() {
+    start_time = std::chrono::steady_clock::now();
+}
+int throughtime() {
+    auto now = std::chrono::steady_clock::now();
+    auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(now - start_time);
+    return static_cast<int>(duration.count());
+}
+
 
 class reportfucs{
 private:
-    user& u;
     void* clientp;
     int page = 0;
 
@@ -18,13 +33,14 @@ private:
     messages save;
     group viewgp;
 public:
-    report rpt;
 
-    reportfucs(user& arg1, void*p):u(arg1),clientp(p){
+    reportfucs(user& arg1, void*p):clientp(p){
+    };
+    reportfucs(){};
+    void reportinit(){
     };
     //获取当前全部通知
-    bool Getrpt();
-    
+    //（外部函数）
 
     //处理好友申请页面
     void friendreport();
@@ -54,31 +70,28 @@ public:
     void ghandlechat(char c, int fg);
 
     //打印新通知
-    static void newreport(user&u, void* p){
-        reportfucs rpf(u, p);
-        bool ret = rpf.Getrpt();
-        if(ret){
-        if(rpf.rpt.friendapply.size())
-        printf("           \033[0;34m[new] 有%ld条未处理的好友申请\033[0m\n", rpf.rpt.friendapply.size());
-            if(rpf.rpt.total_friend_msg)
-        printf("           \033[0;34m[new] 有%d个未读的好友消息\033[0m\n", rpf.rpt.total_friend_msg);
-            if(rpf.rpt.total_group_msg)
-        printf("           \033[0;34m[new] 有%d个未读的群聊消息\033[0m\n", rpf.rpt.total_group_msg);
-            if(rpf.rpt.groupapply.size())
-        printf("           \033[0;34m[new] 有%ld条未处理的加群申请\033[0m\n", rpf.rpt.groupapply.size());
+    static void newreport(user&us, void* p){
+
+        if(rpt.friendapply.size())
+        printf("           \033[0;34m[new] 有%ld条未处理的好友申请\033[0m\n", rpt.friendapply.size());
+            if(rpt.total_friend_msg)
+        printf("           \033[0;34m[new] 有%d个未读的好友消息\033[0m\n", rpt.total_friend_msg);
+            if(rpt.total_group_msg)
+        printf("           \033[0;34m[new] 有%d个未读的群聊消息\033[0m\n", rpt.total_group_msg);
+            if(rpt.groupapply.size())
+        printf("           \033[0;34m[new] 有%ld条未处理的加群申请\033[0m\n", rpt.groupapply.size());
         int cnt = 0;
-        for(int i = 0; i < rpf.rpt.notice.size(); i++)
-            if(rpf.rpt.notice[i][5] == 'n') cnt++;
+        for(int i = 0; i < rpt.notice.size(); i++)
+            if(rpt.notice[i][5] == 'n') cnt++;
         if(cnt)
         printf("           \033[0;34m[new] 有%d条未读的通知\033[0m\n", cnt);
-        }
     }
 };
 
-bool reportfucs::Getrpt(){
+bool Getrpt(void *clientp){
     Client * cp = (Client*)clientp;
     Socket* sock = cp->getSocket();
-    sock->sendMsg("gtrp:"+u.uid);
+    sock->sendMsg("gtrp:"+us.uid);
     //读取json字符串
     std::string js;
     js = EchoMsgQueue.wait_and_pop();
@@ -200,7 +213,7 @@ void reportfucs::Analysisnotice(std::string &str, int i){
         j++;
         while(str[j] != ':') recvname.push_back(str[j++]);
         filename = str.c_str() + j + 1;
-        if(u.name == uname){
+        if(us.name == uname){
             if(i == -1){
                 if(str[3] == 'u')
                     printf("您对用户 \033[0;34m%s\033[0m 发送文件 \033[0;34m%s\033[0m成功。\n", recvname.c_str(), filename.c_str());
@@ -385,12 +398,12 @@ void reportfucs::menu(char c, int fg){
                 group ud = group::fromJson(red);
                 std::string name = ud.name, status = "成员";
                 const char *color = "\033[0;37m";
-                if(ud.owner == u.uid) {
+                if(ud.owner == us.uid) {
                     status = "群主";
                     color = "\033[0;31m";
                 } else{
                     for(std::string str : ud.managelist){
-                        if(str == u.uid){
+                        if(str == us.uid){
                             status = "管理员";
                             color = "\033[0;32m";
                         }
@@ -462,10 +475,10 @@ void reportfucs::handleapply(char c){
             input = charget();
             return ;
         }
-        u.friendlist.insert(rev);
+        us.friendlist.insert(rev);
     }
     //xxx:user1.name:user2:uid(用户1加用户2),改数据库
-    sock->sendMsg(sd+":"+name+":"+u.uid);
+    sock->sendMsg(sd+":"+name+":"+us.uid);
     sd = EchoMsgQueue.wait_and_pop();
     if(sd == "right"){
         if(input == 'Y' || input == 'y')
@@ -510,7 +523,7 @@ void reportfucs::handlegroupapply(char c){
 
     
     //adg(y:uname:gname:handler(用户加群),改数据库
-    sock->sendMsg(sd+":"+name+":"+gname+":"+u.name);
+    sock->sendMsg(sd+":"+name+":"+gname+":"+us.name);
     sd = EchoMsgQueue.wait_and_pop();
     if(sd == "ingrp"){
         printf("\033[0;31m该申请已被处理。\033[0m\n");
@@ -550,10 +563,15 @@ void reportfucs::friendreport(){
     fflush(stdout); // 手动刷新标准输出缓冲区
     bool flag = false;
     while(1){
-        if(ReptMsgQueue.try_pop(msg) || flag){
+        if(ReptMsgQueue.try_pop(msg)){
+            Getrpt(clientp);
+            ReptMsgQueue.clear();
+            flag = true;
+        }
+        if(flag){
             flag = false;
             system("clear");
-            if(!Getrpt()) {
+            if(!Getrpt(clientp)) {
                 printf("\033[0;31m数据异常，请稍后再试\033[0m\n");
                 printf("\033[0;31m请按任意键继续...\033[0m");
                 input = charget();
@@ -562,7 +580,8 @@ void reportfucs::friendreport(){
             menu('p', 1);
             fflush(stdout); // 手动刷新标准输出缓冲区
         }
-        input = tm_charget(200);
+        
+        input = tm_charget(1000);
         if(input == -1) continue;
         switch(input){
         case '1':
@@ -604,10 +623,15 @@ void reportfucs::groupreport(){
     fflush(stdout); // 手动刷新标准输出缓冲区
     bool flag = false;
     while(1){
-        if(ReptMsgQueue.try_pop(msg) || flag){
+        if(ReptMsgQueue.try_pop(msg)){
+            Getrpt(clientp);
+            ReptMsgQueue.clear();
+            flag = true;
+        }
+        if(flag){
             flag = false;
             system("clear");
-            if(!Getrpt()) {
+            if(!Getrpt(clientp)) {
                 printf("\033[0;31m数据异常，请稍后再试\033[0m\n");
                 printf("\033[0;31m请按任意键继续...\033[0m");
                 input = charget();
@@ -616,7 +640,7 @@ void reportfucs::groupreport(){
             menu('p', 4);
             fflush(stdout); // 手动刷新标准输出缓冲区
         }
-        input = tm_charget(200);
+        input = tm_charget(1000);
         if(input == -1) continue;
         switch(input){
         case '1':
@@ -662,7 +686,7 @@ void reportfucs::handlenotice(char c){
     std::string str = rpt.notice[i], sd;
     //修改rpt
     rpt.notice[i][5] = 'y';
-    sock->sendMsg("rdnt:"+u.uid+":"+str);
+    sock->sendMsg("rdnt:"+us.uid+":"+str);
     sd = EchoMsgQueue.wait_and_pop();
     if(sd == "false"){
         printf("\033[0;31m数据异常，请稍后再试。\033[0m\n");
@@ -678,8 +702,8 @@ void reportfucs::handlenotice(char c){
         input = charget();
         if(input == 27) return;
         else if(input == 'r' || input == 'R'){
+            sock->sendMsg("rmnt:"+us.uid+":"+rpt.notice[i]);
             rpt.notice.erase(rpt.notice.begin() + i);
-            sock->sendMsg("rmnt:"+u.uid+":"+rpt.notice[i]);
             sd = EchoMsgQueue.wait_and_pop();
             if(sd == "false"){
                 printf("\033[0;31m数据异常，请稍后再试。\033[0m\n");
@@ -699,14 +723,19 @@ void reportfucs::notice(){
     fflush(stdout); // 手动刷新标准输出缓冲区
     bool flag = false;
     while(1){
-        if(ReptMsgQueue.try_pop(msg) || flag){
+        if(ReptMsgQueue.try_pop(msg)){
+            Getrpt(clientp);
+            ReptMsgQueue.clear();
+            flag = true;
+        }
+        if(flag){
             flag = false;
             system("clear");
             fflush(stdout); // 手动刷新标准输出缓冲区
             menu('p', 5);
             fflush(stdout); // 手动刷新标准输出缓冲区
         }
-        input = tm_charget(200);
+        input = tm_charget(1000);
         if(input == -1) continue;
         switch(input){
         case '1':
@@ -742,12 +771,10 @@ void reportfucs::notice(){
 void reportfucs::chatmenu(char c, user& ud2){
     Client* cp = (Client*) clientp;
     Socket* sock = cp->getSocket();
-    reportfucs rpf(u, clientp);
-    bool ret = rpf.Getrpt();
-    if(ret && rpf.rpt.chatfriend[ud2.uid]){
-        rpf.rpt.total_friend_msg -= rpf.rpt.chatfriend[ud2.uid];
-        rpf.rpt.chatfriend[ud2.uid] = 0;
-        sock->sendMsg("svrp:"+u.uid+":"+rpf.rpt.toJson());
+    if( rpt.chatfriend[ud2.uid]){
+        rpt.total_friend_msg -= rpt.chatfriend[ud2.uid];
+        rpt.chatfriend[ud2.uid] = 0;
+        sock->sendMsg("svrp:"+us.uid+":"+rpt.toJson());
         std::string rev = EchoMsgQueue.wait_and_pop();
     }
     int cnt = 0;
@@ -762,7 +789,7 @@ void reportfucs::chatmenu(char c, user& ud2){
     else if(c == ']') ctpage ++;
     std::string sender;
     printf("\033[0;36m=============================聊天页面=============================\033[0m\n");
-    reportfucs::newreport(u, clientp);
+    reportfucs::newreport(us, clientp);
     if(ud2.stat == "online") printf("\033[0;32m                             %s (在线)\033[0m\n", ud2.name.c_str());
     else                     printf("\033[0;90m                             %s (离线)\033[0m\n", ud2.name.c_str());
     if(ctpage+1 == maxctpage)    printf("\033[0;90m                       ---聊天记录已到顶---\033[0m\n");
@@ -770,8 +797,8 @@ void reportfucs::chatmenu(char c, user& ud2){
         if(!save.data.size()) break;
         message msg = message::fromJson(save.data[i]);
         sender = ud2.name;
-        if(msg.sender_uid == u.uid) sender = u.name;
-        if(ud2.stat == "online" || sender == u.name) printf("\033[0;32m%s\033[0m \033[0;33m[%s]\033[0m\n", sender.c_str(), msg.timestamp.c_str());
+        if(msg.sender_uid == us.uid) sender = us.name;
+        if(ud2.stat == "online" || sender == us.name) printf("\033[0;32m%s\033[0m \033[0;33m[%s]\033[0m\n", sender.c_str(), msg.timestamp.c_str());
         else                     printf("\033[0;90m%s\033[0m \033[0;33m[%s]\033[0m\n", sender.c_str(), msg.timestamp.c_str());
         printf("\033[0;32m>\033[0m%s\n", msg.content.c_str());
     }
@@ -804,11 +831,11 @@ void reportfucs::handlechat(char c, report& rpt){
     //开始聊天
     //拉取历史记录
     //读取两页消息（一页7句消息）
-    sock->sendMsg("ctms:"+u.uid+":"+uid2);
+    sock->sendMsg("ctms:"+us.uid+":"+uid2);
     std::string rev = EchoMsgQueue.wait_and_pop(), msg;
     save = messages::fromJson(rev);
     //读取聊天记录总条数
-    sock->sendMsg("rdpg:"+ u.uid + ":" + uid2);
+    sock->sendMsg("rdpg:"+ us.uid + ":" + uid2);
     rev = EchoMsgQueue.wait_and_pop();
     sscanf(rev.c_str(), "%d", &msgcnt);
     //定义部分变量
@@ -824,8 +851,8 @@ void reportfucs::handlechat(char c, report& rpt){
         //判断用户信息是否变动
         if(UserMsgQueue.try_pop(msg)){
             page = 0;
-            u = user::fromJson(msg);
-            if(u.friendlist.count(uid2) == 0){//被删除了
+            us = user::fromJson(msg);
+            if(us.friendlist.count(uid2) == 0){//被删除了
                 system("clear");
                 printf("\033[0;31m您被对方删除了。\033[0m\n");
                 printf("\033[0;31m请按任意键继续...\033[0m\n");
@@ -843,7 +870,12 @@ void reportfucs::handlechat(char c, report& rpt){
             flag = true;
         }
         //判断是否有新通知
-        if(ReptMsgQueue.try_pop(msg) || flag){
+        if(ReptMsgQueue.try_pop(msg)){
+            Getrpt(clientp);
+            ReptMsgQueue.clear();
+            flag = true;
+        }
+        if(flag){
             flag = false;
             system("clear");
             chatmenu('p', ud2);
@@ -851,7 +883,7 @@ void reportfucs::handlechat(char c, report& rpt){
             printf("%s", content.c_str());
             fflush(stdout); // 手动刷新标准输出缓冲区
         }
-        char input = tm_charget(200);
+        char input = tm_charget(1000);
         if(input == -1) continue;
         // 中文或其他 UTF-8 字符处理
         switch(input){
@@ -880,7 +912,7 @@ void reportfucs::handlechat(char c, report& rpt){
         }
         case '\n':{//发送消息
             if(content.size() == 0 || content == "\n") break;
-            if(u.shieldlist.count(uid2)){
+            if(us.shieldlist.count(uid2)){
                 system("clear");
                 printf("\033[0;31m对方已被您屏蔽，发送失败！\033[0m\n");
                 printf("\033[0;31m请解除屏蔽后再发送。\033[0m\n");
@@ -890,7 +922,8 @@ void reportfucs::handlechat(char c, report& rpt){
             }
             content.push_back('\0');
             message sendm;
-            sendm.sender_uid = u.uid;
+            sendm.sender_uid = us.uid;
+            sendm.sender_name = us.name;
             sendm.receiver_uid = uid2;
             sendm.content = content;
             sendm.timestamp = message::get_beijing_time();
@@ -924,7 +957,7 @@ void reportfucs::handlechat(char c, report& rpt){
             //请求新页的消息
             if(save.data.size() < msgcnt){
                 char tmp[512];
-                sprintf(tmp, "ndms:%s:%s:%ld", u.uid.c_str(), ud2.uid.c_str(), save.data.size());
+                sprintf(tmp, "ndms:%s:%s:%ld", us.uid.c_str(), ud2.uid.c_str(), save.data.size());
                 sock->sendMsg(tmp);
                 messages mgs = messages::fromJson(EchoMsgQueue.wait_and_pop());
                 for(int i = 0; i < mgs.data.size(); i++)
@@ -979,10 +1012,15 @@ void reportfucs::ctfrdreport(){
     fflush(stdout); // 手动刷新标准输出缓冲区
     bool flag = false;
     while(1){
-        if(ReptMsgQueue.try_pop(msg) || flag){
+        if(ReptMsgQueue.try_pop(msg)){
+            Getrpt(clientp);
+            ReptMsgQueue.clear();
+            flag = true;
+        }
+        if(flag){
             flag = false;
             system("clear");
-            if(!Getrpt()) {
+            if(!Getrpt(clientp)) {
                 printf("\033[0;31m数据异常，请稍后再试\033[0m\n");
                 printf("\033[0;31m请按任意键继续...\033[0m");
                 input = charget();
@@ -991,7 +1029,7 @@ void reportfucs::ctfrdreport(){
             menu('p', 2);
             fflush(stdout); // 手动刷新标准输出缓冲区
         }
-        input = tm_charget(200);
+        input = tm_charget(1000);
         if(input == -1) continue;
         switch(input){
         case '1':
@@ -1027,12 +1065,10 @@ void reportfucs::ctfrdreport(){
 void reportfucs::gchatmenu(char c, group& gp){
     Client* cp = (Client*) clientp;
     Socket* sock = cp->getSocket();
-    reportfucs rpf(u, clientp);
-    bool ret = rpf.Getrpt();
-    if(ret && rpf.rpt.chatgroup[gp.gid]){
-        rpf.rpt.total_group_msg -= rpf.rpt.chatgroup[gp.gid];
-        rpf.rpt.chatgroup[gp.gid] = 0;
-        sock->sendMsg("svrp:"+u.uid+":"+rpf.rpt.toJson());
+    if( rpt.chatgroup[gp.gid]){
+        rpt.total_group_msg -= rpt.chatgroup[gp.gid];
+        rpt.chatgroup[gp.gid] = 0;
+        sock->sendMsg("svrp:"+us.uid+":"+rpt.toJson());
         std::string rev = EchoMsgQueue.wait_and_pop();
     }
     int cnt = 0;
@@ -1046,22 +1082,15 @@ void reportfucs::gchatmenu(char c, group& gp){
     if(c == ']' && ctpage+1 >= maxctpage) ;
     else if(c == ']') ctpage ++;
     std::string sender;
-    user ud2;
     printf("\033[0;36m=============================群聊页面=============================\033[0m\n");
-    reportfucs::newreport(u, clientp);
+    reportfucs::newreport(us, clientp);
     printf("\033[0;32m                             %s (%ld)\033[0m\n", gp.name.c_str(), gp.memberlist.size() + gp.managelist.size() + 1);
     if(ctpage+1 == maxctpage)    printf("\033[0;90m                       ---聊天记录已到顶---\033[0m\n");
     for(i = std::min(7*(ctpage+1) - 1, (int)save.data.size() - 1); i >= 7*ctpage; i--){
         if(!save.data.size()) break;
         message msg = message::fromJson(save.data[i]);
-        if(msg.sender_uid != u.uid){
-            sock->sendMsg("gtus:"+msg.sender_uid);
-            ud2 = user::fromJson(EchoMsgQueue.wait_and_pop());
-            sender = ud2.name;
-        }
-        if(msg.sender_uid == u.uid) sender = u.name;
-        if(ud2.stat == "online" || sender == u.name) printf("\033[0;32m%s\033[0m \033[0;33m[%s]\033[0m\n", sender.c_str(), msg.timestamp.c_str());
-        else                     printf("\033[0;90m%s\033[0m \033[0;33m[%s]\033[0m\n", sender.c_str(), msg.timestamp.c_str());
+        if(msg.sender_uid == us.uid) sender = us.name;
+        printf("\033[0;32m%s\033[0m \033[0;33m[%s]\033[0m\n", msg.sender_name.c_str(), msg.timestamp.c_str());
         printf("\033[0;32m>\033[0m%s\n", msg.content.c_str());
     }
     printf("                                         \033[0;32m(tip:按[和]按键可控制翻页)\n\033[0m");
@@ -1085,13 +1114,13 @@ void reportfucs::ghandlechat(char c, int fg){
     fflush(stdout); // 手动刷新标准输出缓冲区
     //找到对应gid
     if(fg == 1){
-        if(i >= u.grouplist.size()) return;
+        if(i >= us.grouplist.size()) return;
     }
     else if(fg == 2)
         if(i >= rpt.chatgroup.size()) return;
     std::string gid;
     if(fg == 1){
-        for(std::string str : u.grouplist){
+        for(std::string str : us.grouplist){
             if(j == i){
                 gid = str;
                 break;
@@ -1139,37 +1168,46 @@ void reportfucs::ghandlechat(char c, int fg){
     std::string content, utf8_buf;
     ChatMsgQueue.clear();
     while(1){
-        //判断用户信息是否变动
-        if(UserMsgQueue.try_pop(msg)){
-            page = 0;
-            u = user::fromJson(msg);
-            if(u.grouplist.count(gid) == 0){//被删除了
-                system("clear");
-                printf("\033[0;31m您当前已不在该群聊。\033[0m\n");
-                printf("\033[0;31m请按任意键继续...\033[0m\n");
-                charget();
-                return;
+        int tm = throughtime();
+        if(tm >= 1000 || flag){
+            //判断用户信息是否变动
+            if(UserMsgQueue.try_pop(msg)){
+                page = 0;
+                us = user::fromJson(msg);
+                if(us.grouplist.count(gid) == 0){//被删除了
+                    system("clear");
+                    printf("\033[0;31m您当前已不在该群聊。\033[0m\n");
+                    printf("\033[0;31m请按任意键继续...\033[0m\n");
+                    charget();
+                    return;
+                }
+                flag = true;
             }
-            flag = true;
+            //判断聊天消息是否有新
+            if(ChatMsgQueue.try_pop(msg)){
+                page = 0;
+                message m = message::fromJson(msg);
+                if(m.sender_uid != us.uid && m.receiver_uid == gid && m.is_group) save.data.insert(save.data.begin(), msg);
+                msgcnt++;
+                flag = true;
+            }
+            //判断是否有新通知
+            if(ReptMsgQueue.try_pop(msg)){
+                Getrpt(clientp);
+                ReptMsgQueue.clear();
+                flag = true;
+            }
+            if(flag){
+                flag = false;
+                system("clear");
+                gchatmenu('p', viewgp);
+                printf("\033[0;32m请输入:>\033[0m");
+                printf("%s", content.c_str());
+                fflush(stdout); // 手动刷新标准输出缓冲区
+            }
+            startTime();
         }
-        //判断聊天消息是否有新
-        if(ChatMsgQueue.try_pop(msg)){
-            page = 0;
-            message m = message::fromJson(msg);
-            if(m.sender_uid != u.uid && m.receiver_uid == gid && m.is_group) save.data.insert(save.data.begin(), msg);
-            msgcnt++;
-            flag = true;
-        }
-        //判断是否有新通知
-        if(ReptMsgQueue.try_pop(msg) || flag){
-            flag = false;
-            system("clear");
-            gchatmenu('p', viewgp);
-            printf("\033[0;32m请输入:>\033[0m");
-            printf("%s", content.c_str());
-            fflush(stdout); // 手动刷新标准输出缓冲区
-        }
-        char input = tm_charget(200);
+        char input = tm_charget(1000);
         if(input == -1) continue;
         // 中文或其他 UTF-8 字符处理
         switch(input){
@@ -1200,7 +1238,8 @@ void reportfucs::ghandlechat(char c, int fg){
             if(content.size() == 0 || content == "\n") break;
             content.push_back('\0');
             message sendm;
-            sendm.sender_uid = u.uid;
+            sendm.sender_uid = us.uid;
+            sendm.sender_name = us.name;
             sendm.receiver_uid = gid;
             sendm.content = content;
             sendm.timestamp = message::get_beijing_time();
@@ -1289,10 +1328,15 @@ void reportfucs::ctfgrpreport(){
     fflush(stdout); // 手动刷新标准输出缓冲区
     bool flag = false;
     while(1){
-        if(ReptMsgQueue.try_pop(msg) || flag){
+        if(ReptMsgQueue.try_pop(msg)){
+            Getrpt(clientp);
+            ReptMsgQueue.clear();
+            flag = true;
+        }
+        if(flag){
             flag = false;
             system("clear");
-            if(!Getrpt()) {
+            if(!Getrpt(clientp)) {
                 printf("\033[0;31m数据异常，请稍后再试\033[0m\n");
                 printf("\033[0;31m请按任意键继续...\033[0m");
                 input = charget();
@@ -1301,7 +1345,7 @@ void reportfucs::ctfgrpreport(){
             menu('p', 3);
             fflush(stdout); // 手动刷新标准输出缓冲区
         }
-        input = tm_charget(200);
+        input = tm_charget(1000);
         if(input == -1) continue;
         switch(input){
         case '1':
@@ -1333,3 +1377,8 @@ void reportfucs::ctfgrpreport(){
     }
     return ;
 }
+
+reportfucs rpf;
+report rpt;
+
+

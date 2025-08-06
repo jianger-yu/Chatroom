@@ -15,16 +15,18 @@ std::string fid;
 std::string sd;
 std::string uuid;
 
+extern user us;
+extern report rpt;
+
 class filefucs{
 private:
-    user& u;
     void* clientp;
     int page = 0;
     friendnamelist fnl;
 
 public:
 
-    filefucs(user& arg1, void*p):u(arg1),clientp(p){
+    filefucs(user& arg1, void*p):clientp(p){
     };
     //发送文件线程
     void upload_file_with_offset();
@@ -80,15 +82,15 @@ void filefucs::sendfile_touser(char c, int fg){
 
     //找到对应消息
     int i = 5*page + c - '0' - 1, j = 0, ret;
-    if(i >= u.friendlist.size()) return;
-    for(std::string str : u.friendlist){
+    if(i >= us.friendlist.size()) return;
+    for(std::string str : us.friendlist){
         if(j == i){
             sd = str;
             break;
         }
         j++;
     }
-    uuid = u.uid;
+    uuid = us.uid;
     //下载文件
     //输出指引
     printf("\033[0;32m输入需要传输的文件路径:>\033[0m");
@@ -127,7 +129,7 @@ void filefucs::sendfile_touser(char c, int fg){
     printf("输入成功:%s\n",arr);
     printf("正在上传文件...\n");
     //获取fid
-    sock->sendMsg("gtfi:"+u.uid+":"+path);
+    sock->sendMsg("gtfi:"+us.uid+":"+path);
     fid = EchoMsgQueue.wait_and_pop();
 
 
@@ -136,7 +138,7 @@ void filefucs::sendfile_touser(char c, int fg){
     //发送文件名
     // str.clear();
     // str = GetFileName(arr);
-    // datasock->sendMsg("sdfl:"+u.uid+":"+sd+":"+fid +":"+str);
+    // datasock->sendMsg("sdfl:"+us.uid+":"+sd+":"+fid +":"+str);
 
     //获取文件状态
     struct stat st;
@@ -299,18 +301,16 @@ void filefucs::download_file_with_offset(std::string sd){
 
 
 void filefucs::list(char c, int fg){
-    reportfucs rpf(u, clientp);
-    bool ret = rpf.Getrpt();
     Client* cp = (Client*) clientp;
     Socket* sock = cp->getSocket();
     if(fg == 1){
-        if(!u.friendlist.size()){
+        if(!us.friendlist.size()){
             printf("\033[0;32m当前没有好友。\n\033[0m");
             printf("\033[0;32m请按ESC返回...\033[0m");
             return;
         }
     } else if(fg == 2){
-        if(!u.grouplist.size()){
+        if(!us.grouplist.size()){
             printf("\033[0;32m当前没有加入的群聊。\n\033[0m");
             printf("\033[0;32m请按ESC返回...\033[0m");
             return;
@@ -318,9 +318,9 @@ void filefucs::list(char c, int fg){
     }
     int cnt = 0;
     if(fg == 1)
-        cnt = u.friendlist.size();
+        cnt = us.friendlist.size();
     else if(fg == 2)
-        cnt = u.grouplist.size();
+        cnt = us.grouplist.size();
     int maxpage = cnt / 5, i = 0;
     if(cnt % 5 != 0) maxpage++;
     if(c == '[' && page == 0) ;
@@ -328,7 +328,7 @@ void filefucs::list(char c, int fg){
     if(c == ']' && page+1 >= maxpage) ;
     else if(c == ']') page ++;
     printf("\033[0;36m==========================================================\033[0m\n");
-    reportfucs::newreport(u, clientp);
+    reportfucs::newreport(us, clientp);
     if(fg == 1){
         printf("\033[0;32m以下为您的好友\033[0m\n");
         printf("\033[0;34m%-6s %-15s %-13s %-12s\033[0m\n", "序号", "用户名", "UID", "在线状态");
@@ -338,7 +338,7 @@ void filefucs::list(char c, int fg){
         printf("\033[0;34m%-6s %-15s %-13s %-12s\033[0m\n", "序号", "群聊名", "GID", "在群中身份");
     }
     if(fg == 1){
-        for(std::string str : u.friendlist){
+        for(std::string str : us.friendlist){
             if(i >= 5*page && i < 5*(page+1)){
                 sock->sendMsg("gtus:"+str);
                 std::string red = EchoMsgQueue.wait_and_pop();
@@ -354,13 +354,13 @@ void filefucs::list(char c, int fg){
                 printf("%s[%d]  %-12s %-14s %-12s\033[0m",
                         color, i - 5 * page + 1,
                         name.c_str(), ud.uid.c_str(), status.c_str());
-                if(rpf.rpt.chatfriend[ud.uid]) printf("   \033[0;31m（%d）\033[0m\n", rpf.rpt.chatfriend[ud.uid]);
+                if(rpt.chatfriend[ud.uid]) printf("   \033[0;31m（%d）\033[0m\n", rpt.chatfriend[ud.uid]);
                 else puts("");
             }
             i++;
         }
     } else if(fg == 2){
-        for(std::string str : u.grouplist){
+        for(std::string str : us.grouplist){
             if(i >= 5*page && i < 5*(page+1)){
                 sock->sendMsg("gtgp:"+str);
                 std::string red = EchoMsgQueue.wait_and_pop();
@@ -374,12 +374,12 @@ void filefucs::list(char c, int fg){
                 }
                 std::string name = ud.name, status = "成员";
                 const char *color = "\033[0;37m";
-                if(ud.owner == u.uid) {
+                if(ud.owner == us.uid) {
                     status = "群主";
                     color = "\033[0;31m";
                 } else{
                     for(std::string str : ud.managelist){
-                        if(str == u.uid){
+                        if(str == us.uid){
                             status = "管理员";
                             color = "\033[0;32m";
                         }
@@ -388,7 +388,7 @@ void filefucs::list(char c, int fg){
                 printf("\033[0;37m[%d]  %-12s %-14s \033[0m%s%-12s\033[0m",
                         i - 5 * page + 1,
                         name.c_str(), ud.gid.c_str(), color,status.c_str());
-                if(rpf.rpt.chatgroup[ud.gid]) printf("   \033[0;31m（%d）\033[0m\n", rpf.rpt.chatgroup[ud.gid]);
+                if(rpt.chatgroup[ud.gid]) printf("   \033[0;31m（%d）\033[0m\n", rpt.chatgroup[ud.gid]);
                 else puts("");
             }
             i++;
@@ -403,7 +403,7 @@ void filefucs::listfriend(){
     system("clear");
     page = 0;
     list('0');
-    if(u.friendlist.size())
+    if(us.friendlist.size())
         printf("\033[0;32m选择您要传文件的好友:>\033[0m");
     fflush(stdout); // 手动刷新标准输出缓冲区
     bool flag = false, sendfileok = false;
@@ -412,11 +412,16 @@ void filefucs::listfriend(){
         //判断用户信息是否变动
         if(UserMsgQueue.try_pop(msg)){
             page = 0;
-            u = user::fromJson(msg);
+            us = user::fromJson(msg);
             flag = true;
         }
         //判断是否有新通知
-        if(ReptMsgQueue.try_pop(msg) || flag || sendfileok){
+        if(ReptMsgQueue.try_pop(msg)){
+            Getrpt(clientp);
+            ReptMsgQueue.clear();
+            flag = true;
+        }
+        if(flag || sendfileok){
             if(sendfileok){
                 dataclient.reinitialize();
                 conntect_filepth();
@@ -425,11 +430,11 @@ void filefucs::listfriend(){
             flag = false;
             system("clear");
             list('p');
-            if(u.friendlist.size())
+            if(us.friendlist.size())
                 printf("\033[0;32m选择您要传文件的好友:>\033[0m");
             fflush(stdout); // 手动刷新标准输出缓冲区
         }
-        char input = tm_charget(200);
+        char input = tm_charget(1000);
         if(input == -1) continue;
         switch(input){
         case '1':
@@ -438,7 +443,7 @@ void filefucs::listfriend(){
         case '4':
         case '5':{
             int p = 5*page + input - '0' - 1;
-            if(p >= 0 && p < u.friendlist.size()){
+            if(p >= 0 && p < us.friendlist.size()){
                 sendfile_touser(input);
                 flag = true;
                 sendfileok = true;
@@ -448,7 +453,7 @@ void filefucs::listfriend(){
         case '[':{
             system("clear");
             list('[');
-            if(u.friendlist.size())
+            if(us.friendlist.size())
                 printf("\033[0;32m选择您要传文件的好友:>\033[0m");
             fflush(stdout); // 手动刷新标准输出缓冲区
             break;
@@ -456,7 +461,7 @@ void filefucs::listfriend(){
         case ']':{
             system("clear");
             list(']');
-            if(u.friendlist.size())
+            if(us.friendlist.size())
                 printf("\033[0;32m选择您要传文件的好友:>\033[0m");
             fflush(stdout); // 手动刷新标准输出缓冲区
             break;
@@ -475,7 +480,7 @@ void filefucs::listgroup(){
     system("clear");
     page = 0;
     list('0', 2);
-    if(u.grouplist.size())
+    if(us.grouplist.size())
         printf("\033[0;32m选择您要传文件的群聊:>\033[0m");
     fflush(stdout); // 手动刷新标准输出缓冲区
     bool flag = false, sendfileok = false;
@@ -484,11 +489,16 @@ void filefucs::listgroup(){
         //判断用户信息是否变动
         if(UserMsgQueue.try_pop(msg)){
             page = 0;
-            u = user::fromJson(msg);
+            us = user::fromJson(msg);
             flag = true;
         }
         //判断是否有新通知
-        if(ReptMsgQueue.try_pop(msg) || flag || sendfileok){
+        if(ReptMsgQueue.try_pop(msg)){
+            Getrpt(clientp);
+            ReptMsgQueue.clear();
+            flag = true;
+        }
+        if(flag || sendfileok){
             if(sendfileok){
                 dataclient.reinitialize();
                 conntect_filepth();
@@ -497,11 +507,11 @@ void filefucs::listgroup(){
             flag = false;
             system("clear");
             list('p', 2);
-            if(u.grouplist.size())
+            if(us.grouplist.size())
                 printf("\033[0;32m选择您要传文件的群聊:>\033[0m");
             fflush(stdout); // 手动刷新标准输出缓冲区
         }
-        char input = tm_charget(200);
+        char input = tm_charget(1000);
         if(input == -1) continue;
         switch(input){
         case '1':
@@ -510,7 +520,7 @@ void filefucs::listgroup(){
         case '4':
         case '5':{
             int p = 5*page + input - '0' - 1;
-            if(p >= 0 && p < u.grouplist.size()){
+            if(p >= 0 && p < us.grouplist.size()){
                 //sendfile_togroup(input);
                 flag = true;
                 sendfileok = true;
@@ -520,7 +530,7 @@ void filefucs::listgroup(){
         case '[':{
             system("clear");
             list('[', 2);
-            if(u.friendlist.size())
+            if(us.friendlist.size())
                 printf("\033[0;32m选择您要传文件的群聊:>\033[0m");
             fflush(stdout); // 手动刷新标准输出缓冲区
             break;
@@ -528,7 +538,7 @@ void filefucs::listgroup(){
         case ']':{
             system("clear");
             list(']', 2);
-            if(u.friendlist.size())
+            if(us.friendlist.size())
                 printf("\033[0;32m选择您要传文件的群聊:>\033[0m");
             fflush(stdout); // 手动刷新标准输出缓冲区
             break;
@@ -543,8 +553,6 @@ void filefucs::listgroup(){
 }
 
 void filefucs::filelist(char c, int fg){
-    reportfucs rpf(u, clientp);
-    bool ret = rpf.Getrpt();
     Client* cp = (Client*) clientp;
     Socket* sock = cp->getSocket();
     if(!fnl.data.size()){
@@ -560,7 +568,7 @@ void filefucs::filelist(char c, int fg){
     if(c == ']' && page+1 >= maxpage) ;
     else if(c == ']') page ++;
     printf("\033[0;36m==========================================================\033[0m\n");
-    reportfucs::newreport(u, clientp);
+    reportfucs::newreport(us, clientp);
     if(fg == 1){
         printf("\033[0;32m以下为您的可接收的文件\033[0m\n");
         printf("\033[0;34m%-6s %-15s %-13s %-12s\033[0m\n", "序号", "发送人", "FID", "文件名");
@@ -672,7 +680,7 @@ void filefucs::download(char c){
         else return;
         break;
     }
-    uuid = u.uid;
+    uuid = us.uid;
 
     std::thread sendfilepth(std::bind(&filefucs::download_file_with_offset, this, sd));
     sendfilepth.detach();  //后台运行，不阻塞主线程
@@ -687,7 +695,7 @@ void filefucs::downloadfile(){
     Socket * sock = cp->getSocket();
     system("clear");
     printf("\033[0;32m数据请求中...\033[0m\n");
-    sock->sendMsg("gtrl:"+u.uid);
+    sock->sendMsg("gtrl:"+us.uid);
     std::string frl = EchoMsgQueue.wait_and_pop();
     if(frl == "nofile"){
         system("clear");
@@ -711,11 +719,16 @@ void filefucs::downloadfile(){
         //判断用户信息是否变动
         if(UserMsgQueue.try_pop(msg)){
             page = 0;
-            u = user::fromJson(msg);
+            us = user::fromJson(msg);
             flag = true;
         }
         //判断是否有新通知
-        if(ReptMsgQueue.try_pop(msg) || flag || recvfileok){
+        if(ReptMsgQueue.try_pop(msg)){
+            Getrpt(clientp);
+            ReptMsgQueue.clear();
+            flag = true;
+        }
+        if(flag || recvfileok){
             if(recvfileok){
                 dataclient.reinitialize();
                 conntect_filepth();
@@ -728,7 +741,7 @@ void filefucs::downloadfile(){
                 printf("\033[0;32m选择您要传文件的群聊:>\033[0m");
             fflush(stdout); // 手动刷新标准输出缓冲区
         }
-        char input = tm_charget(200);
+        char input = tm_charget(1000);
         if(input == -1) continue;
         switch(input){
         case '1':

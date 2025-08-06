@@ -1,16 +1,19 @@
 #pragma once
 #include "../MessageQueue.hpp"
 #include "../../register/SendEmail.hpp"
+
+extern user us;
+extern report rpt;
+
 class setupfucs{
 private:
-    user& u;
     void* clientp;
     char name[256];
     char pwd[256];
     char email[256];
 public:
 
-    setupfucs(user& arg1, void*p):u(arg1),clientp(p){
+    setupfucs(user& arg1, void*p):clientp(p){
     };
     //修改密码
     void modpwd(int fg);
@@ -23,9 +26,9 @@ public:
 void setupfucs::ViewAccountInformation(){
     system("clear");
     printf("\033[0;32m以下为您的基本信息:\n\033[0m");
-    printf("\033[0;32m用户名:\033[0m%s\n",u.name.c_str());
-    printf("\033[0;32m电子邮箱:\033[0m%s\n",u.email.c_str());
-    printf("\033[0;32muid:\033[0m%s\n",u.uid.c_str());
+    printf("\033[0;32m用户名:\033[0m%s\n",us.name.c_str());
+    printf("\033[0;32m电子邮箱:\033[0m%s\n",us.email.c_str());
+    printf("\033[0;32muid:\033[0m%s\n",us.uid.c_str());
     printf("\033[0;32m请按任意键继续...\033[0m");
     charget();
 }
@@ -209,7 +212,7 @@ void setupfucs::logoff(){
     printf("\033[0;32m正在为您发送验证码...\033[0m");
     fflush(stdout); // 手动刷新标准输出缓冲区
     EmailSender emsend;
-    if(!emsend.send(u.email)){
+    if(!emsend.send(us.email)){
         printf("\033[0;31m数据异常，请稍后再试。\033[0m\n");
         printf("\033[0;31m请按任意键继续...\033[0m\n");
         charget();

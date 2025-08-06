@@ -2,6 +2,9 @@
 
 #include "../menu.hpp"
 
+user us;
+extern report rpt;
+
 class userfuc{
 private:
     user u;
@@ -10,6 +13,7 @@ private:
 
 public:
     userfuc(std::string js):u(user::fromJson(js)){
+        us = u;
     };
 
     int mainfuc(void*p);
@@ -25,6 +29,7 @@ public:
 int userfuc::mainfuc(void * p){
     clientp = p;
     //Socket* sock = client->getSocket();
+    Getrpt(clientp);
     char input = 0;
     system("clear");
     fflush(stdout); // 手动刷新标准输出缓冲区
@@ -37,14 +42,19 @@ int userfuc::mainfuc(void * p){
             u = user::fromJson(msg);
             flag = true;
         }
-        if(ReptMsgQueue.try_pop(msg) || flag){
+        if(ReptMsgQueue.try_pop(msg)){
+            Getrpt(clientp);
+            ReptMsgQueue.clear();
+            flag = true;
+        }
+        if(flag){
             flag = false;
             system("clear");
             fflush(stdout); // 手动刷新标准输出缓冲区
             usermainmenu(u, clientp);
             fflush(stdout); // 手动刷新标准输出缓冲区
         }
-        input = tm_charget(200);
+        input = tm_charget(1000);
         if(input == -1) continue;
         switch(input){
         case '1':{
@@ -91,14 +101,19 @@ int userfuc::friendfuc(void){
             u = user::fromJson(msg);
             flag = true;
         }
-        if(ReptMsgQueue.try_pop(msg) || flag){
+        if(ReptMsgQueue.try_pop(msg)){
+            Getrpt(clientp);
+            ReptMsgQueue.clear();
+            flag = true;
+        }
+        if(flag){
             flag = false;
             system("clear");
             fflush(stdout); // 手动刷新标准输出缓冲区
             friendmenu(u, clientp);
             fflush(stdout); // 手动刷新标准输出缓冲区
         }
-        input = tm_charget(200);
+        input = tm_charget(1000);
         if(input == -1) continue;
         switch(input){
         case '1':{
@@ -159,14 +174,19 @@ int userfuc::groupfuc(void){
             u = user::fromJson(msg);
             flag = true;
         }
-        if(ReptMsgQueue.try_pop(msg) || flag){
+        if(ReptMsgQueue.try_pop(msg)){
+            Getrpt(clientp);
+            ReptMsgQueue.clear();
+            flag = true;
+        }
+        if(flag){
             flag = false;
             system("clear");
             fflush(stdout); // 手动刷新标准输出缓冲区
             groupmenu(u, clientp);
             fflush(stdout); // 手动刷新标准输出缓冲区
         }
-        input = tm_charget(200);
+        input = tm_charget(1000);
         if(input == -1) continue;
         switch(input){
         case '1':{
@@ -236,13 +256,19 @@ int userfuc::filefuc(void){
             u = user::fromJson(msg);
             flag = true;
         }
-        if(ReptMsgQueue.try_pop(msg) || flag){
+        if(ReptMsgQueue.try_pop(msg)){
+            Getrpt(clientp);
+            ReptMsgQueue.clear();
+            flag = true;
+        }
+        if(flag){
             flag = false;
             system("clear");
+            fflush(stdout); // 手动刷新标准输出缓冲区
             filemenu(u, clientp);
             fflush(stdout); // 手动刷新标准输出缓冲区
         }
-        input = tm_charget(200);
+        input = tm_charget(1000);
         if(input == -1) continue;
         switch(input){
         case '1':{//给某个好友发文件
@@ -292,14 +318,19 @@ int userfuc::setupfuc(void){
             u = user::fromJson(msg);
             flag = true;
         }
-        if(ReptMsgQueue.try_pop(msg) || flag){
+        if(ReptMsgQueue.try_pop(msg)){
+            Getrpt(clientp);
+            ReptMsgQueue.clear();
+            flag = true;
+        }
+        if(flag){
             flag = false;
             system("clear");
             fflush(stdout); // 手动刷新标准输出缓冲区
             setupmenu(u, clientp);
             fflush(stdout); // 手动刷新标准输出缓冲区
         }
-        input = tm_charget(200);
+        input = tm_charget(1000);
         if(input == -1) continue;
         switch(input){
         case '1':{
@@ -351,8 +382,8 @@ int userfuc::reportfuc(void){
     system("clear");
     fflush(stdout); // 手动刷新标准输出缓冲区
     reportfucs rpf(u, clientp);
-    bool ret = rpf.Getrpt();
-    reportmenu( u, rpf.rpt, ret);
+    bool ret = Getrpt(clientp);
+    reportmenu( u, rpt, ret);
     bool flag = false;
     while(1){
         //判断用户信息是否变动
@@ -360,15 +391,18 @@ int userfuc::reportfuc(void){
             u = user::fromJson(msg);
             flag = true;
         }
-        if(ReptMsgQueue.try_pop(msg) || flag){
+        if(ReptMsgQueue.try_pop(msg)){
+            Getrpt(clientp);
+            ReptMsgQueue.clear();
+            flag = true;
+        }
+        if(flag){
             flag = false;
             system("clear");
-            fflush(stdout); // 手动刷新标准输出缓冲区
-            bool ret = rpf.Getrpt();
-            reportmenu( u, rpf.rpt, ret);
+            reportmenu(u, rpt, true);
             fflush(stdout); // 手动刷新标准输出缓冲区
         }
-        input = tm_charget(200);
+        input = tm_charget(1000);
         if(input == -1) continue;
         switch(input){
         case '1':{

@@ -1,9 +1,11 @@
 #pragma once
 #include "../MessageQueue.hpp"
 
+extern user us;
+extern report rpt;
+
 class groupfucs{
 private:
-    user& u;
     void* clientp;
     int page = 0;
     int viewpage = 0;
@@ -19,7 +21,7 @@ private:
     std::string identity;
 public:
 
-    groupfucs(user& arg1, void*p):u(arg1),clientp(p){
+    groupfucs(user& arg1, void*p):clientp(p){
     };
     //创建群聊
     void creategroup();
@@ -74,7 +76,7 @@ void groupfucs::addgroup(){
             continue;
         }
         //判断是否在群
-        if(u.grouplist.count(gid)){
+        if(us.grouplist.count(gid)){
             printf("\033[0;31m已在该群内，不能重复加入。\033[0m\n>");
             continue;
         }
@@ -93,7 +95,7 @@ void groupfucs::addgroup(){
         fflush(stdout); // 手动刷新标准输出缓冲区
         //给服务器处理
         chu(buf);
-        sprintf(buf, "adgp:%s:%s",u.uid.c_str(), gid);
+        sprintf(buf, "adgp:%s:%s",us.uid.c_str(), gid);
         sock->sendMsg(buf);
         red = EchoMsgQueue.wait_and_pop();
         if(red == "right") {
@@ -160,9 +162,9 @@ void groupfucs::creategroup(){
             continue;
         }
         //创建该群聊
-        sock->sendMsg("ctgp:"+std::string(name)+":"+u.uid);
+        sock->sendMsg("ctgp:"+std::string(name)+":"+us.uid);
         str = EchoMsgQueue.wait_and_pop();
-        u.grouplist.insert(str);
+        us.grouplist.insert(str);
         break;
     }
     printf("\033[0;32m创建群聊成功!\n\033[0m");
@@ -173,17 +175,15 @@ void groupfucs::creategroup(){
 }
 
 void groupfucs::list(char c){
-    reportfucs rpf(u, clientp);
-    bool ret = rpf.Getrpt();
     Client* cp = (Client*) clientp;
     Socket* sock = cp->getSocket();
-    if(!u.grouplist.size()){
+    if(!us.grouplist.size()){
         printf("\033[0;32m当前没有加入群组。\n\033[0m");
         printf("\033[0;32m请按ESC返回...\033[0m");
         return;
     }
     int cnt = 0;
-    cnt = u.grouplist.size();
+    cnt = us.grouplist.size();
     int maxpage = cnt / 5, i = 0;
     if(cnt % 5 != 0) maxpage++;
     if(c == '[' && page == 0) ;
@@ -191,10 +191,10 @@ void groupfucs::list(char c){
     if(c == ']' && page+1 >= maxpage) ;
     else if(c == ']') page ++;
     printf("\033[0;36m==========================================================\033[0m\n");
-    reportfucs::newreport(u, clientp);
+    reportfucs::newreport(us, clientp);
     printf("\033[0;32m以下为您加入的群组\033[0m\n");
     printf("\033[0;34m%-6s %-14s %-13s %-12s\033[0m\n", "序号", "群名", "GID", "在群中身份");
-    for(std::string str : u.grouplist){
+    for(std::string str : us.grouplist){
         if(i >= 5*page && i < 5*(page+1)){
             sock->sendMsg("gtgp:"+str);
             std::string red = EchoMsgQueue.wait_and_pop();
@@ -208,12 +208,12 @@ void groupfucs::list(char c){
             }
             std::string name = ud.name, status = "成员";
             const char *color = "\033[0;37m";
-            if(ud.owner == u.uid) {
+            if(ud.owner == us.uid) {
                 status = "群主";
                 color = "\033[0;31m";
             } else{
                 for(std::string str : ud.managelist){
-                    if(str == u.uid){
+                    if(str == us.uid){
                         status = "管理员";
                         color = "\033[0;32m";
                     }
@@ -222,7 +222,7 @@ void groupfucs::list(char c){
             printf("\033[0;37m[%d]  %-12s %-14s \033[0m%s%-12s\033[0m",
                      i - 5 * page + 1,
                     name.c_str(), ud.gid.c_str(), color,status.c_str());
-            if(rpf.rpt.chatgroup[ud.gid]) printf("   \033[0;31m（%d）\033[0m\n", rpf.rpt.chatgroup[ud.gid]);
+            if(rpt.chatgroup[ud.gid]) printf("   \033[0;31m（%d）\033[0m\n", rpt.chatgroup[ud.gid]);
             else puts("");
         }
         i++;
@@ -239,12 +239,12 @@ void groupfucs::handlequit(char c, int fg){
     //找到对应消息
     int i = 5*page + c - '0' - 1, j = 0;
     if(fg == 1)
-        if(i >= u.grouplist.size()) return;
+        if(i >= us.grouplist.size()) return;
     else if(fg == 2)
         if(i >= grouplist.data.size()) return;
     std::string sd;
     if(fg == 1){
-        for(std::string str : u.grouplist){
+        for(std::string str : us.grouplist){
             if(j == i){
                 sd = str;
                 break;
@@ -271,7 +271,7 @@ void groupfucs::handlequit(char c, int fg){
     }
     group gp = group::fromJson(nm);
     nm = gp.name;
-    if(gp.owner == u.uid)
+    if(gp.owner == us.uid)
         printf("\033[0;32m您为群组\033[0m \033[0;31m%s\033[0m \033[0;32m的群主，退出后该群会解散，确认继续吗？（Y/N）\033[0m\n", nm.c_str());
     else
         printf("\033[0;32m确定要退出群组\033[0m \033[0;31m%s\033[0m \033[0;32m？（Y/N）\033[0m\n", nm.c_str());
@@ -286,10 +286,10 @@ void groupfucs::handlequit(char c, int fg){
         break;
     }
     //确定退出该群聊
-    if(gp.owner == u.uid)
+    if(gp.owner == us.uid)
         sock->sendMsg("disg:"+gp.gid);
     else
-        sock->sendMsg("rmgp:"+u.uid+":"+sd);
+        sock->sendMsg("rmgp:"+us.uid+":"+sd);
     rev = EchoMsgQueue.wait_and_pop();
     if(rev != "right"){
         printf("\033[0;31m数据异常，请稍后再试。\033[0m\n");
@@ -299,7 +299,7 @@ void groupfucs::handlequit(char c, int fg){
     }
     //删除本地列表中的gid
     if(fg == 1)
-        u.grouplist.erase(sd);
+        us.grouplist.erase(sd);
     else if(fg == 2){
         for(int i = 0; i < grouplist.data.size(); i++)
             if(grouplist.data[i] == sd) grouplist.data.erase(grouplist.data.begin() + i);
@@ -310,7 +310,7 @@ void groupfucs::quitgroup(){
     system("clear");
     page = 0;
     list('0');
-    if(u.grouplist.size())
+    if(us.grouplist.size())
         printf("\033[0;32m请选择您要退出的群聊:>\033[0m");
     fflush(stdout); // 手动刷新标准输出缓冲区
     bool flag = false;
@@ -319,19 +319,24 @@ void groupfucs::quitgroup(){
         //判断用户信息是否变动
         if(UserMsgQueue.try_pop(msg)){
             page = 0;
-            u = user::fromJson(msg);
+            us = user::fromJson(msg);
             flag = true;
         }
         //判断是否有新通知
-        if(ReptMsgQueue.try_pop(msg) || flag){
+        if(ReptMsgQueue.try_pop(msg)){
+            Getrpt(clientp);
+            ReptMsgQueue.clear();
+            flag = true;
+        }
+        if(flag){
             flag = false;
             system("clear");
             list('p');
-            if(u.grouplist.size())
+            if(us.grouplist.size())
                 printf("\033[0;32m请选择您要退出的群聊:>\033[0m");
             fflush(stdout); // 手动刷新标准输出缓冲区
         }
-        char input = tm_charget(200);
+        char input = tm_charget(1000);
         if(input == -1) continue;
         switch(input){
         case '1':
@@ -346,7 +351,7 @@ void groupfucs::quitgroup(){
         case '[':{
             system("clear");
             list('[');
-            if(u.grouplist.size())
+            if(us.grouplist.size())
                 printf("\033[0;32m请选择您要退出的群聊:>\033[0m");
             fflush(stdout); // 手动刷新标准输出缓冲区
             break;
@@ -354,7 +359,7 @@ void groupfucs::quitgroup(){
         case ']':{
             system("clear");
             list(']');
-            if(u.grouplist.size())
+            if(us.grouplist.size())
                 printf("\033[0;32m请选择您要退出的群聊:>\033[0m");
             fflush(stdout); // 手动刷新标准输出缓冲区
             break;
@@ -369,8 +374,6 @@ void groupfucs::quitgroup(){
 }
 
 void groupfucs::viewlist(char c){
-    reportfucs rpf(u, clientp);
-    bool ret = rpf.Getrpt();
     Client* cp = (Client*) clientp;
     Socket* sock = cp->getSocket();
     if(!fnl.data.size()){
@@ -387,7 +390,7 @@ void groupfucs::viewlist(char c){
     if(c == ']' && viewpage+1 >= maxpage) ;
     else if(c == ']') viewpage ++;
     printf("\033[0;36m==========================================================\033[0m\n");
-    reportfucs::newreport(u, clientp);
+    reportfucs::newreport(us, clientp);
     printf("\033[0;32m以下为群聊 %s 的全部成员\033[0m\n", viewgp.name.c_str());
     printf("\033[0;34m%-6s %-15s %-13s %-12s\033[0m\n", "序号", "用户名", "UID", "群中身份");
     for(std::string str : fnl.data){
@@ -407,7 +410,7 @@ void groupfucs::viewlist(char c){
             printf("%s[%d]  %-12s %-14s %-12s\033[0m",
                     color, i - 5 * viewpage + 1,
                     name.c_str(), ud.uid.c_str(), identity.c_str());
-            if(rpf.rpt.chatfriend[ud.uid]) printf("   \033[0;31m（%d）\033[0m\n", rpf.rpt.chatfriend[ud.uid]);
+            if(rpt.chatfriend[ud.uid]) printf("   \033[0;31m（%d）\033[0m\n", rpt.chatfriend[ud.uid]);
             else puts("");
         }
         i++;
@@ -427,11 +430,11 @@ void groupfucs::view(char c, int fg, int hdl){
     //找到对应群聊
     int i = 5*page + c - '0' - 1, j = 0;
     if(fg == 1)
-        if(i >= u.grouplist.size()) return;
+        if(i >= us.grouplist.size()) return;
     else if(fg == 2)
         if(i >= grouplist.data.size()) return;
     if(fg == 1){
-        for(std::string str : u.grouplist){
+        for(std::string str : us.grouplist){
             if(j == i){
                 sd = str;
                 break;
@@ -475,11 +478,16 @@ void groupfucs::view(char c, int fg, int hdl){
         //判断用户信息是否变动
         if(UserMsgQueue.try_pop(msg)){
             page = 0;
-            u = user::fromJson(msg);
+            us = user::fromJson(msg);
             flag = true;
         }
         //判断是否有新通知
-        if(ReptMsgQueue.try_pop(msg) || flag){
+        if(ReptMsgQueue.try_pop(msg)){
+            Getrpt(clientp);
+            ReptMsgQueue.clear();
+            flag = true;
+        }
+        if(flag){
             flag = false;
             system("clear");
             viewlist('p');
@@ -488,7 +496,7 @@ void groupfucs::view(char c, int fg, int hdl){
             else if(hdl == 3) printf("\033[0;32m请选择您要踢出群聊的成员:>\033[0m");
             fflush(stdout); // 手动刷新标准输出缓冲区
         }
-        char input = tm_charget(200);
+        char input = tm_charget(1000);
         if(input == -1) continue;
         switch(input){
         case '1':
@@ -541,7 +549,7 @@ void groupfucs::viewmember(){
     system("clear");
     page = 0;
     list('0');
-    if(u.grouplist.size())
+    if(us.grouplist.size())
         printf("\033[0;32m请选择您要查看成员的群聊:>\033[0m");
     fflush(stdout); // 手动刷新标准输出缓冲区
     bool flag = false;
@@ -550,19 +558,24 @@ void groupfucs::viewmember(){
         //判断用户信息是否变动
         if(UserMsgQueue.try_pop(msg)){
             page = 0;
-            u = user::fromJson(msg);
+            us = user::fromJson(msg);
             flag = true;
         }
         //判断是否有新通知
-        if(ReptMsgQueue.try_pop(msg) || flag){
+        if(ReptMsgQueue.try_pop(msg)){
+            Getrpt(clientp);
+            ReptMsgQueue.clear();
+            flag = true;
+        }
+        if(flag){
             flag = false;
             system("clear");
             list('p');
-            if(u.grouplist.size())
+            if(us.grouplist.size())
                 printf("\033[0;32m请选择您要查看成员的群聊:>\033[0m");
             fflush(stdout); // 手动刷新标准输出缓冲区
         }
-        char input = tm_charget(200);
+        char input = tm_charget(1000);
         if(input == -1) continue;
         switch(input){
         case '1':
@@ -577,7 +590,7 @@ void groupfucs::viewmember(){
         case '[':{
             system("clear");
             list('[');
-            if(u.grouplist.size())
+            if(us.grouplist.size())
                 printf("\033[0;32m请选择您要查看成员的群聊:>\033[0m");
             fflush(stdout); // 手动刷新标准输出缓冲区
             break;
@@ -585,7 +598,7 @@ void groupfucs::viewmember(){
         case ']':{
             system("clear");
             list(']');
-            if(u.grouplist.size())
+            if(us.grouplist.size())
                 printf("\033[0;32m请选择您要查看成员的群聊:>\033[0m");
             fflush(stdout); // 手动刷新标准输出缓冲区
             break;
@@ -602,12 +615,10 @@ void groupfucs::viewmember(){
 void groupfucs::chatmenu(char c, group& gp){
     Client* cp = (Client*) clientp;
     Socket* sock = cp->getSocket();
-    reportfucs rpf(u, clientp);
-    bool ret = rpf.Getrpt();
-    if(ret && rpf.rpt.chatgroup[gp.gid]){
-        rpf.rpt.total_group_msg -= rpf.rpt.chatgroup[gp.gid];
-        rpf.rpt.chatgroup[gp.gid] = 0;
-        sock->sendMsg("svrp:"+u.uid+":"+rpf.rpt.toJson());
+    if(rpt.chatgroup[gp.gid]){
+        rpt.total_group_msg -= rpt.chatgroup[gp.gid];
+        rpt.chatgroup[gp.gid] = 0;
+        sock->sendMsg("svrp:"+us.uid+":"+rpt.toJson());
         std::string rev = EchoMsgQueue.wait_and_pop();
     }
     int cnt = 0;
@@ -621,22 +632,15 @@ void groupfucs::chatmenu(char c, group& gp){
     if(c == ']' && ctpage+1 >= maxctpage) ;
     else if(c == ']') ctpage ++;
     std::string sender;
-    user ud2;
     printf("\033[0;36m=============================群聊页面=============================\033[0m\n");
-    reportfucs::newreport(u, clientp);
+    reportfucs::newreport(us, clientp);
     printf("\033[0;32m                             %s (%ld)\033[0m\n", gp.name.c_str(), gp.memberlist.size() + gp.managelist.size() + 1);
     if(ctpage+1 == maxctpage)    printf("\033[0;90m                       ---聊天记录已到顶---\033[0m\n");
     for(i = std::min(7*(ctpage+1) - 1, (int)save.data.size() - 1); i >= 7*ctpage; i--){
         if(!save.data.size()) break;
         message msg = message::fromJson(save.data[i]);
-        if(msg.sender_uid != u.uid){
-            sock->sendMsg("gtus:"+msg.sender_uid);
-            ud2 = user::fromJson(EchoMsgQueue.wait_and_pop());
-            sender = ud2.name;
-        }
-        if(msg.sender_uid == u.uid) sender = u.name;
-        if(ud2.stat == "online" || sender == u.name) printf("\033[0;32m%s\033[0m \033[0;33m[%s]\033[0m\n", sender.c_str(), msg.timestamp.c_str());
-        else                     printf("\033[0;90m%s\033[0m \033[0;33m[%s]\033[0m\n", sender.c_str(), msg.timestamp.c_str());
+        if(msg.sender_uid == us.uid) sender = us.name;
+        printf("\033[0;32m%s\033[0m \033[0;33m[%s]\033[0m\n", msg.sender_name.c_str(), msg.timestamp.c_str());
         printf("\033[0;32m>\033[0m%s\n", msg.content.c_str());
     }
     printf("                                         \033[0;32m(tip:按[和]按键可控制翻页)\n\033[0m");
@@ -653,13 +657,13 @@ void groupfucs::handlechat(char c, int fg){
     //找到对应gid
     int i = 5*page + c - '0' - 1, j = 0;
     if(fg == 1){
-        if(i >= u.grouplist.size()) return;
+        if(i >= us.grouplist.size()) return;
     }
     else if(fg == 2)
         if(i >= grouplist.data.size()) return;
     std::string gid;
     if(fg == 1){
-        for(std::string str : u.grouplist){
+        for(std::string str : us.grouplist){
             if(j == i){
                 gid = str;
                 break;
@@ -706,37 +710,46 @@ void groupfucs::handlechat(char c, int fg){
     std::string content, utf8_buf;
     ChatMsgQueue.clear();
     while(1){
-        //判断用户信息是否变动
-        if(UserMsgQueue.try_pop(msg)){
-            page = 0;
-            u = user::fromJson(msg);
-            if(u.grouplist.count(gid) == 0){//被删除了
-                system("clear");
-                printf("\033[0;31m您当前已不在该群聊。\033[0m\n");
-                printf("\033[0;31m请按任意键继续...\033[0m\n");
-                charget();
-                return;
+        int tm = throughtime();
+        if(tm >= 1000 || flag){
+            //判断用户信息是否变动
+            if(UserMsgQueue.try_pop(msg)){
+                page = 0;
+                us = user::fromJson(msg);
+                if(us.grouplist.count(gid) == 0){//被删除了
+                    system("clear");
+                    printf("\033[0;31m您当前已不在该群聊。\033[0m\n");
+                    printf("\033[0;31m请按任意键继续...\033[0m\n");
+                    charget();
+                    return;
+                }
+                flag = true;
             }
-            flag = true;
+            //判断聊天消息是否有新
+            if(ChatMsgQueue.try_pop(msg)){
+                page = 0;
+                message m = message::fromJson(msg);
+                if(m.sender_uid != us.uid && m.receiver_uid == gid && m.is_group) save.data.insert(save.data.begin(), msg);
+                msgcnt++;
+                flag = true;
+            }
+            //判断是否有新通知
+            if(ReptMsgQueue.try_pop(msg)){
+                Getrpt(clientp);
+                ReptMsgQueue.clear();
+                flag = true;
+            }
+            if(flag){
+                flag = false;
+                system("clear");
+                chatmenu('p', viewgp);
+                printf("\033[0;32m请输入:>\033[0m");
+                printf("%s", content.c_str());
+                fflush(stdout); // 手动刷新标准输出缓冲区
+            }
+            startTime();
         }
-        //判断聊天消息是否有新
-        if(ChatMsgQueue.try_pop(msg)){
-            page = 0;
-            message m = message::fromJson(msg);
-            if(m.sender_uid != u.uid && m.receiver_uid == gid && m.is_group) save.data.insert(save.data.begin(), msg);
-            msgcnt++;
-            flag = true;
-        }
-        //判断是否有新通知
-        if(ReptMsgQueue.try_pop(msg) || flag){
-            flag = false;
-            system("clear");
-            chatmenu('p', viewgp);
-            printf("\033[0;32m请输入:>\033[0m");
-            printf("%s", content.c_str());
-            fflush(stdout); // 手动刷新标准输出缓冲区
-        }
-        char input = tm_charget(200);
+        char input = tm_charget(1000);
         if(input == -1) continue;
         // 中文或其他 UTF-8 字符处理
         switch(input){
@@ -767,7 +780,8 @@ void groupfucs::handlechat(char c, int fg){
             if(content.size() == 0 || content == "\n") break;
             content.push_back('\0');
             message sendm;
-            sendm.sender_uid = u.uid;
+            sendm.sender_uid = us.uid;
+            sendm.sender_name = us.name;
             sendm.receiver_uid = gid;
             sendm.content = content;
             sendm.timestamp = message::get_beijing_time();
@@ -851,7 +865,7 @@ void groupfucs::groupchat(){
     system("clear");
     page = 0;
     list('0');
-    if(u.grouplist.size())
+    if(us.grouplist.size())
         printf("\033[0;32m请选择您要开始聊天的群:>\033[0m");
     fflush(stdout); // 手动刷新标准输出缓冲区
     bool flag = false;
@@ -860,19 +874,24 @@ void groupfucs::groupchat(){
         //判断用户信息是否变动
         if(UserMsgQueue.try_pop(msg)){
             page = 0;
-            u = user::fromJson(msg);
+            us = user::fromJson(msg);
             flag = true;
         }
         //判断是否有新通知
-        if(ReptMsgQueue.try_pop(msg) || flag){
+        if(ReptMsgQueue.try_pop(msg)){
+            Getrpt(clientp);
+            ReptMsgQueue.clear();
+            flag = true;
+        }
+        if(flag){
             flag = false;
             system("clear");
             list('p');
-            if(u.grouplist.size())
+            if(us.grouplist.size())
                 printf("\033[0;32m请选择您要开始聊天的群:>\033[0m");
             fflush(stdout); // 手动刷新标准输出缓冲区
         }
-        char input = tm_charget(200);
+        char input = tm_charget(1000);
         if(input == -1) continue;
         switch(input){
         case '1':
@@ -887,7 +906,7 @@ void groupfucs::groupchat(){
         case '[':{
             system("clear");
             list('[');
-            if(u.grouplist.size())
+            if(us.grouplist.size())
                 printf("\033[0;32m请选择您要开始聊天的群:>\033[0m");
             fflush(stdout); // 手动刷新标准输出缓冲区
             break;
@@ -895,7 +914,7 @@ void groupfucs::groupchat(){
         case ']':{
             system("clear");
             list(']');
-            if(u.grouplist.size())
+            if(us.grouplist.size())
                 printf("\033[0;32m请选择您要开始聊天的群:>\033[0m");
             fflush(stdout); // 手动刷新标准输出缓冲区
             break;
@@ -913,7 +932,7 @@ void groupfucs::list_group(){
     system("clear");
     page = 0;
     list('0');
-    if(u.grouplist.size())
+    if(us.grouplist.size())
         printf("\033[0;32m输入序号可进行操作:>\033[0m");
     fflush(stdout); // 手动刷新标准输出缓冲区
     bool flag = false;
@@ -922,19 +941,24 @@ void groupfucs::list_group(){
         //判断用户信息是否变动
         if(UserMsgQueue.try_pop(msg)){
             page = 0;
-            u = user::fromJson(msg);
+            us = user::fromJson(msg);
             flag = true;
         }
         //判断是否有新通知
-        if(ReptMsgQueue.try_pop(msg) || flag){
+        if(ReptMsgQueue.try_pop(msg)){
+            Getrpt(clientp);
+            ReptMsgQueue.clear();
+            flag = true;
+        }
+        if(flag){
             flag = false;
             system("clear");
             list('p');
-            if(u.grouplist.size())
+            if(us.grouplist.size())
                 printf("\033[0;32m输入序号可进行操作:>\033[0m");
             fflush(stdout); // 手动刷新标准输出缓冲区
         }
-        char input = tm_charget(200);
+        char input = tm_charget(1000);
         if(input == -1) continue;
         switch(input){
         case '1':
@@ -943,7 +967,7 @@ void groupfucs::list_group(){
         case '4':
         case '5':{
             int i = 5*page + input - '0' - 1;
-            if(i >= 0 && i < u.grouplist.size()){
+            if(i >= 0 && i < us.grouplist.size()){
                 select(input, 1);
                 flag = true;
             }
@@ -952,7 +976,7 @@ void groupfucs::list_group(){
         case '[':{
             system("clear");
             list('[');
-            if(u.grouplist.size())
+            if(us.grouplist.size())
                 printf("\033[0;32m输入序号可进行操作:>\033[0m");
             fflush(stdout); // 手动刷新标准输出缓冲区
             break;
@@ -960,7 +984,7 @@ void groupfucs::list_group(){
         case ']':{
             system("clear");
             list(']');
-            if(u.grouplist.size())
+            if(us.grouplist.size())
                 printf("\033[0;32m输入序号可进行操作:>\033[0m");
             fflush(stdout); // 手动刷新标准输出缓冲区
             break;
@@ -981,12 +1005,12 @@ int groupfucs::selectmenu(char c, int fg){
     //找到对应消息
     int i = 5*page + c - '0' - 1, j = 0;
     if(fg == 1)
-        if(i >= u.grouplist.size()) return 0;
+        if(i >= us.grouplist.size()) return 0;
     else if(fg == 2)
         if(i >= grouplist.data.size()) return 0;
     std::string sd;
     if(fg == 1){
-        for(std::string str : u.grouplist){
+        for(std::string str : us.grouplist){
             if(j == i){
                 sd = str;
                 break;
@@ -1017,11 +1041,11 @@ int groupfucs::selectmenu(char c, int fg){
     fflush(stdout); // 手动刷新标准输出缓冲区
     system("clear");
     identity = "成员";
-    if(gp.owner == u.uid) identity = "群主";
-    else if(gp.managelist.count(u.uid)) identity = "管理员";
+    if(gp.owner == us.uid) identity = "群主";
+    else if(gp.managelist.count(us.uid)) identity = "管理员";
     printf("\033[0;36m==========================================================\033[0m\n");
     printf("                 \033[0;33m您是群聊 %s 的 %s\033[0m\n", gp.name.c_str(), identity.c_str());
-    reportfucs::newreport(u, clientp);
+    reportfucs::newreport(us, clientp);
     printf("\033[0;32m[1] 开始群聊\033[0m\n");
     if(identity == "群主")
         printf("\033[0;32m[2] 解散群聊\033[0m\n");
@@ -1052,18 +1076,23 @@ void groupfucs::select(char c, int fg){
     while(1){
         //判断用户信息是否变动
         if(UserMsgQueue.try_pop(msg)){
-            u = user::fromJson(msg);
+            us = user::fromJson(msg);
             flag = true;
         }
         //判断是否有新通知
-        if(ReptMsgQueue.try_pop(msg) || flag){
+        if(ReptMsgQueue.try_pop(msg)){
+            Getrpt(clientp);
+            ReptMsgQueue.clear();
+            flag = true;
+        }
+        if(flag){
             flag = false;
             system("clear");
             if(msg == "disg") return;
             selectmenu(c, fg);
             fflush(stdout); // 手动刷新标准输出缓冲区
         }
-        char input = tm_charget(200);
+        char input = tm_charget(1000);
         if(input == -1) continue;
         switch(input){
         case '1':{
@@ -1123,11 +1152,11 @@ void groupfucs::disband(char c, int fg){
     std::string sd, str;
     int i = 5*page + c - '0' - 1, j = 0;
     if(fg == 1)
-        if(i >= u.grouplist.size()) return;
+        if(i >= us.grouplist.size()) return;
     else if(fg == 2)
         if(i >= grouplist.data.size()) return;
     if(fg == 1){
-        for(std::string str : u.grouplist){
+        for(std::string str : us.grouplist){
             if(j == i){
                 sd = str;
                 break;
@@ -1200,7 +1229,7 @@ void groupfucs::delmanager(std::string gid, std::string uid2) {
     Client * cp = (Client*)clientp;
     Socket * sock = cp->getSocket();
     system("clear");
-    if(uid2 == u.uid || viewgp.memberlist.count(uid2)){
+    if(uid2 == us.uid || viewgp.memberlist.count(uid2)){
         printf("\033[0;31m该用户不为管理员，无法操作。\n\033[0m");
         printf("\033[0;31m请按任意键继续...\033[0m");
         charget();
@@ -1243,9 +1272,9 @@ void groupfucs::kickmember(std::string gid, std::string uid2) {
     Client * cp = (Client*)clientp;
     Socket * sock = cp->getSocket();
     system("clear");
-    if(!(viewgp.managelist.count(uid2) && u.uid == viewgp.owner)){
+    if(!(viewgp.managelist.count(uid2) && us.uid == viewgp.owner)){
         if(uid2 == viewgp.owner || viewgp.managelist.count(uid2)){
-            if(uid2 == u.uid)
+            if(uid2 == us.uid)
                 printf("\033[0;31m你无法将自己踢出群聊。\n\033[0m");
             else if(uid2 == viewgp.owner)
                 printf("\033[0;31m你无法将群主踢出群聊。\n\033[0m");    
@@ -1271,7 +1300,7 @@ void groupfucs::kickmember(std::string gid, std::string uid2) {
         break;
     }
     //确定设置uid2为管理员
-    sock->sendMsg("kcmb:"+gid+":"+ uid2+":"+u.uid);
+    sock->sendMsg("kcmb:"+gid+":"+ uid2+":"+us.uid);
     rev = EchoMsgQueue.wait_and_pop();
     if(rev == "false"){
         printf("\033[0;31m数据异常，请稍后再试。\033[0m\n");
@@ -1310,7 +1339,7 @@ void groupfucs::addmanager(std::string gid, std::string uid2){
     Client * cp = (Client*)clientp;
     Socket * sock = cp->getSocket();
     system("clear");
-    if(uid2 == u.uid){
+    if(uid2 == us.uid){
         printf("\033[0;31m无法设置自己为管理员。\n\033[0m");
         printf("\033[0;31m请按任意键继续...\033[0m");
         charget();
@@ -1355,8 +1384,6 @@ void groupfucs::addmanager(std::string gid, std::string uid2){
 }
 
 void groupfucs::managelist(char c){
-    reportfucs rpf(u, clientp);
-    bool ret = rpf.Getrpt();
     Client* cp = (Client*) clientp;
     Socket* sock = cp->getSocket();
     if(!grouplist.data.size()){
@@ -1373,7 +1400,7 @@ void groupfucs::managelist(char c){
     if(c == ']' && page+1 >= maxpage) ;
     else if(c == ']') page ++;
     printf("\033[0;36m==========================================================\033[0m\n");
-    reportfucs::newreport(u, clientp);
+    reportfucs::newreport(us, clientp);
     printf("\033[0;32m以下为您有权限的群聊\033[0m\n");
     printf("\033[0;34m%-6s %-15s %-13s %-12s\033[0m\n", "序号", "群名", "GID", "在群中身份");
     for(std::string str : grouplist.data){
@@ -1388,12 +1415,12 @@ void groupfucs::managelist(char c){
             }
             std::string name = ud.name, status = "成员";
             const char *color = "\033[0;37m";
-            if(ud.owner == u.uid) {
+            if(ud.owner == us.uid) {
                 status = "群主";
                 color = "\033[0;31m";
             } else{
                 for(std::string str : ud.managelist){
-                    if(str == u.uid){
+                    if(str == us.uid){
                         status = "管理员";
                         color = "\033[0;32m";
                     }
@@ -1402,7 +1429,7 @@ void groupfucs::managelist(char c){
             printf("\033[0;37m[%d]  %-12s %-14s \033[0m%s%-12s\033[0m",
                      i - 5 * page + 1,
                     name.c_str(), ud.gid.c_str(), color,status.c_str());
-            if(rpf.rpt.chatgroup[ud.gid]) printf("   \033[0;31m（%d）\033[0m\n", rpf.rpt.chatgroup[ud.gid]);
+            if(rpt.chatgroup[ud.gid]) printf("   \033[0;31m（%d）\033[0m\n", rpt.chatgroup[ud.gid]);
             else puts("");
         }
         i++;
@@ -1417,7 +1444,7 @@ void groupfucs::manage(){
     Socket * sock = cp->getSocket();
     system("clear");
     //发uid，获取是管理员的群聊列表
-    sock->sendMsg("mngl:" + u.uid);
+    sock->sendMsg("mngl:" + us.uid);
     std::string rev = EchoMsgQueue.wait_and_pop();
     grouplist = friendnamelist::fromJson(rev);
     if(!grouplist.data.size()){
@@ -1438,15 +1465,20 @@ void groupfucs::manage(){
         //判断用户信息是否变动
         if(UserMsgQueue.try_pop(msg)){
             page = 0;
-            u = user::fromJson(msg);
+            us = user::fromJson(msg);
             flag = true;
         }
         //判断是否有新通知
-        if(ReptMsgQueue.try_pop(msg) || flag){
+        if(ReptMsgQueue.try_pop(msg)){
+            Getrpt(clientp);
+            ReptMsgQueue.clear();
+            flag = true;
+        }
+        if(flag){
             flag = false;
             system("clear");
             if(msg == "modmanage"){
-                sock->sendMsg("mngl:" + u.uid);
+                sock->sendMsg("mngl:" + us.uid);
                 rev = EchoMsgQueue.wait_and_pop();
                 grouplist = friendnamelist::fromJson(rev);
             }
@@ -1455,7 +1487,7 @@ void groupfucs::manage(){
                 printf("\033[0;32m输入序号可进行操作:>\033[0m");
             fflush(stdout); // 手动刷新标准输出缓冲区
         }
-        char input = tm_charget(200);
+        char input = tm_charget(1000);
         if(input == -1) continue;
         switch(input){
         case '1':

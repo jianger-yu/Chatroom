@@ -11,6 +11,7 @@ struct message {
     std::string timestamp;       // 时间戳（可使用ISO 8601格式或其他字符串）
     bool is_group = false;       // 是否为群聊消息
     bool is_file = false;        // 是否为文件消息（可扩展用）
+    std::string sender_name;      // 发送者 UID
     
     // 转为 JSON 字符串
     std::string toJson() const {
@@ -21,6 +22,7 @@ struct message {
         j["timestamp"] = timestamp;
         j["is_group"] = is_group;
         j["is_file"] = is_file;
+        j["sender_name"] = sender_name;
         return j.dump();
     }
 
@@ -34,6 +36,7 @@ struct message {
         msg.timestamp = j["timestamp"];
         msg.is_group = j["is_group"];
         msg.is_file = j["is_file"];
+        msg.sender_name = j["sender_name"];
         return msg;
     }
 

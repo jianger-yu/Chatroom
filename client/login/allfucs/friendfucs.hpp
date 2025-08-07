@@ -486,6 +486,7 @@ void friendfucs::chatmenu(char c, user& ud2){
     if(c == ']' && ctpage+1 >= maxctpage) ;
     else if(c == ']') ctpage ++;
     std::string sender;
+    system("clear");
     printf("\033[0;36m=============================聊天页面=============================\033[0m\n");
     reportfucs::newreport(us, clientp);
     if(ud2.stat == "online") printf("\033[0;32m                             %s (在线)\033[0m\n", ud2.name.c_str());
@@ -591,7 +592,6 @@ void friendfucs::handlechat(char c, int fg){
             }
             if(flag){
                 flag = false;
-                system("clear");
                 chatmenu('p', ud2);
                 printf("\033[0;32m请输入:>\033[0m");
                 printf("%s", content.c_str());

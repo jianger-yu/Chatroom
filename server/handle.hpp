@@ -387,7 +387,7 @@ void handler::adfr(){
     u.AddFrd(ud.name, uid2);
     sendMsg("echo:right",sockfd);
     if (uid_to_socket.count(uid2)) {
-        sendMsg("rept:"+uid1, uid_to_socket[uid2]);
+        sendMsg("rept:"+rpt2.toJson(), uid_to_socket[uid2]);
     }
 }
 
@@ -416,12 +416,12 @@ void handler::adgp(){
     user ud = u.GetUesr(uid1);
     rpt.groupapply.insert(ud.name+":"+gp.name);
     u.svreport( gp.owner, rpt.toJson());
-    if(uid_to_socket.count(gp.owner)) sendMsg("rept:", uid_to_socket[gp.owner]);
+    if(uid_to_socket.count(gp.owner)) sendMsg("rept:"+rpt.toJson(), uid_to_socket[gp.owner]);
     for(std::string str : gp.managelist){
         rpt = report::fromJson(u.u_report(str));
         rpt.groupapply.insert(ud.name+":"+gp.name);
         u.svreport( str, rpt.toJson());
-        if(uid_to_socket.count(str)) sendMsg("rept:", uid_to_socket[str]);
+        if(uid_to_socket.count(str)) sendMsg("rept:"+rpt.toJson(), uid_to_socket[str]);
     }
     sendMsg("echo:right", sockfd);
 }
@@ -530,7 +530,7 @@ void handler::adfok(){
     u.svreport(uid1, rpt1.toJson());
     //若uid1在线，发通知
     if(uid_to_socket.count(uid1)) {
-        sendMsg("rept:"+uid2, uid_to_socket[uid1]);
+        sendMsg("rept:"+rpt1.toJson(), uid_to_socket[uid1]);
         sendMsg("user:"+ud1.toJson(), uid_to_socket[uid1]);
     }
     //给用户2发用户信息，避免本地内容被通信覆盖
@@ -741,7 +741,7 @@ void handler::sdms(){
     rpt.total_friend_msg++;
     u.svreport(sendm.receiver_uid, rpt.toJson());
     //若接受者在线，给接受者发通知：有新消息
-    if(uid_to_socket.count(sendm.receiver_uid)) sendMsg("rept:"+sendm.sender_uid, uid_to_socket[sendm.receiver_uid]);
+    if(uid_to_socket.count(sendm.receiver_uid)) sendMsg("rept:"+rpt.toJson(), uid_to_socket[sendm.receiver_uid]);
     //给接受者发送这条消息
     if(uid_to_socket.count(sendm.receiver_uid)) sendMsg("chat:"+sendm.toJson(), uid_to_socket[sendm.receiver_uid]);
     //给发送者发回声
@@ -786,7 +786,7 @@ void handler::sdgm(){
         rpt.total_group_msg++;
         u.svreport(gp.owner, rpt.toJson());
         //若接受者在线，给接受者发通知：有新消息
-        if(uid_to_socket.count(gp.owner)) sendMsg("rept:"+sendm.sender_uid, uid_to_socket[gp.owner]);
+        if(uid_to_socket.count(gp.owner)) sendMsg("rept:"+rpt.toJson(), uid_to_socket[gp.owner]);
         //给接受者发送这条消息
         if(uid_to_socket.count(gp.owner)) sendMsg("chat:"+sendm.toJson(), uid_to_socket[gp.owner]);
     }
@@ -798,7 +798,7 @@ void handler::sdgm(){
             rpt.total_group_msg++;
             u.svreport(uid2, rpt.toJson());
             //若接受者在线，给接受者发通知：有新消息
-            if(uid_to_socket.count(uid2)) sendMsg("rept:"+sendm.sender_uid, uid_to_socket[uid2]);
+            if(uid_to_socket.count(uid2)) sendMsg("rept:"+rpt.toJson(), uid_to_socket[uid2]);
             //给接受者发送这条消息
             if(uid_to_socket.count(uid2)) sendMsg("chat:"+sendm.toJson(), uid_to_socket[uid2]);
         }
@@ -811,7 +811,7 @@ void handler::sdgm(){
             rpt.total_group_msg++;
             u.svreport(uid2, rpt.toJson());
             //若接受者在线，给接受者发通知：有新消息
-            if(uid_to_socket.count(uid2)) sendMsg("rept:"+sendm.sender_uid, uid_to_socket[uid2]);
+            if(uid_to_socket.count(uid2)) sendMsg("rept:"+rpt.toJson(), uid_to_socket[uid2]);
             //给接受者发送这条消息
             if(uid_to_socket.count(uid2)) sendMsg("chat:"+sendm.toJson(), uid_to_socket[uid2]);
         }
@@ -1021,14 +1021,14 @@ void handler::adgok(){
     rpt.notice.insert(rpt.notice.begin(), result);
     u.svreport( gp.owner, rpt.toJson());
     //若在线，提示该通知
-    if(uid_to_socket.count(gp.owner)) sendMsg("rept:", uid_to_socket[gp.owner]);
+    if(uid_to_socket.count(gp.owner)) sendMsg("rept:"+rpt.toJson(), uid_to_socket[gp.owner]);
     //去除管理员通知中这条申请
     for(std::string mvs : gp.managelist){
         rpt = report::fromJson(u.u_report(mvs));
         rpt.groupapply.erase(apply);
         rpt.notice.insert(rpt.notice.begin(), result);
         u.svreport( mvs, rpt.toJson());
-        if(uid_to_socket.count(mvs)) sendMsg("rept:", uid_to_socket[mvs]);
+        if(uid_to_socket.count(mvs)) sendMsg("rept:"+rpt.toJson(), uid_to_socket[mvs]);
     }
     sendMsg("echo:right", sockfd);
     //给对应用户发送user提醒和可能的通知
@@ -1036,7 +1036,7 @@ void handler::adgok(){
     rpt = report::fromJson(u.u_report(uid));
     rpt.notice.insert(rpt.notice.begin(), result);
     u.svreport( uid, rpt.toJson());
-    if(uid_to_socket.count(uid)) sendMsg("rept:", uid_to_socket[uid]);
+    if(uid_to_socket.count(uid)) sendMsg("rept:"+rpt.toJson(), uid_to_socket[uid]);
 }
 
 void handler::gplt(){
@@ -1119,7 +1119,7 @@ void handler::admn(){
         report rpt = report::fromJson(js);
         rpt.notice.insert(rpt.notice.begin(), std::string(result));
         u.svreport( u2, rpt.toJson());
-        if(uid_to_socket.count(u2) && u2 != uid2) sendMsg("rept:", uid_to_socket[u2]);
+        if(uid_to_socket.count(u2) && u2 != uid2) sendMsg("rept:"+rpt.toJson(), uid_to_socket[u2]);
     }
     for(std::string u2 : gp.memberlist){
         js = u.u_report(u2);
@@ -1130,7 +1130,7 @@ void handler::admn(){
         report rpt = report::fromJson(js);
         rpt.notice.insert(rpt.notice.begin(), std::string(result));
         u.svreport( u2, rpt.toJson());
-        if(uid_to_socket.count(u2) && u2 != uid2) sendMsg("rept:", uid_to_socket[u2]);
+        if(uid_to_socket.count(u2) && u2 != uid2) sendMsg("rept:"+rpt.toJson(), uid_to_socket[u2]);
     }
     if(uid_to_socket.count(uid2)) sendMsg("rept:modmanage", uid_to_socket[uid2]);
     sendMsg("echo:right", sockfd);
@@ -1178,7 +1178,7 @@ void handler::dlmn(){
         report rpt = report::fromJson(js);
         rpt.notice.insert(rpt.notice.begin(), std::string(result));
         u.svreport( u2, rpt.toJson());
-        if(uid_to_socket.count(u2) && u2 != uid2) sendMsg("rept:", uid_to_socket[u2]);
+        if(uid_to_socket.count(u2) && u2 != uid2) sendMsg("rept:"+rpt.toJson(), uid_to_socket[u2]);
     }
     for(std::string u2 : gp.memberlist){
         js = u.u_report(u2);
@@ -1189,7 +1189,7 @@ void handler::dlmn(){
         report rpt = report::fromJson(js);
         rpt.notice.insert(rpt.notice.begin(), std::string(result));
         u.svreport( u2, rpt.toJson());
-        if(uid_to_socket.count(u2) && u2 != uid2) sendMsg("rept:", uid_to_socket[u2]);
+        if(uid_to_socket.count(u2) && u2 != uid2) sendMsg("rept:"+rpt.toJson(), uid_to_socket[u2]);
     }
     if(uid_to_socket.count(uid2)) sendMsg("rept:modmanage", uid_to_socket[uid2]);
     sendMsg("echo:right", sockfd);
@@ -1251,24 +1251,24 @@ void handler::kcmb(){
     report rpt = report::fromJson(u.u_report(gp.owner));
     rpt.notice.insert(rpt.notice.begin(), result);
     u.svreport(gp.owner, rpt.toJson());
-    if(uid_to_socket.count(gp.owner)) sendMsg("rept:" , uid_to_socket[gp.owner]);
+    if(uid_to_socket.count(gp.owner)) sendMsg("rept:"+rpt.toJson() , uid_to_socket[gp.owner]);
 
     rpt = report::fromJson(u.u_report(uid2));
     rpt.notice.insert(rpt.notice.begin(), result);
     u.svreport(uid2, rpt.toJson());
-    if(uid_to_socket.count(uid2)) sendMsg("rept:" , uid_to_socket[uid2]);
+    if(uid_to_socket.count(uid2)) sendMsg("rept:"+rpt.toJson(), uid_to_socket[uid2]);
 
     for(std::string p : gp.managelist){
         rpt = report::fromJson(u.u_report(p));
         rpt.notice.insert(rpt.notice.begin(), result);
         u.svreport(p, rpt.toJson());
-        if(uid_to_socket.count(p)) sendMsg("rept:" , uid_to_socket[p]);
+        if(uid_to_socket.count(p)) sendMsg("rept:"+rpt.toJson() , uid_to_socket[p]);
     }
     for(std::string p : gp.memberlist){
         rpt = report::fromJson(u.u_report(p));
         rpt.notice.insert(rpt.notice.begin(), result);
         u.svreport(p, rpt.toJson());
-        if(uid_to_socket.count(p)) sendMsg("rept:" , uid_to_socket[p]);
+        if(uid_to_socket.count(p)) sendMsg("rept:"+rpt.toJson(), uid_to_socket[p]);
     }
     
     //给发送者发回声
@@ -1463,8 +1463,8 @@ void handler::fled(){
     u.svreport(ud1.uid, rpt1.toJson());
     u.svreport(ud2.uid, rpt2.toJson());
     //通知rept有变化
-    if(uid_to_socket.count(ud1.uid)) sendMsg("rept:", uid_to_socket[ud1.uid]);
-    if(uid_to_socket.count(ud2.uid)) sendMsg("rept:", uid_to_socket[ud2.uid]);
+    if(uid_to_socket.count(ud1.uid)) sendMsg("rept:"+rpt1.toJson(), uid_to_socket[ud1.uid]);
+    if(uid_to_socket.count(ud2.uid)) sendMsg("rept:"+rpt2.toJson(), uid_to_socket[ud2.uid]);
 }
 
 void handler::flsz(){
@@ -1581,5 +1581,5 @@ void handler::rved(){
     
     u.svreport( uid1, rpt.toJson());
     if(uid_to_socket.count(uid1))
-        sendMsg("rept:", uid_to_socket[uid1]);
+        sendMsg("rept:"+rpt.toJson(), uid_to_socket[uid1]);
 }

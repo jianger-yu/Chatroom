@@ -229,9 +229,8 @@ void friendfucs::select(char c, int fg){
             flag = true;
         }
         //判断是否有新通知
-        if(ReptMsgQueue.try_pop(msg)){
-            Getrpt(clientp);
-            ReptMsgQueue.clear();
+        while(ReptMsgQueue.try_pop(msg)){
+            rpt = report::fromJson(msg);
             flag = true;
         }
         if(flag){
@@ -289,9 +288,8 @@ void friendfucs::listfriend(){
             flag = true;
         }
         //判断是否有新通知
-        if(ReptMsgQueue.try_pop(msg)){
-            Getrpt(clientp);
-            ReptMsgQueue.clear();
+        while(ReptMsgQueue.try_pop(msg)){
+            rpt = report::fromJson(msg);
             flag = true;
         }
         if(flag){
@@ -416,9 +414,8 @@ void friendfucs::delfriend(){
             flag = true;
         }
         //判断是否有新通知
-        if(ReptMsgQueue.try_pop(msg)){
-            Getrpt(clientp);
-            ReptMsgQueue.clear();
+        while(ReptMsgQueue.try_pop(msg)){
+            rpt = report::fromJson(msg);
             flag = true;
         }
         if(flag){
@@ -584,9 +581,8 @@ void friendfucs::handlechat(char c, int fg){
                 flag = true;
             }
             //判断是否有新通知
-            if(ReptMsgQueue.try_pop(msg)){
-                Getrpt(clientp);
-                ReptMsgQueue.clear();
+            while(ReptMsgQueue.try_pop(msg)){
+                rpt = report::fromJson(msg);
                 flag = true;
             }
             if(flag){
@@ -735,9 +731,8 @@ void friendfucs::chatfriend(){
             flag = true;
         }
         //判断是否有新通知
-        if(ReptMsgQueue.try_pop(msg)){
-            Getrpt(clientp);
-            ReptMsgQueue.clear();
+        while(ReptMsgQueue.try_pop(msg)){
+            rpt = report::fromJson(msg);
             flag = true;
         }
         if(flag){
@@ -989,9 +984,8 @@ void friendfucs::shieldfriend(int cs){
             flag = true;
         }
         //判断是否有新通知
-        if(ReptMsgQueue.try_pop(msg)){
-            Getrpt(clientp);
-            ReptMsgQueue.clear();
+        while(ReptMsgQueue.try_pop(msg)){
+            rpt = report::fromJson(msg);
             flag = true;
         }
         if(flag){
@@ -1156,9 +1150,8 @@ void friendfucs::searchfriend(){
             flag = true;
         }
         //判断是否有新通知
-        if(ReptMsgQueue.try_pop(msg)){
-            Getrpt(clientp);
-            ReptMsgQueue.clear();
+        while(ReptMsgQueue.try_pop(msg)){
+            rpt = report::fromJson(msg);
             flag = true;
         }
         if(flag){

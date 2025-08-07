@@ -42,9 +42,8 @@ int userfuc::mainfuc(void * p){
             u = user::fromJson(msg);
             flag = true;
         }
-        if(ReptMsgQueue.try_pop(msg)){
-            Getrpt(clientp);
-            ReptMsgQueue.clear();
+        while(ReptMsgQueue.try_pop(msg)){
+            rpt = report::fromJson(msg);
             flag = true;
         }
         if(flag){
@@ -101,9 +100,8 @@ int userfuc::friendfuc(void){
             u = user::fromJson(msg);
             flag = true;
         }
-        if(ReptMsgQueue.try_pop(msg)){
-            Getrpt(clientp);
-            ReptMsgQueue.clear();
+        while(ReptMsgQueue.try_pop(msg)){
+            rpt = report::fromJson(msg);
             flag = true;
         }
         if(flag){
@@ -174,9 +172,8 @@ int userfuc::groupfuc(void){
             u = user::fromJson(msg);
             flag = true;
         }
-        if(ReptMsgQueue.try_pop(msg)){
-            Getrpt(clientp);
-            ReptMsgQueue.clear();
+        while(ReptMsgQueue.try_pop(msg)){
+            rpt = report::fromJson(msg);
             flag = true;
         }
         if(flag){
@@ -256,9 +253,8 @@ int userfuc::filefuc(void){
             u = user::fromJson(msg);
             flag = true;
         }
-        if(ReptMsgQueue.try_pop(msg)){
-            Getrpt(clientp);
-            ReptMsgQueue.clear();
+        while(ReptMsgQueue.try_pop(msg)){
+            rpt = report::fromJson(msg);
             flag = true;
         }
         if(flag){
@@ -318,9 +314,8 @@ int userfuc::setupfuc(void){
             u = user::fromJson(msg);
             flag = true;
         }
-        if(ReptMsgQueue.try_pop(msg)){
-            Getrpt(clientp);
-            ReptMsgQueue.clear();
+        while(ReptMsgQueue.try_pop(msg)){
+            rpt = report::fromJson(msg);
             flag = true;
         }
         if(flag){
@@ -391,9 +386,8 @@ int userfuc::reportfuc(void){
             u = user::fromJson(msg);
             flag = true;
         }
-        if(ReptMsgQueue.try_pop(msg)){
-            Getrpt(clientp);
-            ReptMsgQueue.clear();
+        while(ReptMsgQueue.try_pop(msg)){
+            rpt = report::fromJson(msg);
             flag = true;
         }
         if(flag){

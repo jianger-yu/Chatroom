@@ -563,9 +563,8 @@ void reportfucs::friendreport(){
     fflush(stdout); // 手动刷新标准输出缓冲区
     bool flag = false;
     while(1){
-        if(ReptMsgQueue.try_pop(msg)){
-            Getrpt(clientp);
-            ReptMsgQueue.clear();
+        while(ReptMsgQueue.try_pop(msg)){
+            rpt = report::fromJson(msg);
             flag = true;
         }
         if(flag){
@@ -623,9 +622,8 @@ void reportfucs::groupreport(){
     fflush(stdout); // 手动刷新标准输出缓冲区
     bool flag = false;
     while(1){
-        if(ReptMsgQueue.try_pop(msg)){
-            Getrpt(clientp);
-            ReptMsgQueue.clear();
+        while(ReptMsgQueue.try_pop(msg)){
+            rpt = report::fromJson(msg);
             flag = true;
         }
         if(flag){
@@ -723,9 +721,8 @@ void reportfucs::notice(){
     fflush(stdout); // 手动刷新标准输出缓冲区
     bool flag = false;
     while(1){
-        if(ReptMsgQueue.try_pop(msg)){
-            Getrpt(clientp);
-            ReptMsgQueue.clear();
+        while(ReptMsgQueue.try_pop(msg)){
+            rpt = report::fromJson(msg);
             flag = true;
         }
         if(flag){
@@ -870,9 +867,8 @@ void reportfucs::handlechat(char c, report& rpt){
             flag = true;
         }
         //判断是否有新通知
-        if(ReptMsgQueue.try_pop(msg)){
-            Getrpt(clientp);
-            ReptMsgQueue.clear();
+        while(ReptMsgQueue.try_pop(msg)){
+            rpt = report::fromJson(msg);
             flag = true;
         }
         if(flag){
@@ -1012,9 +1008,8 @@ void reportfucs::ctfrdreport(){
     fflush(stdout); // 手动刷新标准输出缓冲区
     bool flag = false;
     while(1){
-        if(ReptMsgQueue.try_pop(msg)){
-            Getrpt(clientp);
-            ReptMsgQueue.clear();
+        while(ReptMsgQueue.try_pop(msg)){
+            rpt = report::fromJson(msg);
             flag = true;
         }
         if(flag){
@@ -1192,9 +1187,8 @@ void reportfucs::ghandlechat(char c, int fg){
                 flag = true;
             }
             //判断是否有新通知
-            if(ReptMsgQueue.try_pop(msg)){
-                Getrpt(clientp);
-                ReptMsgQueue.clear();
+            while(ReptMsgQueue.try_pop(msg)){
+                rpt = report::fromJson(msg);
                 flag = true;
             }
             if(flag){
@@ -1328,9 +1322,8 @@ void reportfucs::ctfgrpreport(){
     fflush(stdout); // 手动刷新标准输出缓冲区
     bool flag = false;
     while(1){
-        if(ReptMsgQueue.try_pop(msg)){
-            Getrpt(clientp);
-            ReptMsgQueue.clear();
+        while(ReptMsgQueue.try_pop(msg)){
+            rpt = report::fromJson(msg);
             flag = true;
         }
         if(flag){

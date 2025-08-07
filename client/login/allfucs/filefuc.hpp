@@ -416,9 +416,8 @@ void filefucs::listfriend(){
             flag = true;
         }
         //判断是否有新通知
-        if(ReptMsgQueue.try_pop(msg)){
-            Getrpt(clientp);
-            ReptMsgQueue.clear();
+        while(ReptMsgQueue.try_pop(msg)){
+            rpt = report::fromJson(msg);
             flag = true;
         }
         if(flag || sendfileok){
@@ -493,9 +492,8 @@ void filefucs::listgroup(){
             flag = true;
         }
         //判断是否有新通知
-        if(ReptMsgQueue.try_pop(msg)){
-            Getrpt(clientp);
-            ReptMsgQueue.clear();
+        while(ReptMsgQueue.try_pop(msg)){
+            rpt = report::fromJson(msg);
             flag = true;
         }
         if(flag || sendfileok){
@@ -723,9 +721,8 @@ void filefucs::downloadfile(){
             flag = true;
         }
         //判断是否有新通知
-        if(ReptMsgQueue.try_pop(msg)){
-            Getrpt(clientp);
-            ReptMsgQueue.clear();
+        while(ReptMsgQueue.try_pop(msg)){
+            rpt = report::fromJson(msg);
             flag = true;
         }
         if(flag || recvfileok){

@@ -417,6 +417,7 @@ void filefucs::listfriend(){
         }
         //判断是否有新通知
         while(ReptMsgQueue.try_pop(msg)){
+            if(msg == "disg" || msg == "modmanage") continue;
             rpt = report::fromJson(msg);
             flag = true;
         }
@@ -493,6 +494,7 @@ void filefucs::listgroup(){
         }
         //判断是否有新通知
         while(ReptMsgQueue.try_pop(msg)){
+            if(msg == "disg" || msg == "modmanage") continue;
             rpt = report::fromJson(msg);
             flag = true;
         }
@@ -709,7 +711,7 @@ void filefucs::downloadfile(){
     page = 0;
     filelist('0', 1);
     if(fnl.data.size())
-        printf("\033[0;32m选择您要传文件的群聊:>\033[0m");
+        printf("\033[0;32m请选择您要接收的文件:>\033[0m");
     fflush(stdout); // 手动刷新标准输出缓冲区
     bool flag = false, recvfileok = false;
     std::string msg;
@@ -722,6 +724,7 @@ void filefucs::downloadfile(){
         }
         //判断是否有新通知
         while(ReptMsgQueue.try_pop(msg)){
+            if(msg == "disg" || msg == "modmanage") continue;
             rpt = report::fromJson(msg);
             flag = true;
         }
@@ -735,7 +738,7 @@ void filefucs::downloadfile(){
             system("clear");
             filelist('p', 1);
             if(fnl.data.size())
-                printf("\033[0;32m选择您要传文件的群聊:>\033[0m");
+                printf("\033[0;32m请选择您要接收的文件:>\033[0m");
             fflush(stdout); // 手动刷新标准输出缓冲区
         }
         char input = tm_charget(1000);
@@ -758,7 +761,7 @@ void filefucs::downloadfile(){
             system("clear");
             filelist('[', 1);
             if(fnl.data.size())
-                printf("\033[0;32m选择您要传文件的群聊:>\033[0m");
+                printf("\033[0;32m请选择您要接收的文件:>\033[0m");
             fflush(stdout); // 手动刷新标准输出缓冲区
             break;
         }
@@ -766,7 +769,7 @@ void filefucs::downloadfile(){
             system("clear");
             filelist(']', 1);
             if(fnl.data.size())
-                printf("\033[0;32m选择您要传文件的群聊:>\033[0m");
+                printf("\033[0;32m请选择您要接收的文件:>\033[0m");
             fflush(stdout); // 手动刷新标准输出缓冲区
             break;
         }

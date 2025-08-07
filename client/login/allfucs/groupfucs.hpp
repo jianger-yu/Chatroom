@@ -39,7 +39,7 @@ public:
 
     //进行群聊
     void groupchat();
-    void handlechat(char, int fg = 1);
+    int handlechat(char, int fg = 1);
     void chatmenu(char c, group& gp);
 
     //查看群聊列表
@@ -324,6 +324,7 @@ void groupfucs::quitgroup(){
         }
         //判断是否有新通知
         while(ReptMsgQueue.try_pop(msg)){
+            if(msg == "disg" || msg == "modmanage") continue;
             rpt = report::fromJson(msg);
             flag = true;
         }
@@ -482,6 +483,7 @@ void groupfucs::view(char c, int fg, int hdl){
         }
         //判断是否有新通知
         while(ReptMsgQueue.try_pop(msg)){
+            if(msg == "disg" || msg == "modmanage") continue;
             rpt = report::fromJson(msg);
             flag = true;
         }
@@ -561,6 +563,7 @@ void groupfucs::viewmember(){
         }
         //判断是否有新通知
         while(ReptMsgQueue.try_pop(msg)){
+            if(msg == "disg" || msg == "modmanage") continue;
             rpt = report::fromJson(msg);
             flag = true;
         }
@@ -645,7 +648,7 @@ void groupfucs::chatmenu(char c, group& gp){
     printf("\033[0;36m==================================================================\033[0m\n");
 }
 
-void groupfucs::handlechat(char c, int fg){
+int groupfucs::handlechat(char c, int fg){
     Client * cp = (Client*)clientp;
     Socket * sock = cp->getSocket();
     system("clear");
@@ -654,10 +657,10 @@ void groupfucs::handlechat(char c, int fg){
     //找到对应gid
     int i = 5*page + c - '0' - 1, j = 0;
     if(fg == 1){
-        if(i >= us.grouplist.size()) return;
+        if(i >= us.grouplist.size()) return 0;
     }
     else if(fg == 2)
-        if(i >= grouplist.data.size()) return;
+        if(i >= grouplist.data.size()) return 0;
     std::string gid;
     if(fg == 1){
         for(std::string str : us.grouplist){
@@ -683,7 +686,7 @@ void groupfucs::handlechat(char c, int fg){
         printf("\033[0;31m数据异常，请稍后再试。\033[0m\n");
         printf("\033[0;31m请按任意键继续...\033[0m");
         charget();
-        return ;
+        return 0 ;
     }
     viewgp = group::fromJson(js);
     //开始聊天
@@ -718,7 +721,7 @@ void groupfucs::handlechat(char c, int fg){
                     printf("\033[0;31m您当前已不在该群聊。\033[0m\n");
                     printf("\033[0;31m请按任意键继续...\033[0m\n");
                     charget();
-                    return;
+                    return -1;
                 }
                 flag = true;
             }
@@ -732,6 +735,7 @@ void groupfucs::handlechat(char c, int fg){
             }
             //判断是否有新通知
             while(ReptMsgQueue.try_pop(msg)){
+                if(msg == "disg" || msg == "modmanage") continue;
                 rpt = report::fromJson(msg);
                 flag = true;
             }
@@ -790,7 +794,7 @@ void groupfucs::handlechat(char c, int fg){
                 printf("\033[0;31m当前不在群聊，发送失败！\033[0m\n]]");
                 printf("\033[0;31m请按任意键继续...\033[0m\n");
                 charget();
-                return;
+                return -1;
             }
             save.data.insert(save.data.begin(), sendm.toJson());
             flag = true;
@@ -825,7 +829,7 @@ void groupfucs::handlechat(char c, int fg){
             break;
         }
         case 27:{
-            return ;
+            return 0 ;
         }
         default:{
              utf8_buf += input;
@@ -875,6 +879,7 @@ void groupfucs::groupchat(){
         }
         //判断是否有新通知
         while(ReptMsgQueue.try_pop(msg)){
+            if(msg == "disg" || msg == "modmanage") continue;
             rpt = report::fromJson(msg);
             flag = true;
         }
@@ -941,6 +946,7 @@ void groupfucs::list_group(){
         }
         //判断是否有新通知
         while(ReptMsgQueue.try_pop(msg)){
+            if(msg == "disg" || msg == "modmanage") continue;
             rpt = report::fromJson(msg);
             flag = true;
         }
@@ -1075,6 +1081,7 @@ void groupfucs::select(char c, int fg){
         }
         //判断是否有新通知
         while(ReptMsgQueue.try_pop(msg)){
+            if(msg == "modmanage") continue;
             flag = true;
             if(msg == "disg") break;
             rpt = report::fromJson(msg);
@@ -1090,7 +1097,7 @@ void groupfucs::select(char c, int fg){
         if(input == -1) continue;
         switch(input){
         case '1':{
-            handlechat(c, fg);
+            if(handlechat(c, fg) == -1) return;
             flag = true;
             break;
         }
@@ -1464,6 +1471,7 @@ void groupfucs::manage(){
         }
         //判断是否有新通知
         while(ReptMsgQueue.try_pop(msg)){
+            if(msg == "disg") continue;
             flag = true;
             if(msg == "modmanage") break;
             rpt = report::fromJson(msg);

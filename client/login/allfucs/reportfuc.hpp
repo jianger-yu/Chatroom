@@ -564,6 +564,7 @@ void reportfucs::friendreport(){
     bool flag = false;
     while(1){
         while(ReptMsgQueue.try_pop(msg)){
+            if(msg == "disg" || msg == "modmanage") continue;
             rpt = report::fromJson(msg);
             flag = true;
         }
@@ -623,6 +624,7 @@ void reportfucs::groupreport(){
     bool flag = false;
     while(1){
         while(ReptMsgQueue.try_pop(msg)){
+            if(msg == "disg" || msg == "modmanage") continue;
             rpt = report::fromJson(msg);
             flag = true;
         }
@@ -722,6 +724,7 @@ void reportfucs::notice(){
     bool flag = false;
     while(1){
         while(ReptMsgQueue.try_pop(msg)){
+            if(msg == "disg" || msg == "modmanage") continue;
             rpt = report::fromJson(msg);
             flag = true;
         }
@@ -868,6 +871,7 @@ void reportfucs::handlechat(char c, report& rpt){
         }
         //判断是否有新通知
         while(ReptMsgQueue.try_pop(msg)){
+            if(msg == "disg" || msg == "modmanage") continue;
             rpt = report::fromJson(msg);
             flag = true;
         }
@@ -1009,6 +1013,7 @@ void reportfucs::ctfrdreport(){
     bool flag = false;
     while(1){
         while(ReptMsgQueue.try_pop(msg)){
+            if(msg == "disg" || msg == "modmanage") continue;
             rpt = report::fromJson(msg);
             flag = true;
         }
@@ -1188,6 +1193,7 @@ void reportfucs::ghandlechat(char c, int fg){
             }
             //判断是否有新通知
             while(ReptMsgQueue.try_pop(msg)){
+                if(msg == "disg" || msg == "modmanage") continue;
                 rpt = report::fromJson(msg);
                 flag = true;
             }
@@ -1323,6 +1329,7 @@ void reportfucs::ctfgrpreport(){
     bool flag = false;
     while(1){
         while(ReptMsgQueue.try_pop(msg)){
+            if(msg == "disg" || msg == "modmanage") continue;
             rpt = report::fromJson(msg);
             flag = true;
         }

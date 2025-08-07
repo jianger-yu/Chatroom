@@ -230,6 +230,7 @@ void friendfucs::select(char c, int fg){
         }
         //判断是否有新通知
         while(ReptMsgQueue.try_pop(msg)){
+            if(msg == "disg" || msg == "modmanage") continue;
             rpt = report::fromJson(msg);
             flag = true;
         }
@@ -289,6 +290,7 @@ void friendfucs::listfriend(){
         }
         //判断是否有新通知
         while(ReptMsgQueue.try_pop(msg)){
+            if(msg == "disg" || msg == "modmanage") continue;
             rpt = report::fromJson(msg);
             flag = true;
         }
@@ -415,6 +417,7 @@ void friendfucs::delfriend(){
         }
         //判断是否有新通知
         while(ReptMsgQueue.try_pop(msg)){
+            if(msg == "disg" || msg == "modmanage") continue;
             rpt = report::fromJson(msg);
             flag = true;
         }
@@ -582,6 +585,7 @@ void friendfucs::handlechat(char c, int fg){
             }
             //判断是否有新通知
             while(ReptMsgQueue.try_pop(msg)){
+                if(msg == "disg" || msg == "modmanage") continue;
                 rpt = report::fromJson(msg);
                 flag = true;
             }
@@ -624,14 +628,6 @@ void friendfucs::handlechat(char c, int fg){
         }
         case '\n':{//发送消息
             if(content.size() == 0 || content == "\n") break;
-            if(us.shieldlist.count(uid2)){
-                system("clear");
-                printf("\033[0;31m对方已被您屏蔽，发送失败！\033[0m\n");
-                printf("\033[0;31m请解除屏蔽后再发送。\033[0m\n");
-                printf("\033[0;31m请按任意键继续...\033[0m\n");
-                charget();
-                return;
-            }
             content.push_back('\0');
             message sendm;
             sendm.sender_uid = us.uid;
@@ -644,7 +640,13 @@ void friendfucs::handlechat(char c, int fg){
             if(rev == "rihgt");
             else if(rev == "nofrd"){
                 system("clear");
-                printf("\033[0;31m当前不是好友，发送失败！\033[0m\n]]");
+                printf("\033[0;31m当前不是好友，发送失败！\033[0m\n");
+                printf("\033[0;31m请按任意键继续...\033[0m\n");
+                charget();
+                return;
+            } else if(rev == "sheld"){
+                system("clear");
+                printf("\033[0;31m对方已将你拉黑，消息被拒收！\033[0m\n");
                 printf("\033[0;31m请按任意键继续...\033[0m\n");
                 charget();
                 return;
@@ -732,6 +734,7 @@ void friendfucs::chatfriend(){
         }
         //判断是否有新通知
         while(ReptMsgQueue.try_pop(msg)){
+            if(msg == "disg" || msg == "modmanage") continue;
             rpt = report::fromJson(msg);
             flag = true;
         }
@@ -985,6 +988,7 @@ void friendfucs::shieldfriend(int cs){
         }
         //判断是否有新通知
         while(ReptMsgQueue.try_pop(msg)){
+            if(msg == "disg" || msg == "modmanage") continue;
             rpt = report::fromJson(msg);
             flag = true;
         }
@@ -1151,6 +1155,7 @@ void friendfucs::searchfriend(){
         }
         //判断是否有新通知
         while(ReptMsgQueue.try_pop(msg)){
+            if(msg == "disg" || msg == "modmanage") continue;
             rpt = report::fromJson(msg);
             flag = true;
         }

@@ -725,9 +725,9 @@ void handler::sdms(){
         return;
     }
     //再判断是否被屏蔽
-    if(ud2.shieldlist.count(ud1.uid)){//被屏蔽，消息记录为单向，不给接受者发通知
-        u.savechat2(sendm.toJson());
-        sendMsg("echo:right", sockfd);
+    if(ud2.shieldlist.count(ud1.uid)){//被屏蔽，消息记录为单向，不给接受者发通知（x）
+        //被屏蔽，提示被屏蔽，消息无法发送
+        sendMsg("echo:sheld", sockfd);
         return;
     }
     //存入数据库

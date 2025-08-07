@@ -39,10 +39,11 @@ int userfuc::mainfuc(void * p){
     while(1){
         //判断用户信息是否变动
         if(UserMsgQueue.try_pop(msg)){
-            u = user::fromJson(msg);
+            us = u = user::fromJson(msg);
             flag = true;
         }
         while(ReptMsgQueue.try_pop(msg)){
+            if(msg == "disg" || msg == "modmanage") continue;
             rpt = report::fromJson(msg);
             flag = true;
         }
@@ -97,10 +98,11 @@ int userfuc::friendfuc(void){
     while(1){
         //判断用户信息是否变动
         if(UserMsgQueue.try_pop(msg)){
-            u = user::fromJson(msg);
+            us = u = user::fromJson(msg);
             flag = true;
         }
         while(ReptMsgQueue.try_pop(msg)){
+            if(msg == "disg" || msg == "modmanage") continue;
             rpt = report::fromJson(msg);
             flag = true;
         }
@@ -169,10 +171,11 @@ int userfuc::groupfuc(void){
     while(1){
         //判断用户信息是否变动
         if(UserMsgQueue.try_pop(msg)){
-            u = user::fromJson(msg);
+            us = u = user::fromJson(msg);
             flag = true;
         }
         while(ReptMsgQueue.try_pop(msg)){
+            if(msg == "disg" || msg == "modmanage") continue;
             rpt = report::fromJson(msg);
             flag = true;
         }
@@ -250,10 +253,11 @@ int userfuc::filefuc(void){
     while(1){
         //判断用户信息是否变动
         if(UserMsgQueue.try_pop(msg)){
-            u = user::fromJson(msg);
+            us = u = user::fromJson(msg);
             flag = true;
         }
         while(ReptMsgQueue.try_pop(msg)){
+            if(msg == "disg" || msg == "modmanage") continue;
             rpt = report::fromJson(msg);
             flag = true;
         }
@@ -311,10 +315,11 @@ int userfuc::setupfuc(void){
     while(1){
         //判断用户信息是否变动
         if(UserMsgQueue.try_pop(msg)){
-            u = user::fromJson(msg);
+            us = u = user::fromJson(msg);
             flag = true;
         }
         while(ReptMsgQueue.try_pop(msg)){
+            if(msg == "disg" || msg == "modmanage") continue;
             rpt = report::fromJson(msg);
             flag = true;
         }
@@ -383,10 +388,11 @@ int userfuc::reportfuc(void){
     while(1){
         //判断用户信息是否变动
         if(UserMsgQueue.try_pop(msg)){
-            u = user::fromJson(msg);
+            us = u = user::fromJson(msg);
             flag = true;
         }
         while(ReptMsgQueue.try_pop(msg)){
+            if(msg == "disg" || msg == "modmanage") continue;
             rpt = report::fromJson(msg);
             flag = true;
         }

@@ -209,9 +209,11 @@ void readctor::senddata(int fd,int tmp, void * arg){
         printf("处理回调取出slen:%d, str,size():%ld, str:%s\n", slen,str.size(),str.c_str());
         
         if(datareactor && str[0] == 'r' && str[1] == 'v' && str[2] == 'f' && str[3] == 'l') rvfl(str);
+        else if(datareactor && str[0] == 'r' && str[1] == 'v' && str[2] == 'g' && str[3] == 'f') rvgf(str);
         else {
             handler hand(str, fd);
             if(datareactor && str[0] == 's' && str[1] == 'd' && str[2] == 'f' && str[3] == 'l') hand.sdfl();
+            else if(datareactor && str[0] == 's' && str[1] == 'd' && str[2] == 'g' && str[3] == 'f') hand.sdgf();
             else ret = hand.handle();
         }
     }

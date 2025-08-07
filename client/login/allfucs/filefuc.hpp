@@ -30,7 +30,9 @@ public:
     };
     //发送文件线程
     void upload_file_with_offset();
+    void upload_gfile_with_offset();
     void download_file_with_offset(std::string);
+    void download_gfile_with_offset(std::string);
     //连接上服务器的文件传输线程
     bool conntect_filepth();
     //获取文件名
@@ -47,7 +49,8 @@ public:
     //下载好友文件
     std::string formatFileSize(uint64_t size_bytes);
     void downloadfile();
-    void download(char);
+    void downloadgfile();
+    void download(char, int fg);
 
 };
 
@@ -82,13 +85,24 @@ void filefucs::sendfile_touser(char c, int fg){
 
     //找到对应消息
     int i = 5*page + c - '0' - 1, j = 0, ret;
-    if(i >= us.friendlist.size()) return;
-    for(std::string str : us.friendlist){
-        if(j == i){
-            sd = str;
-            break;
+    if(fg == 1){
+        if(i >= us.friendlist.size()) return;
+        for(std::string str : us.friendlist){
+            if(j == i){
+                sd = str;
+                break;
+            }
+            j++;
         }
-        j++;
+    } else if(fg == 2){
+        if(i >= us.grouplist.size()) return;
+        for(std::string str : us.grouplist){
+            if(j == i){
+                sd = str;
+                break;
+            }
+            j++;
+        }
     }
     uuid = us.uid;
     //下载文件
@@ -150,8 +164,13 @@ void filefucs::sendfile_touser(char c, int fg){
         return ;
     }
     //std::thread sendfilepth(&filefucs::upload_file_with_offset, this);
-    std::thread sendfilepth(std::bind(&filefucs::upload_file_with_offset, this));
-    sendfilepth.detach();  //后台运行，不阻塞主线程
+    if(fg == 1){
+        std::thread sendfilepth(std::bind(&filefucs::upload_file_with_offset, this));
+        sendfilepth.detach();  //后台运行，不阻塞主线程
+    } else if(fg == 2){
+        std::thread sendfilepth(std::bind(&filefucs::upload_gfile_with_offset, this));
+        sendfilepth.detach();  //后台运行，不阻塞主线程
+    }
 
     printf("\033[0;31m正在后台发文件，请按任意键继续...\033[0m");
     charget();
@@ -203,7 +222,50 @@ void filefucs::upload_file_with_offset() {
     file_sending = false;
 }
 
+void filefucs::upload_gfile_with_offset() {
+    file_sending = true;
+    Socket* datasock = dataclient.getSocket();
+    const size_t block_size = 4096;
+    char buf[block_size];
+    off_t offset = 0;
+    size_t bytesRead;
+    int i = 0;
+    file_block block;
+    while ((bytesRead = fread(buf, 1, block_size, file)) > 0) {
+        // 构造 file_block
+        block.sender_uid = uuid;
+        block.receiver_uid = sd;
+        block.fid = fid;
+        block.filename = arr;
+        block.timestamp = file_block::get_beijing_time();
+        block.offset = offset;
+        block.is_group = true;
+        block.is_file = false;
 
+        std::string json_str = block.toJson();
+        uint32_t json_len = htonl(json_str.size());
+
+        // 构造完整消息
+        std::string packet;
+        packet.append(reinterpret_cast<const char*>(&json_len), sizeof(json_len));
+        packet.append(json_str);
+        packet.append(buf, bytesRead);
+        // printf("[%d]\njson_len:%d packet.size():%ld\njson_str:%s\n", ++i, json_len,packet.size(), json_str.c_str());
+        // printf("\n");
+        if (datasock->sendFILE("rvgf:"+packet) == -1) {
+            printf("发送失败，连接异常\n");
+            fclose(file);
+            file_sending = false;
+            return;
+        }
+
+        offset += bytesRead;
+    }
+
+    fclose(file);
+    datasock->sendMsg("gfed:"+block.toJson());  // 通知结束
+    file_sending = false;
+}
 
 
 void filefucs::download_file_with_offset(std::string sd){
@@ -296,6 +358,99 @@ void filefucs::download_file_with_offset(std::string sd){
 
     fclose(f);
     datasock->sendMsg("rved:"+uuid+":"+sd);  // 通知结束
+    file_recving = false;
+}
+
+void filefucs::download_gfile_with_offset(std::string sd){
+    std::string buf;
+    Client * cp = (Client*)clientp;
+    Socket * sock = cp->getSocket();
+    file_recving = true;
+    bool sendfileok = false, first = true;
+    Socket* datasock = dataclient.getSocket();
+    datasock->setNonBlocking();
+    datasock->sendMsg("sdgf:"+uuid+":"+sd);
+    std::string ret = EchoMsgQueue.wait_and_pop(), packet;
+    if(ret == "error"){
+        printf("接收失败，连接异常\n");
+        file_recving = false;
+        return;
+    }
+    FILE* f;
+    while(1){
+        if(sendfileok && !buf.size()) break;
+        if(buf.size() <= 524288) //512*1024
+            datasock->recvfull(buf);
+        //printf("buf.size():%ld\n", buf.size());
+        if(buf.size() >= 4){
+            uint32_t len, slen;
+            std::memcpy(&len, buf.data(), sizeof(len));
+            slen = ntohl(len);
+            if(buf.size() < 4 + slen) {
+                //printf("buf.size():%ld < 4 + slen%d\n", buf.size(), slen);
+                continue;
+            }
+            packet = buf.substr(4, slen);
+            buf.erase(0, 4+slen);
+            //printf("取出slen:%d, packet,size():%ld, packet:%s\n", slen,packet.size(),packet.c_str());
+            if(packet == "end") {
+                sendfileok = true;
+                continue;
+            }
+        }
+        else continue;
+        //printf("read packetsize%ld, str:%s\n", packet.size() ,packet.c_str());
+        //处理
+        if (packet.size() < sizeof(uint32_t)) {
+            printf("接收失败，连接异常\n");
+            if(!first) fclose(f);
+            file_recving = false;
+            return;
+        }
+        //1. 提取前4字节，得到 JSON 字符串长度
+        uint32_t json_len;
+        std::memcpy(&json_len, packet.data(), sizeof(uint32_t));
+        json_len = ntohl(json_len);  // 网络字节序转主机序
+        //2. 检查总长度是否合法
+        if (packet.size() < sizeof(uint32_t) + json_len) {
+            printf("数据包长度不足，缺失 JSON 部分\n");
+            return;
+        }
+        //3. 提取 JSON 字符串
+        std::string json_str = packet.substr(sizeof(uint32_t), json_len);
+        //4. 解析 JSON
+        file_block fb = file_block::fromJson(json_str);
+        //5. 提取数据部分
+        size_t data_offset = sizeof(uint32_t) + json_len;
+        std::string data = packet.substr(data_offset);
+
+        if(first){
+            //构造目录路径: ./recvfile/file_<recver_uid>/
+            std::string dir_path = "./recvgfile_" + fb.receiver_uid;
+            std::filesystem::create_directories(dir_path);  // 若已存在不会报错
+
+            //构造文件名: sender_uid:fid:filename
+            std::string file_name = fb.filename;
+            std::string full_path = dir_path + "/" + file_name;
+
+            //写入文件
+            f = fopen(full_path.c_str(), "r+b");
+            if (!f) {
+                f = fopen(full_path.c_str(), "wb");
+                if (!f) {
+                    perror("无法创建文件");
+                    return;
+                }
+            }
+            first = false;
+        }
+
+        fseek(f, fb.offset, SEEK_SET);
+        fwrite(data.data(), 1, data.size(), f);
+    }
+
+    fclose(f);
+    datasock->sendMsg("rvge:"+uuid+":"+sd);  // 通知结束
     file_recving = false;
 }
 
@@ -521,7 +676,7 @@ void filefucs::listgroup(){
         case '5':{
             int p = 5*page + input - '0' - 1;
             if(p >= 0 && p < us.grouplist.size()){
-                //sendfile_togroup(input);
+                sendfile_touser(input, 2);
                 flag = true;
                 sendfileok = true;
             }
@@ -530,7 +685,7 @@ void filefucs::listgroup(){
         case '[':{
             system("clear");
             list('[', 2);
-            if(us.friendlist.size())
+            if(us.grouplist.size())
                 printf("\033[0;32m选择您要传文件的群聊:>\033[0m");
             fflush(stdout); // 手动刷新标准输出缓冲区
             break;
@@ -538,7 +693,7 @@ void filefucs::listgroup(){
         case ']':{
             system("clear");
             list(']', 2);
-            if(us.friendlist.size())
+            if(us.grouplist.size())
                 printf("\033[0;32m选择您要传文件的群聊:>\033[0m");
             fflush(stdout); // 手动刷新标准输出缓冲区
             break;
@@ -574,7 +729,7 @@ void filefucs::filelist(char c, int fg){
         printf("\033[0;34m%-6s %-15s %-13s %-12s\033[0m\n", "序号", "发送人", "FID", "文件名");
     }
     else if(fg == 2){
-        printf("\033[0;32m以下为您加入的群聊\033[0m\n");
+        printf("\033[0;32m以下为您的可接收的群文件\033[0m\n");
         printf("\033[0;34m%-6s %-15s %-13s %-12s\033[0m\n", "序号", "来源群聊", "FID", "文件名");
     }
     for(std::string str : fnl.data){
@@ -601,7 +756,15 @@ void filefucs::filelist(char c, int fg){
                         color, i - 5 * page + 1,
                         name.c_str(), fid.c_str(), filename.c_str());
             } else if(fg == 2){
-
+                sock->sendMsg("gtgp:"+uid2);
+                std::string red = EchoMsgQueue.wait_and_pop();
+                if(red == "norepeat") continue;
+                group gp = group::fromJson(red);
+                std::string name = gp.name;
+                const char *color = "\033[0;32m";
+                printf("%s[%d]  %-12s %-13s %-12s\033[0m\n",
+                        color, i - 5 * page + 1,
+                        name.c_str(), fid.c_str(), filename.c_str());
             }
         }
         i++;
@@ -627,7 +790,7 @@ std::string filefucs::formatFileSize(uint64_t size_bytes) {
 }
 
 
-void filefucs::download(char c){
+void filefucs::download(char c, int fg = 1){
     Client * cp = (Client*)clientp;
     Socket * sock = cp->getSocket();
     system("clear");
@@ -657,7 +820,10 @@ void filefucs::download(char c){
     while(sd[j] != ':') fid.push_back(sd[j++]);
     for(int k = j + 1; k < sd.size(); k++) filename.push_back(sd[k]);
     //获取文件大小
-    sock->sendMsg("flsz:"+ sd);
+    if(fg == 1)
+        sock->sendMsg("flsz:"+ sd);
+    else if(fg == 2)
+        sock->sendMsg("gfsz:"+ sd);
     std::string sz = EchoMsgQueue.wait_and_pop();
     if(sz == "error"){
         printf("\033[0;31m数据异常，请稍后再试。\033[0m\n");
@@ -681,10 +847,13 @@ void filefucs::download(char c){
         break;
     }
     uuid = us.uid;
-
-    std::thread sendfilepth(std::bind(&filefucs::download_file_with_offset, this, sd));
-    sendfilepth.detach();  //后台运行，不阻塞主线程
-    
+    if(fg == 1){
+        std::thread sendfilepth(std::bind(&filefucs::download_file_with_offset, this, sd));
+        sendfilepth.detach();  //后台运行，不阻塞主线程
+    } else if (fg == 2){
+        std::thread sendfilepth(std::bind(&filefucs::download_gfile_with_offset, this, sd));
+        sendfilepth.detach();  //后台运行，不阻塞主线程
+    }
     printf("\033[0;31m正在后台接收文件，请按任意键继续...\033[0m");
     charget();
 }
@@ -768,6 +937,98 @@ void filefucs::downloadfile(){
         case ']':{
             system("clear");
             filelist(']', 1);
+            if(fnl.data.size())
+                printf("\033[0;32m请选择您要接收的文件:>\033[0m");
+            fflush(stdout); // 手动刷新标准输出缓冲区
+            break;
+        }
+        case 27:{
+            return ;
+        }
+        default:continue;
+        }
+    }
+    return ;
+}
+
+void filefucs::downloadgfile(){
+    //向服务器获取数据
+    Client * cp = (Client*)clientp;
+    Socket * sock = cp->getSocket();
+    system("clear");
+    printf("\033[0;32m数据请求中...\033[0m\n");
+    sock->sendMsg("gtgf:"+us.uid);
+    std::string frl = EchoMsgQueue.wait_and_pop();
+    if(frl == "nofile"){
+        system("clear");
+        printf("\033[0;31m当前没有可接收的群文件。\033[0m\n");
+        printf("\033[0;31m请按任意键继续...\033[0m\n");
+        charget();
+        return;
+    }
+    fnl = friendnamelist::fromJson(frl);
+
+    system("clear");
+    page = 0;
+    filelist('0', 2);
+    if(fnl.data.size())
+        printf("\033[0;32m请选择您要接收的文件:>\033[0m");
+    fflush(stdout); // 手动刷新标准输出缓冲区
+    bool flag = false, recvfileok = false;
+    std::string msg;
+    while(1){
+        //判断用户信息是否变动
+        if(UserMsgQueue.try_pop(msg)){
+            page = 0;
+            us = user::fromJson(msg);
+            flag = true;
+        }
+        //判断是否有新通知
+        while(ReptMsgQueue.try_pop(msg)){
+            if(msg == "disg" || msg == "modmanage") continue;
+            rpt = report::fromJson(msg);
+            flag = true;
+        }
+        if(flag || recvfileok){
+            if(recvfileok){
+                dataclient.reinitialize();
+                conntect_filepth();
+                recvfileok = false;
+            }
+            flag = false;
+            system("clear");
+            filelist('p', 2);
+            if(fnl.data.size())
+                printf("\033[0;32m请选择您要接收的文件:>\033[0m");
+            fflush(stdout); // 手动刷新标准输出缓冲区
+        }
+        char input = tm_charget(1000);
+        if(input == -1) continue;
+        switch(input){
+        case '1':
+        case '2':
+        case '3':
+        case '4':
+        case '5':{
+            int p = 5*page + input - '0' - 1;
+            if(p >= 0 && p < fnl.data.size()){
+                download(input, 2);
+                flag = true;
+                recvfileok = true;
+            }
+            break;
+        }
+        case '[':{
+            system("clear");
+            filelist('[', 2);
+            if(fnl.data.size())
+                printf("\033[0;32m请选择您要接收的文件:>\033[0m");
+            fflush(stdout); // 手动刷新标准输出缓冲区
+            break;
+        }
+        case ']':{
+            system("clear");
+            filelist(']', 2);
             if(fnl.data.size())
                 printf("\033[0;32m请选择您要接收的文件:>\033[0m");
             fflush(stdout); // 手动刷新标准输出缓冲区

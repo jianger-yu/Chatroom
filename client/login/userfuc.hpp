@@ -50,7 +50,6 @@ int userfuc::mainfuc(void * p){
         if(flag){
             flag = false;
             system("clear");
-            fflush(stdout); // 手动刷新标准输出缓冲区
             usermainmenu(u, clientp);
             fflush(stdout); // 手动刷新标准输出缓冲区
         }
@@ -277,7 +276,8 @@ int userfuc::filefuc(void){
             break;
         }
         case '2':{
-            
+            ffc.listgroup();
+            flag = true;
             break;
         }
         case '3':{
@@ -286,7 +286,8 @@ int userfuc::filefuc(void){
             break;
         }
         case '4':{
-            
+            ffc.downloadgfile();
+            flag = true;
             break;
         }
         case 27:{

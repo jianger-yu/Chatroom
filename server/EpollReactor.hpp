@@ -1,3 +1,4 @@
+#pragma once
 #include <signal.h>
 #include <stdio.h>
 #include <errno.h>
@@ -15,6 +16,7 @@
 #include <pwd.h>
 #include <dirent.h>
 #include <sys/stat.h>
+#include <mutex>
 
 #include "ThreadPool.hpp"
 #include "./server/server.h"
@@ -28,6 +30,8 @@
 #define  FILEROAD "/home/jianger/codes/ server/server/ file"
 #define max_road 4096
 
+extern std::unordered_map<int, std::unique_ptr<std::mutex>> fd_write_mutexes;
+extern std::unordered_map<int, std::unique_ptr<std::mutex>> fd_read_mutexes;
 struct my_dr{
     char name[256];
     long unsigned int ino;
@@ -45,6 +49,8 @@ typedef struct event{
     //读入的信息及长度
     //char buf[BUFLEN];
     std::string buf;
+    std::mutex buf_mutex; //缓冲区锁
+
     int len;
     //用于监听的文件描述符
     int lisfd;
@@ -197,16 +203,22 @@ void readctor::acceptconn(int lfd,int tmp, void * arg){
 //处理回调
 void readctor::senddata(int fd,int tmp, void * arg){
     event * ev = (event*)arg;
-    printf("处理回调被执行,ev->buf:%s\n",ev->buf.c_str());
-    int ret;
-    while(ev->buf.size() >= 4){
-        uint32_t len, slen;
-        std::memcpy(&len, ev->buf.data(), sizeof(len));
-        slen = ntohl(len);
-        if(ev->buf.size() < 4 + slen) break;
-        std::string str = ev->buf.substr(4, slen);
-        ev->buf.erase(0, 4+slen);
-        printf("处理回调取出slen:%d, str,size():%ld, str:%s\n", slen,str.size(),str.c_str());
+    int ret = 0;
+    while(1){
+        std::string str;
+        {
+            std::lock_guard<std::mutex> lock(ev->buf_mutex);
+            if (ev->buf.size() < 4) {
+                break; // 不够完整包
+            }
+            uint32_t len, slen;
+            std::memcpy(&len, ev->buf.data(), sizeof(len));
+            slen = ntohl(len);
+            if(ev->buf.size() < 4 + slen) break;
+            str = ev->buf.substr(4, slen);
+            ev->buf.erase(0, 4+slen);
+            printf("处理回调取出slen:%d, str,size():%ld, str:%s\n", slen,str.size(),str.c_str());
+        }
         
         if(datareactor && str[0] == 'r' && str[1] == 'v' && str[2] == 'f' && str[3] == 'l') rvfl(str);
         else if(datareactor && str[0] == 'r' && str[1] == 'v' && str[2] == 'g' && str[3] == 'f') rvgf(str);
@@ -222,6 +234,7 @@ void readctor::senddata(int fd,int tmp, void * arg){
 
     eventdel(ev);
     if(ret == 1) {
+        printf("fd:%d 被关闭!\n", fd);
         close(fd);
         pthread_mutex_unlock(&event_mutex); // 解锁
         return;
@@ -243,6 +256,7 @@ void readctor::recvdata(int fd, int events, void*arg){
     if(ret == 10){
         if(!datareactor){
             std::string uid = socket_to_uid[fd];
+            printf("\033[0;31mrecvfull 判定 uid:%s断连, 正在关闭对应fd:%d\033[0m\n", uid.c_str(), fd);
             str = "rvlg:" + uid;
             uint32_t slen = htonl(str.size());
             str.insert(0, reinterpret_cast<const char*>(&slen), sizeof(slen));
@@ -256,7 +270,10 @@ void readctor::recvdata(int fd, int events, void*arg){
         pthread_mutex_unlock(&event_mutex); // 解锁
         return;
     }
-    ev->buf.append(str);
+    {
+        std::lock_guard<std::mutex> lock(ev->buf_mutex);
+        ev->buf.append(str);
+    }
     // memset(ev->buf, 0, sizeof ev->buf);
     // memcpy(ev->buf, str.data(), str.size());
     len = str.size();
@@ -266,7 +283,7 @@ void readctor::recvdata(int fd, int events, void*arg){
     if(len > 0){
         ev->len = len;
         //ev->buf[len] ='\0';
-        printf("C[%d]:%s",fd,ev->buf.c_str());
+        printf("C[fd:%d], ev->buf,size():%ld\n",fd,ev->buf.size());
 
         eventset(ev,fd,&readctor::senddata,ev);    //设置该fd对应的回调函数为senddata
         eventadd(EPOLLOUT, ev);         //将fd加入红黑树中，监听其写事件
@@ -287,6 +304,9 @@ void readctor::recvdata(int fd, int events, void*arg){
 //初始化事件
 void readctor::eventset(event * ev, int fd, void (readctor::* call_back)(int ,int , void *), void * arg){
     ev -> fd = fd;
+    fd_write_mutexes[fd] = std::make_unique<std::mutex>();
+    fd_read_mutexes[fd] = std::make_unique<std::mutex>();
+
     ev -> call_back = call_back;
     ev -> arg = arg;
 

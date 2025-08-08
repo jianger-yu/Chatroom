@@ -31,16 +31,31 @@ struct user {
 
     // 从 JSON 字符串构造对象
     static user fromJson(const std::string& s) {
-        json j = json::parse(s);
         user data;
-        data.uid = j["uid"];
-        data.name = j["name"];
-        data.email = j["email"];
-        data.pwd = j["pwd"];
-        data.stat = j["stat"];
-        data.friendlist = j["friendlist"].get<std::set<std::string>>();
-        data.grouplist = j["grouplist"].get<std::set<std::string>>();
-        data.shieldlist = j["shieldlist"].get<std::set<std::string>>();
+        try {
+            json j = json::parse(s);
+            data.uid = j["uid"];
+            data.name = j["name"];
+            data.email = j["email"];
+            data.pwd = j["pwd"];
+            data.stat = j["stat"];
+            data.friendlist = j["friendlist"].get<std::set<std::string>>();
+            data.grouplist = j["grouplist"].get<std::set<std::string>>();
+            data.shieldlist = j["shieldlist"].get<std::set<std::string>>();
+        }
+        catch (const json::parse_error& e) {
+            std::cerr << "JSON parse error: " << e.what() << "\nJSON content: " << s << std::endl;
+            throw;
+        }
+        catch (const json::type_error& e) {
+            std::cerr << "JSON type error: " << e.what() << "\nJSON content: " << s << std::endl;
+            throw;
+        }
+        catch (const std::exception& e) {
+            std::cerr << "JSON unknown error: " << e.what() << "\nJSON content: " << s << std::endl;
+            throw;
+        }
         return data;
     }
+
 };

@@ -25,6 +25,12 @@ public:
 
     userdata():redis(connectRedis()){
     }
+    ~userdata() {
+        if (redis) {
+            redisFree(redis);
+            redis = nullptr;
+        }
+    }
     //根据json字符串注册用户,返回uid或fail
     std::string newuser(std::string);
     std::string newgroup(std::string&);
@@ -257,10 +263,31 @@ std::string userdata::EmailGetuid(const char * buf){
 
 user userdata::GetUesr(std::string buf){
     redisReply* reply = (redisReply*)redisCommand(redis, "GET user:%s", buf.c_str());
-    //if(reply == NULL || reply->type == REDIS_REPLY_NIL || reply->type != REDIS_REPLY_STRING)
-    user ret = user::fromJson(reply->str);
-    freeReplyObject(reply);
-    return ret;
+    if (!reply) {
+        throw std::runtime_error("Redis command failed: connection lost or server error");
+    }
+
+    if (reply->type == REDIS_REPLY_NIL) {
+        freeReplyObject(reply);
+        throw std::runtime_error("User not found in Redis");
+    }
+
+    if (reply->type != REDIS_REPLY_STRING) {
+        std::string errMsg = (reply->str ? reply->str : "(null)");
+        freeReplyObject(reply);
+        throw std::runtime_error("Unexpected Redis reply type: " + errMsg);
+    }
+
+    try {
+        user ret = user::fromJson(reply->str);
+        freeReplyObject(reply);
+        return ret;
+    } catch (const std::exception& e) {
+        std::string badJson = reply->str ? reply->str : "(null)";
+        freeReplyObject(reply);
+        throw std::runtime_error(std::string("Invalid JSON from Redis: ") + e.what() +
+                                 ", content: " + badJson);
+    }
 }
 
 std::string userdata::GetGroup(std::string buf){

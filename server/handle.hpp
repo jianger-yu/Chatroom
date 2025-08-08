@@ -6,6 +6,10 @@
 #include "../user.hpp"
 #include "../client/register/hashpwd.hpp"
 #include "../message.hpp"
+#include <mutex>
+
+std::unordered_map<int, std::unique_ptr<std::mutex>> fd_write_mutexes;
+std::unordered_map<int, std::unique_ptr<std::mutex>> fd_read_mutexes;
 
 class handler{
 private:
@@ -360,6 +364,8 @@ void handler::uulg(std::string uid){
     //将该用户在map存的映射清空
     uid_to_socket.erase(uid);
     socket_to_uid.erase(sockfd);
+    fd_write_mutexes.erase(sockfd);
+    fd_read_mutexes.erase(sockfd);
     //获取json字符串
     std::string js = ud.toJson();
     u.setutoj(uid, js);
@@ -728,9 +734,17 @@ void handler::sdms(){
     std::string msg;
     int i = 0, j;
     while(str[i] != ':') i ++;
-    msg = str.c_str() + i + 1;
+    msg = str.substr(i + 1);
     //先判断是不是好友
-    message sendm = message::fromJson(msg);
+    message sendm;
+    try {
+        sendm = message::fromJson(msg);
+        // 继续处理
+    } catch(const std::exception& e) {
+        printf("message fromjson error !!! msg:%s\n", msg.data());
+        sendMsg("echo:nofrd", sockfd);
+        return;
+    }
     user ud1 = u.GetUesr(sendm.sender_uid);
     user ud2 = u.GetUesr(sendm.receiver_uid);
     if(ud1.friendlist.count(sendm.receiver_uid) == 0){//说明不为好友

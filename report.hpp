@@ -32,16 +32,24 @@ struct report {
 
     // JSON 反序列化
     static report fromJson(const std::string& s) {
-        json j = json::parse(s);
         report data;
-        data.friendapply = j["friendapply"].get<std::set<std::string>>();
-        data.chatfriend = j["chatfriend"].get<std::map<std::string, int>>();
-        data.chatgroup = j["chatgroup"].get<std::unordered_map<std::string, int>>();
-        data.groupapply = j["groupapply"].get<std::set<std::string>>();
-        data.notice = j["notice"].get<std::vector<std::string>>();
-        data.total_friend_msg = j["total_friend_msg"].get<int>();
-        data.total_group_msg = j["total_group_msg"].get<int>();
+        try {
+            json j = json::parse(s);
+
+            data.friendapply = j["friendapply"].get<std::set<std::string>>();
+            data.chatfriend = j["chatfriend"].get<std::map<std::string, int>>();
+            data.chatgroup = j["chatgroup"].get<std::unordered_map<std::string, int>>();
+            data.groupapply = j["groupapply"].get<std::set<std::string>>();
+            data.notice = j["notice"].get<std::vector<std::string>>();
+            data.total_friend_msg = j["total_friend_msg"].get<int>();
+            data.total_group_msg = j["total_group_msg"].get<int>();
+
+        } catch (const json::parse_error& e) {
+            std::cerr << "[fromJson] JSON parse error: " << e.what()
+                    << "\nRaw: " << s << std::endl;
+        }
         return data;
     }
+
 };
 

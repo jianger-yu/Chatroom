@@ -4,6 +4,7 @@
 
 using json = nlohmann::json;
 
+
 struct message {
     std::string sender_uid;      // 发送者 UID
     std::string receiver_uid;    // 接收者 UID 或群 ID
@@ -28,16 +29,31 @@ struct message {
 
     // 从 JSON 字符串构造 message 对象
     static message fromJson(const std::string& s) {
-        json j = json::parse(s);
-        message msg;
-        msg.sender_uid = j["sender_uid"];
-        msg.receiver_uid = j["receiver_uid"];
-        msg.content = j["content"];
-        msg.timestamp = j["timestamp"];
-        msg.is_group = j["is_group"];
-        msg.is_file = j["is_file"];
-        msg.sender_name = j["sender_name"];
-        return msg;
+        message msg; // 默认构造，所有成员初始化为默认值
+        try {
+            json j = json::parse(s); // 可能抛 parse_error
+
+            // 使用 j.value() 给出默认值，防止 key 不存在或类型不匹配时报 type_error
+            msg.sender_uid   = j.value("sender_uid",   "");
+            msg.receiver_uid = j.value("receiver_uid", "");
+            msg.content      = j.value("content",      "");
+            msg.timestamp    = j.value("timestamp",    "");
+            msg.is_group     = j.value("is_group",     false);
+            msg.is_file      = j.value("is_file",      false);
+            msg.sender_name  = j.value("sender_name",  "");
+
+        } catch (const json::parse_error& e) {
+            std::cerr << "[JSON Parse Error] " << e.what()
+                    << "\nRaw Data: [" << s << "]\n";
+        } catch (const json::type_error& e) {
+            std::cerr << "[JSON Type Error] " << e.what()
+                    << "\nRaw Data: [" << s << "]\n";
+        } catch (const std::exception& e) {
+            std::cerr << "[JSON Other Error] " << e.what()
+                    << "\nRaw Data: [" << s << "]\n";
+        }
+
+        return msg; // 出错时返回默认值
     }
 
     static std::string get_beijing_time() {
@@ -75,11 +91,24 @@ public:
 
     // 从 JSON 字符串反序列化为 messages 对象
     static messages fromJson(const std::string& str) {
-        json j = json::parse(str);
         messages m;
-        m.data = j.at("data").get<std::vector<std::string>>();
+        try {
+            json j = json::parse(str);
+            m.data = j.at("data").get<std::vector<std::string>>();
+        } catch (const json::parse_error& e) {
+            std::cerr << "[messages::fromJson] JSON parse error: " << e.what()
+                    << "\nRaw: " << str << std::endl;
+        } catch (const json::out_of_range& e) {
+            std::cerr << "[messages::fromJson] Missing key: " << e.what()
+                    << "\nRaw: " << str << std::endl;
+        } catch (const std::exception& e) {
+            std::cerr << "[messages::fromJson] Error: " << e.what()
+                    << "\nRaw: " << str << std::endl;
+        }
         return m;
     }
+
+
 };
 
 class friendnamelist{
@@ -99,11 +128,23 @@ public:
 
     // 从 JSON 字符串反序列化为 friendnamelist 对象
     static friendnamelist fromJson(const std::string& str) {
-        json j = json::parse(str);
         friendnamelist m;
-        m.data = j.at("data").get<std::vector<std::string>>();
+        try {
+            json j = json::parse(str);
+            m.data = j.at("data").get<std::vector<std::string>>();
+        } catch (const json::parse_error& e) {
+            std::cerr << "[friendnamelist::fromJson] JSON parse error: " << e.what()
+                    << "\nRaw: " << str << std::endl;
+        } catch (const json::out_of_range& e) {
+            std::cerr << "[friendnamelist::fromJson] Missing key: " << e.what()
+                    << "\nRaw: " << str << std::endl;
+        } catch (const std::exception& e) {
+            std::cerr << "[friendnamelist::fromJson] Error: " << e.what()
+                    << "\nRaw: " << str << std::endl;
+        }
         return m;
     }
+
 };
 
 
@@ -133,16 +174,31 @@ struct file_block {
 
     // 从 JSON 字符串构造 file_block 对象
     static file_block fromJson(const std::string& s) {
-        json j = json::parse(s);
         file_block msg;
-        msg.sender_uid = j["sender_uid"];
-        msg.receiver_uid = j["receiver_uid"];
-        msg.fid = j["fid"];
-        msg.filename = j["filename"];
-        msg.timestamp = j["timestamp"];
-        msg.offset = j["offset"];
-        msg.is_group = j["is_group"];
-        msg.is_file = j["is_file"];
+        try {
+            json j = json::parse(s);
+            msg.sender_uid = j["sender_uid"];
+            msg.receiver_uid = j["receiver_uid"];
+            msg.fid = j["fid"];
+            msg.filename = j["filename"];
+            msg.timestamp = j["timestamp"];
+            msg.offset = j["offset"];
+            msg.is_group = j["is_group"];
+            msg.is_file = j["is_file"];
+        }
+        catch (const json::parse_error& e) {
+            std::cerr << "JSON parse error: " << e.what() << "\nJSON content: " << s << std::endl;
+            // 可以抛出异常，或者返回默认 msg，也可以设置标志位
+            throw;
+        }
+        catch (const json::type_error& e) {
+            std::cerr << "JSON type error: " << e.what() << "\nJSON content: " << s << std::endl;
+            throw;
+        }
+        catch (const std::exception& e) {
+            std::cerr << "JSON unknown error: " << e.what() << "\nJSON content: " << s << std::endl;
+            throw;
+        }
         return msg;
     }
 

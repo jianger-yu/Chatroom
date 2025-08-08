@@ -56,6 +56,13 @@ void Socket::setNonBlocking() {
     fcntl(sockfd_, F_SETFL, flags | O_NONBLOCK);
 }
 
+void Socket::setBlocking() {
+    int flags = fcntl(sockfd_, F_GETFL, 0);
+    if (flags == -1) return;
+    flags &= ~O_NONBLOCK;  // 去掉非阻塞标志
+    fcntl(sockfd_, F_SETFL, flags);
+}
+
 
 bool Socket::send_allfile(int sockfd, const void* buf, size_t len) {
     const char* p = static_cast<const char*>(buf);
@@ -71,7 +78,7 @@ bool Socket::send_allfile(int sockfd, const void* buf, size_t len) {
         } else if (errno == EAGAIN || errno == EWOULDBLOCK) {
             if (++retry > MAX_RETRY) return false;
             usleep(1000); // 等待缓冲区腾出空间
-            printf("重试次数:%d", retry);
+            //printf("重试次数:%d", retry);
         } else {
             return false; // 连接异常
         }

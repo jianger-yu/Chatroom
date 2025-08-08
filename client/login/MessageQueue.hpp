@@ -16,14 +16,25 @@ public:
         cv_.notify_one();  // 唤醒一个等待线程
     }
 
-    std::string wait_and_pop() {
+    // std::string wait_and_pop() {
+    //     std::unique_lock<std::mutex> lock(mtx_);
+    //     cv_.wait(lock, [this] { return !queue_.empty(); }); // 阻塞等待直到队列非空
+    //     std::string msg = queue_.front();
+    //     queue_.pop();
+    //     return msg;
+    // }
+
+    std::string wait_and_pop(int seconds = 30) {
         std::unique_lock<std::mutex> lock(mtx_);
-        cv_.wait(lock, [this] { return !queue_.empty(); }); // 阻塞等待直到队列非空
+        bool has_data = cv_.wait_for(lock, std::chrono::seconds(seconds), [this] { return !queue_.empty(); });
+        if(!has_data){
+            return "time_out";
+        }
         std::string msg = queue_.front();
         queue_.pop();
         return msg;
     }
-
+    
     bool try_pop(std::string& msg) {
         std::lock_guard<std::mutex> lock(mtx_);
         if (queue_.empty()) return false;
@@ -80,7 +91,11 @@ void recv_thread(Socket* sock) {
             exit(1);
         }
         else {
+            printf("\033[0;31m服务器发来错误前缀的消息！！！\033[0m\n");
+            printf("\033[0;31m读到消息msg:%s\033[0m\n", msg.c_str());
+            continue;
             std::cerr << "连接断开\n";
+            sleep(100);
             break;
         }
     }

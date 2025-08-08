@@ -4,7 +4,10 @@
 #include<string>
 #include <sys/socket.h>
 #include <netinet/in.h>
+#include <mutex>
 
+extern std::unordered_map<int, std::unique_ptr<std::mutex>> fd_write_mutexes;
+extern std::unordered_map<int, std::unique_ptr<std::mutex>> fd_read_mutexes;
 
 bool send_all(int sockfd,const void * buf,size_t len){
   const char*p = static_cast<const char*>(buf);
@@ -23,8 +26,12 @@ bool send_all(int sockfd,const void * buf,size_t len){
 
 int sendMsg(std::string msg,int sockfd_) {
   uint32_t len = htonl(msg.size());
-  if(!send_all(sockfd_,&len,sizeof len)) return -1;
-  if(!send_all(sockfd_,msg.data(),msg.size())) return -1;
+  auto it = fd_write_mutexes.find(sockfd_);
+  if (it != fd_write_mutexes.end()) {
+      std::lock_guard<std::mutex> lock(*(it->second));
+      if(!send_all(sockfd_,&len,sizeof len)) return -1;
+      if(!send_all(sockfd_,msg.data(),msg.size())) return -1;
+  }
   return 0;
 }
 
@@ -51,17 +58,21 @@ int recv_all(int sockfd,void * buf,size_t len){
 
 int recvMsg(std::string& msg,int sockfd_) {
   uint32_t len, slen;
-  int ret = recv_all(sockfd_,&len,sizeof len);
-  if(!ret) return -1;
-  else if(ret == 10)
-    return 10;
-  slen = ntohl(len);
-  msg.clear();
-  msg.resize(slen);
-  ret = recv_all(sockfd_,msg.data(),slen);
-  if(!ret) return -1;
-  else if(ret == 10)
-    return 10;
+  auto it = fd_read_mutexes.find(sockfd_);
+  if (it != fd_read_mutexes.end()) {
+    std::lock_guard<std::mutex> lock(*(it->second));
+    int ret = recv_all(sockfd_,&len,sizeof len);
+    if(!ret) return -1;
+    else if(ret == 10)
+      return 10;
+    slen = ntohl(len);
+    msg.clear();
+    msg.resize(slen);
+    ret = recv_all(sockfd_,msg.data(),slen);
+    if(!ret) return -1;
+    else if(ret == 10)
+      return 10;
+  }
   return 0;
 }
 

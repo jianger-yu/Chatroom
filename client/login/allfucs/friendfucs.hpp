@@ -637,7 +637,15 @@ void friendfucs::handlechat(char c, int fg){
             sendm.timestamp = message::get_beijing_time();
             sock->sendMsg("sdms:"+sendm.toJson());
             rev = EchoMsgQueue.wait_and_pop();
-            if(rev == "rihgt");
+            if(rev == "time_out"){
+                system("clear");
+                printf("\033[0;31m发送超时！\033[0m\n");
+                printf("\033[0;31m请按任意键继续...\033[0m\n");
+                sleep(5);
+                charget();
+                return;
+            }
+            else if(rev == "rihgt");
             else if(rev == "nofrd"){
                 system("clear");
                 printf("\033[0;31m当前不是好友，发送失败！\033[0m\n");
@@ -1058,8 +1066,6 @@ void friendfucs::shieldfriend(int cs){
     return ;
 }
 
-
-
 void friendfucs::searchlist(char c){
     Client* cp = (Client*) clientp;
     Socket* sock = cp->getSocket();
@@ -1105,8 +1111,6 @@ void friendfucs::searchlist(char c){
     printf("                                \033[0;32m[%d/%d]\033[0m\n",page+1,maxpage);
     printf("\033[0;36m==========================================================\033[0m\n");
 }
-
-
 
 void friendfucs::searchfriend(){
     Client * cp = (Client*)clientp;

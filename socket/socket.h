@@ -49,7 +49,7 @@ class Socket {
     shutdown(sockfd_, SHUT_RDWR);
   }
   void setNonBlocking();
-
+  void setBlocking();
   private:
   /**
    * @brief 忙轮询保证发送数据

@@ -137,6 +137,7 @@ void friendfucs::list(char c){
     else if(c == '[') page --;
     if(c == ']' && page+1 >= maxpage) ;
     else if(c == ']') page ++;
+    system("clear");
     printf("\033[0;36m==========================================================\033[0m\n");
     reportfucs::newreport(us, clientp);
     printf("\033[0;32m以下为您的好友\033[0m\n");
@@ -170,7 +171,6 @@ void friendfucs::list(char c){
 void friendfucs::selectmenu(char c, int fg){
     Client * cp = (Client*)clientp;
     Socket * sock = cp->getSocket();
-    system("clear");
     //找到对应消息
     int i = 5*page + c - '0' - 1, j = 0;
     if(fg == 1)
@@ -217,7 +217,6 @@ void friendfucs::selectmenu(char c, int fg){
 
 //fg == 1为正常选中，fg == 2则为搜索选中
 void friendfucs::select(char c, int fg){
-    system("clear");
     selectmenu(c, fg);
     fflush(stdout); // 手动刷新标准输出缓冲区
     bool flag = false;
@@ -236,7 +235,6 @@ void friendfucs::select(char c, int fg){
         }
         if(flag){
             flag = false;
-            system("clear");
             selectmenu(c, fg);
             fflush(stdout); // 手动刷新标准输出缓冲区
         }
@@ -273,7 +271,6 @@ void friendfucs::select(char c, int fg){
 }
 
 void friendfucs::listfriend(){
-    system("clear");
     page = 0;
     list('0');
     if(us.friendlist.size())
@@ -296,7 +293,6 @@ void friendfucs::listfriend(){
         }
         if(flag){
             flag = false;
-            system("clear");
             list('p');
             if(us.friendlist.size())
                 printf("\033[0;32m输入序号可进行操作:>\033[0m");
@@ -318,7 +314,6 @@ void friendfucs::listfriend(){
             break;
         }
         case '[':{
-            system("clear");
             list('[');
             if(us.friendlist.size())
                 printf("\033[0;32m输入序号可进行操作:>\033[0m");
@@ -326,7 +321,6 @@ void friendfucs::listfriend(){
             break;
         }
         case ']':{
-            system("clear");
             list(']');
             if(us.friendlist.size())
                 printf("\033[0;32m输入序号可进行操作:>\033[0m");
@@ -400,7 +394,6 @@ void friendfucs::handledel(char c, int fg){
 
 
 void friendfucs::delfriend(){
-    system("clear");
     page = 0;
     list('0');
     if(us.friendlist.size())
@@ -423,7 +416,6 @@ void friendfucs::delfriend(){
         }
         if(flag){
             flag = false;
-            system("clear");
             list('p');
             if(us.friendlist.size())
                 printf("\033[0;32m请选择您要删除的好友:>\033[0m");
@@ -442,7 +434,6 @@ void friendfucs::delfriend(){
             break;
         }
         case '[':{
-            system("clear");
             list('[');
             if(us.friendlist.size())
                 printf("\033[0;32m请选择您要删除的好友:>\033[0m");
@@ -450,7 +441,6 @@ void friendfucs::delfriend(){
             break;
         }
         case ']':{
-            system("clear");
             list(']');
             if(us.friendlist.size())
                 printf("\033[0;32m请选择您要删除的好友:>\033[0m");
@@ -501,7 +491,7 @@ void friendfucs::chatmenu(char c, user& ud2){
         else                     printf("\033[0;90m%s\033[0m \033[0;33m[%s]\033[0m\n", sender.c_str(), msg.timestamp.c_str());
         printf("\033[0;32m>\033[0m%s\n", msg.content.c_str());
     }
-    printf("                                         \033[0;32m(tip:按[和]按键可控制翻页)\n\033[0m");
+    printf("                                     \033[0;32m(tip:按← 和→ 按键可控制翻页，按↑ 发送)\n\033[0m");
     printf("                                                         \033[0;32m[%d/%d]\033[0m\n",ctpage+1,maxctpage);
     printf("\033[0;36m==================================================================\033[0m\n");
 }
@@ -559,7 +549,10 @@ void friendfucs::handlechat(char c, int fg){
     fflush(stdout); // 手动刷新标准输出缓冲区
     std::string content, utf8_buf;
     ChatMsgQueue.clear();
+    CtspMsgQueue.clear();
+    message sendm;
     startTime();
+    char cbuf[10];
     while(1){
         int tm = throughtime();
         if(tm >= 1000 || flag){
@@ -575,6 +568,46 @@ void friendfucs::handlechat(char c, int fg){
                     return;
                 }
                 flag = true;
+            }
+            //判断发完消息的回声
+            if(CtspMsgQueue.try_pop(msg)){
+                bool tmout = false, nofrd = false;
+                int sheld = 0;
+                if(msg == "time_out") tmout = true;
+                else if(msg == "nofrd") nofrd = true;
+                else if(msg == "sheld") sheld ++;
+                while(CtspMsgQueue.try_pop(msg)){
+                    if(msg == "time_out") tmout = true;
+                    else if(msg == "nofrd") nofrd = true;
+                    else if(msg == "sheld") sheld ++;
+                }
+                if(sheld <= save.data.size())
+                    save.data.erase(save.data.begin(), save.data.begin() + sheld);
+                else save.data.clear();
+                if(tmout){
+                    system("clear");
+                    printf("\033[0;31m发送超时！\033[0m\n");
+                    printf("\033[0;31m请按任意键继续...\033[0m\n");
+                    sleep(5);
+                    charget();
+                    CtspMsgQueue.clear();
+                    return;
+                }
+                else if(nofrd){
+                    system("clear");
+                    printf("\033[0;31m当前不是好友，发送失败！\033[0m\n");
+                    printf("\033[0;31m请按任意键继续...\033[0m\n");
+                    charget();
+                    CtspMsgQueue.clear();
+                    return;
+                } else if(sheld){
+                    system("clear");
+                    printf("\033[0;31m对方已将你拉黑，消息被拒收！\033[0m\n");
+                    printf("\033[0;31m请按任意键继续...\033[0m\n");
+                    charget();
+                    flag = true;
+                    continue;
+                }
             }
             //判断聊天消息是否有新
             while(ChatMsgQueue.try_pop(msg)){
@@ -599,66 +632,23 @@ void friendfucs::handlechat(char c, int fg){
             }
             startTime();
         }
-        char input = tm_charget(1000);
+        int input = sptm_charget(1000, cbuf);
         if(input == -1) continue;
         // 中文或其他 UTF-8 字符处理
         switch(input){
-        case 127:
-        case '\b':{
-            if (content.empty()) continue;
-            int i = content.size() - 1;
-            // 向后回退找到一个 UTF-8 字符的起始字节
-            int len = 1;
-            while (i - len >= 0 && (content[i - len + 1] & 0xC0) == 0x80) {
-                len++;
-            }
-            int char_start = i - len + 1;
-            if (char_start < 0 || char_start >= (int)content.size()) continue;  // 安全边界
-            std::string ch = content.substr(char_start, len);
-            // 判断字符宽度
-            int display_width = is_wide_char((const unsigned char *)ch.c_str()) ? 2 : 1;
-            // 删除字符
-            content.erase(char_start, len);
-            // 回退显示
-            for (int j = 0; j < display_width; ++j) {
-                printf("\b \b");
-            }
-            fflush(stdout);
-            break;
+        case KEY_ESC:{
+            CtspMsgQueue.clear();
+            return ;
         }
-        case '\n':{//发送消息
+        case KEY_UP:{
             if(content.size() == 0 || content == "\n") break;
             content.push_back('\0');
-            message sendm;
             sendm.sender_uid = us.uid;
             sendm.sender_name = us.name;
             sendm.receiver_uid = uid2;
             sendm.content = content;
             sendm.timestamp = message::get_beijing_time();
             sock->sendMsg("sdms:"+sendm.toJson());
-            rev = EchoMsgQueue.wait_and_pop();
-            if(rev == "time_out"){
-                system("clear");
-                printf("\033[0;31m发送超时！\033[0m\n");
-                printf("\033[0;31m请按任意键继续...\033[0m\n");
-                sleep(5);
-                charget();
-                return;
-            }
-            else if(rev == "rihgt");
-            else if(rev == "nofrd"){
-                system("clear");
-                printf("\033[0;31m当前不是好友，发送失败！\033[0m\n");
-                printf("\033[0;31m请按任意键继续...\033[0m\n");
-                charget();
-                return;
-            } else if(rev == "sheld"){
-                system("clear");
-                printf("\033[0;31m对方已将你拉黑，消息被拒收！\033[0m\n");
-                printf("\033[0;31m请按任意键继续...\033[0m\n");
-                charget();
-                return;
-            }
             save.data.insert(save.data.begin(), sendm.toJson());
             flag = true;
             ctpage = 0;
@@ -666,16 +656,14 @@ void friendfucs::handlechat(char c, int fg){
             msgcnt++;
             break;
         }
-        case '[':{
-            system("clear");
+        case KEY_LEFT:{
             chatmenu('[', ud2);
             printf("\033[0;32m请输入:>\033[0m");
             printf("%s", content.c_str());
             fflush(stdout); // 手动刷新标准输出缓冲区
             break;
         }
-        case ']':{
-            system("clear");
+        case KEY_RIGHT:{
             //请求新页的消息
             if(save.data.size() < msgcnt){
                 char tmp[512];
@@ -691,33 +679,35 @@ void friendfucs::handlechat(char c, int fg){
             fflush(stdout); // 手动刷新标准输出缓冲区
             break;
         }
-        case 27:{
-            return ;
-        }
         default:{
-             utf8_buf += input;
-            
-            int need_len = 1;
-            unsigned char first = static_cast<unsigned char>(utf8_buf[0]);
-            if ((first & 0x80) == 0x00) need_len = 1;
-            else if ((first & 0xE0) == 0xC0) need_len = 2;
-            else if ((first & 0xF0) == 0xE0) need_len = 3;
-            else if ((first & 0xF8) == 0xF0) need_len = 4;
-            else {
-                // 非法字符
-                utf8_buf.clear();
+            if ((unsigned char)cbuf[0] == 8 || (unsigned char)cbuf[0] == 127) {
+                if (content.empty()) continue;
+                int i = content.size() - 1;
+                int len = 1;
+                // 找到 UTF-8 字符的起始位置（跳过多字节的 continuation bytes）
+                while (i - len >= 0 && (static_cast<unsigned char>(content[i - len + 1]) & 0xC0) == 0x80) {
+                    len++;
+                }
+                int char_start = i - len + 1;
+                if (char_start < 0 || char_start >= (int)content.size()) continue;
+                std::string ch = content.substr(char_start, len);
+                // 判断字符显示宽度（中文2宽度，英文1宽度）
+                int display_width = is_wide_char((const unsigned char *)ch.c_str()) ? 2 : 1;
+                // 从内容中删除该字符
+                content.erase(char_start, len);
+                // 从终端回退光标
+                for (int j = 0; j < display_width; ++j) {
+                    printf("\b \b");
+                }
+                fflush(stdout);
                 continue;
             }
-
-            while ((int)utf8_buf.size() < need_len) {
-                utf8_buf += charget(); // 继续收集字节
-            }
-
-            // 拼完一个字符
-            content += utf8_buf;
-            printf("%s", utf8_buf.c_str());
+            if(content.size() >= 1000) continue;
+            // 拼完字符
+            content += std::string(cbuf);
+            printf("%s", cbuf);
             fflush(stdout);
-            utf8_buf.clear();
+            memset(cbuf, 0, sizeof cbuf);
             break;
         }
         }
@@ -725,7 +715,6 @@ void friendfucs::handlechat(char c, int fg){
 }
 
 void friendfucs::chatfriend(){
-    system("clear");
     page = 0;
     list('0');
     if(us.friendlist.size())
@@ -748,7 +737,6 @@ void friendfucs::chatfriend(){
         }
         if(flag){
             flag = false;
-            system("clear");
             list('p');
             if(us.friendlist.size())
                 printf("\033[0;32m请选择您要私聊的好友:>\033[0m");
@@ -767,7 +755,6 @@ void friendfucs::chatfriend(){
             break;
         }
         case '[':{
-            system("clear");
             list('[');
             if(us.friendlist.size())
                 printf("\033[0;32m请选择您要私聊的好友:>\033[0m");
@@ -775,7 +762,6 @@ void friendfucs::chatfriend(){
             break;
         }
         case ']':{
-            system("clear");
             list(']');
             if(us.friendlist.size())
                 printf("\033[0;32m请选择您要私聊的好友:>\033[0m");
@@ -860,6 +846,7 @@ void friendfucs::shield_menu(char c){
     Client* cp = (Client*) clientp;
     Socket* sock = cp->getSocket();
     if(!us.shieldlist.size()){
+        system("clear");
         printf("\033[0;32m当前黑名单为空。\n\033[0m");
         printf("\033[0;32m请按ESC返回...\033[0m");
         return;
@@ -872,6 +859,7 @@ void friendfucs::shield_menu(char c){
     else if(c == '[') page --;
     if(c == ']' && page+1 >= maxpage) ;
     else if(c == ']') page ++;
+    system("clear");
     printf("\033[0;36m==========================================================\033[0m\n");
     reportfucs::newreport(us, clientp);
     printf("\033[0;32m以下为您的黑名单\033[0m\n");
@@ -973,7 +961,6 @@ void friendfucs::shield_exit(char c, int fg){
 }
 
 void friendfucs::shieldfriend(int cs){
-    system("clear");
     page = 0;
     if(cs == 1){
         list('0');
@@ -1002,7 +989,6 @@ void friendfucs::shieldfriend(int cs){
         }
         if(flag){
             flag = false;
-            system("clear");
             if(cs == 1){
                 list('p');
                 if(us.friendlist.size())
@@ -1030,7 +1016,6 @@ void friendfucs::shieldfriend(int cs){
             break;
         }
         case '[':{
-            system("clear");
             if(cs == 1){
                 list('[');
                 if(us.friendlist.size())
@@ -1044,7 +1029,6 @@ void friendfucs::shieldfriend(int cs){
             break;
         }
         case ']':{
-            system("clear");
             if(cs == 1){
                 list(']');
                 if(us.friendlist.size())
@@ -1070,6 +1054,7 @@ void friendfucs::searchlist(char c){
     Client* cp = (Client*) clientp;
     Socket* sock = cp->getSocket();
     if(!fnl.data.size()){
+        system("clear");
         printf("\033[0;32m没有包含该字段的好友。\n\033[0m");
         printf("\033[0;32m请按ESC返回...\033[0m");
         return;
@@ -1082,6 +1067,7 @@ void friendfucs::searchlist(char c){
     else if(c == '[') page --;
     if(c == ']' && page+1 >= maxpage) ;
     else if(c == ']') page ++;
+    system("clear");
     printf("\033[0;36m==========================================================\033[0m\n");
     reportfucs::newreport(us, clientp);
     printf("\033[0;32m以下为符合条件的好友\033[0m\n");
@@ -1142,7 +1128,6 @@ void friendfucs::searchfriend(){
         charget();
         return;
     }
-    system("clear");
     page = 0;
     searchlist('0');
     if(fnl.data.size())
@@ -1165,7 +1150,6 @@ void friendfucs::searchfriend(){
         }
         if(flag){
             flag = false;
-            system("clear");
             searchlist('p');
             if(fnl.data.size())
                 printf("\033[0;32m输入序号可进行操作:>\033[0m");
@@ -1187,7 +1171,6 @@ void friendfucs::searchfriend(){
             break;
         }
         case '[':{
-            system("clear");
             searchlist('[');
             if(fnl.data.size())
                 printf("\033[0;32m输入序号可进行操作:>\033[0m");
@@ -1195,7 +1178,6 @@ void friendfucs::searchfriend(){
             break;
         }
         case ']':{
-            system("clear");
             searchlist(']');
             if(fnl.data.size())
                 printf("\033[0;32m输入序号可进行操作:>\033[0m");

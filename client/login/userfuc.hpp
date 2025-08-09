@@ -49,7 +49,6 @@ int userfuc::mainfuc(void * p){
         }
         if(flag){
             flag = false;
-            system("clear");
             usermainmenu(u, clientp);
             fflush(stdout); // 手动刷新标准输出缓冲区
         }
@@ -90,7 +89,6 @@ int userfuc::friendfuc(void){
     char input = 0;
     friendfucs f(u, clientp);
     std::string msg;
-    system("clear");
     fflush(stdout); // 手动刷新标准输出缓冲区
     friendmenu(u, clientp);
     bool flag = false;
@@ -108,7 +106,6 @@ int userfuc::friendfuc(void){
         if(flag){
             flag = false;
             system("clear");
-            fflush(stdout); // 手动刷新标准输出缓冲区
             friendmenu(u, clientp);
             fflush(stdout); // 手动刷新标准输出缓冲区
         }

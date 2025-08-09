@@ -4,6 +4,12 @@
 #include <termios.h>  // 用于配置终端I/O
 #include <unistd.h>   // 提供Unix标准API
 
+#define KEY_ESC     1000
+#define KEY_UP      1001
+#define KEY_DOWN    1002
+#define KEY_LEFT    1003
+#define KEY_RIGHT   1004
+
 char charget(void){
   struct termios oldt, newt;
   char ch;
@@ -54,6 +60,77 @@ int tm_charget(int timeout_ms) {
         ch = -1;
     }
     // 恢复原来的终端配置
+    tcsetattr(STDIN_FILENO, TCSANOW, &oldt);
+    return ch;
+}
+
+
+int sptm_charget(int timeout_ms, char *utf8) {
+    struct termios oldt, newt;
+    int ch = -1;
+
+    // 保存当前终端配置
+    tcgetattr(STDIN_FILENO, &oldt);
+    newt = oldt;
+    newt.c_lflag &= ~(ICANON | ECHO); // 非规范模式，无回显
+    tcsetattr(STDIN_FILENO, TCSANOW, &newt);
+
+    // select 等待输入
+    fd_set rfds;
+    FD_ZERO(&rfds);
+    FD_SET(STDIN_FILENO, &rfds);
+    struct timeval tv;
+    tv.tv_sec = timeout_ms / 1000;
+    tv.tv_usec = (timeout_ms % 1000) * 1000;
+
+    int retval = select(STDIN_FILENO + 1, &rfds, NULL, NULL, &tv);
+    if (retval > 0) {
+        unsigned char c;
+        if (read(STDIN_FILENO, &c, 1) == 1) {
+            if (c == 27) { // ESC
+                unsigned char seq[2] = {0};
+                struct timeval tv2 = {0, 1000}; // 1ms
+                fd_set rfds2;
+                FD_ZERO(&rfds2);
+                FD_SET(STDIN_FILENO, &rfds2);
+                if (select(STDIN_FILENO + 1, &rfds2, NULL, NULL, &tv2) > 0) {
+                    read(STDIN_FILENO, seq, 2);
+                    if (seq[0] == '[') {
+                        switch (seq[1]) {
+                            case 'A': ch = KEY_UP; break;
+                            case 'B': ch = KEY_DOWN; break;
+                            case 'C': ch = KEY_RIGHT; break;
+                            case 'D': ch = KEY_LEFT; break;
+                            default:  ch = KEY_ESC; break;
+                        }
+                    } else {
+                        ch = KEY_ESC;
+                    }
+                } else {
+                    ch = KEY_ESC;
+                }
+            } else {
+                // 普通字符（支持 UTF-8）
+                utf8[0] = c;
+                int extra = 0;
+                if ((c & 0xE0) == 0xC0) extra = 1; // 2字节
+                else if ((c & 0xF0) == 0xE0) extra = 2; // 3字节
+                else if ((c & 0xF8) == 0xF0) extra = 3; // 4字节
+
+                if (extra > 0) {
+                    read(STDIN_FILENO, utf8 + 1, extra);
+                }
+                utf8[extra + 1] = '\0';
+                ch = extra + 1; // 返回 UTF-8 长度
+            }
+        }
+    } else if (retval == -1) {
+        ch = -1; // select 出错
+    } else {
+        ch = -1; // 超时
+    }
+
+    // 恢复终端配置
     tcsetattr(STDIN_FILENO, TCSANOW, &oldt);
     return ch;
 }

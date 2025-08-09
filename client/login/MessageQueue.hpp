@@ -66,6 +66,7 @@ MessageQueue EchoMsgQueue;
 MessageQueue ReptMsgQueue;
 MessageQueue ChatMsgQueue;
 MessageQueue UserMsgQueue;
+MessageQueue CtspMsgQueue;
 
 bool recv_running = false;
 
@@ -83,6 +84,8 @@ void recv_thread(Socket* sock) {
         }
         else if(msg[0] == 'c' && msg[1] == 'h' && msg[2] == 'a' && msg[3] == 't' && msg[4] == ':')
             ChatMsgQueue.push(msg.c_str() + 5);    // 放入队列
+        else if(msg[0] == 'c' && msg[1] == 't' && msg[2] == 's' && msg[3] == 'p' && msg[4] == ':')
+            CtspMsgQueue.push(msg.c_str() + 5);    // 放入队列
         else if(msg[0] == 'l' && msg[1] == 'g' && msg[2] == 'e' && msg[3] == 'x' && msg[4] == ':'){
             system("clear");
             fflush(stdout);

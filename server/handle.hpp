@@ -403,10 +403,10 @@ void handler::adfr(){
         return;
     }
     //若1不在2的屏蔽表中，发送申请
-    u.AddFrd(ud.name, uid2);
+    std::string jsend = u.AddFrd(ud.name, uid2);
     sendMsg("echo:right",sockfd);
     if (uid_to_socket.count(uid2)) {
-        sendMsg("rept:"+rpt2.toJson(), uid_to_socket[uid2]);
+        sendMsg("rept:"+jsend, uid_to_socket[uid2]);
     }
 }
 
@@ -741,20 +741,20 @@ void handler::sdms(){
         sendm = message::fromJson(msg);
         // 继续处理
     } catch(const std::exception& e) {
-        printf("message fromjson error !!! msg:%s\n", msg.data());
-        sendMsg("echo:nofrd", sockfd);
+        printf("\033[0;31mmessage fromjson error !!! msg:%s\n\033[0m", msg.data());
+        sendMsg("ctsp:nofrd", sockfd);
         return;
     }
     user ud1 = u.GetUesr(sendm.sender_uid);
     user ud2 = u.GetUesr(sendm.receiver_uid);
     if(ud1.friendlist.count(sendm.receiver_uid) == 0){//说明不为好友
-        sendMsg("echo:nofrd", sockfd);
+        sendMsg("ctsp:nofrd", sockfd);
         return;
     }
     //再判断是否被屏蔽
     if(ud2.shieldlist.count(ud1.uid)){//被屏蔽，消息记录为单向，不给接受者发通知（x）
         //被屏蔽，提示被屏蔽，消息无法发送
-        sendMsg("echo:sheld", sockfd);
+        sendMsg("ctsp:sheld", sockfd);
         return;
     }
     //存入数据库
@@ -772,7 +772,7 @@ void handler::sdms(){
     //给接受者发送这条消息
     if(uid_to_socket.count(sendm.receiver_uid)) sendMsg("chat:"+sendm.toJson(), uid_to_socket[sendm.receiver_uid]);
     //给发送者发回声
-    sendMsg("echo:right", sockfd);
+    sendMsg("ctsp:right", sockfd);
 }
 
 void handler::sdgm(){

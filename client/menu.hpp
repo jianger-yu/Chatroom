@@ -49,7 +49,6 @@ void friendmenu(user &u, void *p){
   system("clear");
   fflush(stdout); // 手动刷新标准输出缓冲区
   printf("\033[0;32m数据请求中...\033[0m\n");
-  fflush(stdout); // 手动刷新标准输出缓冲区
   system("clear");
   printf("\033[0;36m==========================================================\033[0m\n");
   printf("                \033[0;33m好友功能\033[0m\n");

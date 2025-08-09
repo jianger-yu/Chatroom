@@ -65,8 +65,8 @@ public:
     //仅存入group:gid -> json的键值对
     bool setgtoj(std::string, std::string);
 
-    //将uid1放在uid2的好友申请表内（uid1加uid2）
-    bool AddFrd(std::string uid1, std::string uid2);
+    //将name1放在uid2的好友申请表内（uid1加uid2）
+    std::string AddFrd(std::string name1, std::string uid2);
     //判断传入的uid是否存在，存在返回true，不存在返回false
     bool jguid(std::string uid);
     //根据uid获取用户的report(json字符串)，成功返回json，失败返回none
@@ -321,14 +321,15 @@ bool userdata::setgtoj(std::string ngid, std::string s){
 }
 
 
-bool userdata::AddFrd(std::string name1, std::string uid2){
+std::string userdata::AddFrd(std::string name1, std::string uid2){
     std::string js = u_report(uid2);
     report rpt;
     if(js != "none") 
         rpt = report::fromJson(js);
     rpt.friendapply.insert(name1);
-    svreport(uid2, rpt.toJson());
-    return true;
+    js = rpt.toJson();
+    svreport(uid2, js);
+    return js;
 }
 
 bool userdata::jguid(std::string uid){

@@ -180,13 +180,15 @@ void filefucs::sendfile_touser(char c, int fg){
 void filefucs::upload_file_with_offset() {
     file_sending = true;
     Socket* datasock = dataclient.getSocket();
-    const size_t block_size = 4096;
-    char buf[block_size];
+
+    const size_t block_size = 4 * 1024 * 1024; // 4MB
+    std::vector<char> buf(block_size); // 用堆分配避免栈溢出
+
     off_t offset = 0;
     size_t bytesRead;
-    int i = 0;
     file_block block;
-    while ((bytesRead = fread(buf, 1, block_size, file)) > 0) {
+
+    while ((bytesRead = fread(buf.data(), 1, block_size, file)) > 0) {
         // 构造 file_block
         block.sender_uid = uuid;
         block.receiver_uid = sd;
@@ -202,12 +204,12 @@ void filefucs::upload_file_with_offset() {
 
         // 构造完整消息
         std::string packet;
+        packet.reserve(sizeof(json_len) + json_str.size() + bytesRead);
         packet.append(reinterpret_cast<const char*>(&json_len), sizeof(json_len));
         packet.append(json_str);
-        packet.append(buf, bytesRead);
-        // printf("[%d]\njson_len:%d packet.size():%ld\njson_str:%s\n", ++i, json_len,packet.size(), json_str.c_str());
-        // printf("\n");
-        if (datasock->sendFILE("rvfl:"+packet) == -1) {
+        packet.append(buf.data(), bytesRead);
+
+        if (datasock->sendFILE("rvfl:" + packet) == -1) {
             printf("发送失败，连接异常\n");
             fclose(file);
             file_sending = false;
@@ -218,20 +220,22 @@ void filefucs::upload_file_with_offset() {
     }
 
     fclose(file);
-    datasock->sendMsg("fled:"+block.toJson());  // 通知结束
+    datasock->sendMsg("fled:" + block.toJson());  // 通知结束
     file_sending = false;
 }
 
 void filefucs::upload_gfile_with_offset() {
     file_sending = true;
     Socket* datasock = dataclient.getSocket();
-    const size_t block_size = 4096;
-    char buf[block_size];
+
+    const size_t block_size = 4 * 1024 * 1024; // 4MB
+    std::vector<char> buf(block_size); // 避免大数组占用栈空间
+
     off_t offset = 0;
     size_t bytesRead;
-    int i = 0;
     file_block block;
-    while ((bytesRead = fread(buf, 1, block_size, file)) > 0) {
+
+    while ((bytesRead = fread(buf.data(), 1, block_size, file)) > 0) {
         // 构造 file_block
         block.sender_uid = uuid;
         block.receiver_uid = sd;
@@ -247,12 +251,12 @@ void filefucs::upload_gfile_with_offset() {
 
         // 构造完整消息
         std::string packet;
+        packet.reserve(sizeof(json_len) + json_str.size() + bytesRead);
         packet.append(reinterpret_cast<const char*>(&json_len), sizeof(json_len));
         packet.append(json_str);
-        packet.append(buf, bytesRead);
-        // printf("[%d]\njson_len:%d packet.size():%ld\njson_str:%s\n", ++i, json_len,packet.size(), json_str.c_str());
-        // printf("\n");
-        if (datasock->sendFILE("rvgf:"+packet) == -1) {
+        packet.append(buf.data(), bytesRead);
+
+        if (datasock->sendFILE("rvgf:" + packet) == -1) {
             printf("发送失败，连接异常\n");
             fclose(file);
             file_sending = false;
@@ -263,9 +267,10 @@ void filefucs::upload_gfile_with_offset() {
     }
 
     fclose(file);
-    datasock->sendMsg("gfed:"+block.toJson());  // 通知结束
+    datasock->sendMsg("gfed:" + block.toJson());  // 通知结束
     file_sending = false;
 }
+
 
 
 void filefucs::download_file_with_offset(std::string sd){
@@ -286,7 +291,7 @@ void filefucs::download_file_with_offset(std::string sd){
     FILE* f;
     while(1){
         if(sendfileok && !buf.size()) break;
-        if(buf.size() <= 524288) //512*1024
+        if(buf.size() <= 4194304) //4*1024*1024
             datasock->recvfull(buf);
         //printf("buf.size():%ld\n", buf.size());
         if(buf.size() >= 4){
@@ -379,7 +384,7 @@ void filefucs::download_gfile_with_offset(std::string sd){
     FILE* f;
     while(1){
         if(sendfileok && !buf.size()) break;
-        if(buf.size() <= 524288) //512*1024
+        if(buf.size() <= 4194304) //4*1024*1024
             datasock->recvfull(buf);
         //printf("buf.size():%ld\n", buf.size());
         if(buf.size() >= 4){

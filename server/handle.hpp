@@ -1688,12 +1688,14 @@ void handler::sdfl(){
     }
     printf("sdfl start\n");
     sendMsg("echo:start", sockfd2);
-    const size_t block_size = 4096;
-    char buf[block_size];
+    const size_t block_size = 4 * 1024 * 1024; // 4MB
+    std::vector<char> buf(block_size); // 改用堆内存避免栈溢出
+
     off_t offset = 0;
     size_t bytesRead;
     file_block block;
-    while ((bytesRead = fread(buf, 1, block_size, file)) > 0) {
+
+    while ((bytesRead = fread(buf.data(), 1, block_size, file)) > 0) {
         // 构造 file_block
         block.sender_uid = uid2;
         block.receiver_uid = uid1;
@@ -1709,18 +1711,24 @@ void handler::sdfl(){
 
         // 构造完整消息
         std::string packet;
+        packet.reserve(sizeof(json_len) + json_str.size() + bytesRead);
         packet.append(reinterpret_cast<const char*>(&json_len), sizeof(json_len));
         packet.append(json_str);
-        packet.append(buf, bytesRead);
-        printf("[%d]\njson_len:%ld packet.size():%ld\njson_str:%s\n", ++i, json_str.size(),packet.size(), json_str.c_str());
+        packet.append(buf.data(), bytesRead);
+
+        printf("[%d]\njson_len:%ld packet.size():%ld\njson_str:%s\n", ++i, json_str.size(), packet.size(), json_str.c_str());
         printf("\n");
+
         if (sendFILE(packet, sockfd) == -1) {
             sendMsg("error", sockfd);
+            fclose(file);
             return;
         }
+
         offset += bytesRead;
     }
 
+    fclose(file);
     printf("文件内容已经发完\n");
     sendMsg("end", sockfd);
 }
@@ -1755,12 +1763,13 @@ void handler::sdgf(){
     }
     printf("sdgf start\n");
     sendMsg("echo:start", sockfd2);
-    const size_t block_size = 4096;
-    char buf[block_size];
+    const size_t block_size = 4 * 1024 * 1024; // 4MB
+    std::vector<char> buf(block_size); // 用堆内存避免栈溢出
     off_t offset = 0;
     size_t bytesRead;
     file_block block;
-    while ((bytesRead = fread(buf, 1, block_size, file)) > 0) {
+
+    while ((bytesRead = fread(buf.data(), 1, block_size, file)) > 0) {
         // 构造 file_block
         block.sender_uid = gid;
         block.receiver_uid = uid1;
@@ -1776,15 +1785,20 @@ void handler::sdgf(){
 
         // 构造完整消息
         std::string packet;
+        packet.reserve(sizeof(json_len) + json_str.size() + bytesRead);
         packet.append(reinterpret_cast<const char*>(&json_len), sizeof(json_len));
         packet.append(json_str);
-        packet.append(buf, bytesRead);
-        printf("[%d]\njson_len:%ld packet.size():%ld\njson_str:%s\n", ++i, json_str.size(),packet.size(), json_str.c_str());
+        packet.append(buf.data(), bytesRead);
+
+        printf("[%d]\njson_len:%ld packet.size():%ld\njson_str:%s\n",
+            ++i, json_str.size(), packet.size(), json_str.c_str());
         printf("\n");
+
         if (sendFILE(packet, sockfd) == -1) {
             sendMsg("error", sockfd);
             return;
         }
+
         offset += bytesRead;
     }
 

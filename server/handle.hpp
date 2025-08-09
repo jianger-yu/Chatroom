@@ -772,7 +772,7 @@ void handler::sdms(){
     //给接受者发送这条消息
     if(uid_to_socket.count(sendm.receiver_uid)) sendMsg("chat:"+sendm.toJson(), uid_to_socket[sendm.receiver_uid]);
     //给发送者发回声
-    sendMsg("ctsp:right", sockfd);
+    // sendMsg("ctsp:right", sockfd);
 }
 
 void handler::sdgm(){
@@ -785,12 +785,12 @@ void handler::sdgm(){
     user ud1 = u.GetUesr(sendm.sender_uid);
     std::string js = u.GetGroup(sendm.receiver_uid);
     if(js == "norepeat"){
-        sendMsg("echo:nofrd", sockfd);
+        sendMsg("ctsp:nofrd", sockfd);
         return;
     }
     group gp = group::fromJson(js);
     if(gp.owner == "0"){
-        sendMsg("echo:disgp", sockfd);
+        sendMsg("ctsp:disgp", sockfd);
         return;
     }
     bool exist = false;
@@ -798,7 +798,7 @@ void handler::sdgm(){
     if(gp.managelist.count(ud1.uid)) exist = true;
     if(gp.memberlist.count(ud1.uid)) exist = true;
     if(!exist){//说明不在群内
-        sendMsg("echo:nofrd", sockfd);
+        sendMsg("ctsp:nofrd", sockfd);
         return;
     }
     //存入数据库
@@ -845,7 +845,7 @@ void handler::sdgm(){
     }
     
     //给发送者发回声
-    sendMsg("echo:right", sockfd);
+    //sendMsg("ctsp:right", sockfd);
 }
 
 void handler::rdpg(){

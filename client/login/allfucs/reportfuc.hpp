@@ -27,7 +27,7 @@ class reportfucs{
 private:
     void* clientp;
     int page = 0;
-
+    int enterfuc = 1;
     int ctpage = 0;
     int msgcnt = 0;
     messages save;
@@ -804,6 +804,10 @@ void reportfucs::chatmenu(char c, user& ud2){
         printf("\033[0;32m>\033[0m%s\n", msg.content.c_str());
     }
     printf("                                     \033[0;32m(tip:按← 和→ 按键可控制翻页，按↑ 发送)\n\033[0m");
+    if(enterfuc == 1)
+        printf("                                         \033[0;32m(按↓ 可切换回车键功能，当前为换行)\n\033[0m");
+    else
+        printf("                                         \033[0;32m(按↓ 可切换回车键功能，当前为发送)\n\033[0m");
     printf("                                                         \033[0;32m[%d/%d]\033[0m\n",ctpage+1,maxctpage);
     printf("\033[0;36m==================================================================\033[0m\n");
 }
@@ -850,6 +854,7 @@ void reportfucs::handlechat(char c, report& rpt){
     CtspMsgQueue.clear();
     message sendm;
     startTime();
+    enterfuc = 1;
     char cbuf[10];
     while(1){
         int tm = throughtime();
@@ -954,6 +959,11 @@ void reportfucs::handlechat(char c, report& rpt){
             msgcnt++;
             break;
         }
+        case KEY_DOWN:{
+            enterfuc = 1 - enterfuc;
+            flag = true;
+            break;
+        }
         case KEY_LEFT:{
             chatmenu('[', ud2);
             printf("\033[0;32m请输入:>\033[0m");
@@ -978,6 +988,22 @@ void reportfucs::handlechat(char c, report& rpt){
             break;
         }
         default:{
+            if(enterfuc == 0 &&  (std::string(cbuf) == "\n" || std::string(cbuf) == "\r" )){
+                if(content.size() == 0 || content == "\n") break;
+                content.push_back('\0');
+                sendm.sender_uid = us.uid;
+                sendm.sender_name = us.name;
+                sendm.receiver_uid = uid2;
+                sendm.content = content;
+                sendm.timestamp = message::get_beijing_time();
+                sock->sendMsg("sdms:"+sendm.toJson());
+                save.data.insert(save.data.begin(), sendm.toJson());
+                flag = true;
+                ctpage = 0;
+                content.clear();
+                msgcnt++;
+                continue;
+            }
             if ((unsigned char)cbuf[0] == 8 || (unsigned char)cbuf[0] == 127) {
                 if (content.empty()) continue;
                 int i = content.size() - 1;
@@ -1105,6 +1131,10 @@ void reportfucs::gchatmenu(char c, group& gp){
         printf("\033[0;32m>\033[0m%s\n", msg.content.c_str());
     }
     printf("                                     \033[0;32m(tip:按← 和→ 按键可控制翻页，按↑ 发送)\n\033[0m");
+    if(enterfuc == 1)
+        printf("                                         \033[0;32m(按↓ 可切换回车键功能，当前为换行)\n\033[0m");
+    else
+        printf("                                         \033[0;32m(按↓ 可切换回车键功能，当前为发送)\n\033[0m");
     printf("                                                         \033[0;32m[%d/%d]\033[0m\n",ctpage+1,maxctpage);
     printf("\033[0;36m==================================================================\033[0m\n");
 }
@@ -1181,6 +1211,7 @@ void reportfucs::ghandlechat(char c, int fg){
     CtspMsgQueue.clear();
     message sendm;
     startTime();
+    enterfuc = 1;
     char cbuf[10];
     while(1){
         int tm = throughtime();
@@ -1282,6 +1313,11 @@ void reportfucs::ghandlechat(char c, int fg){
             msgcnt++;
             break;
         }
+        case KEY_DOWN:{
+            enterfuc = 1 - enterfuc;
+            flag = true;
+            break;
+        }
         case KEY_LEFT:{
             gchatmenu('[', viewgp);
             printf("\033[0;32m请输入:>\033[0m");
@@ -1306,6 +1342,23 @@ void reportfucs::ghandlechat(char c, int fg){
             break;
         }
         default:{
+            if(enterfuc == 0 &&  (std::string(cbuf) == "\n" || std::string(cbuf) == "\r" )){
+                if(content.size() == 0 || content == "\n") break;
+                content.push_back('\0');
+                sendm.sender_uid = us.uid;
+                sendm.sender_name = us.name;
+                sendm.receiver_uid = gid;
+                sendm.content = content;
+                sendm.timestamp = message::get_beijing_time();
+                sendm.is_group = true;
+                sock->sendMsg("sdgm:"+sendm.toJson());
+                save.data.insert(save.data.begin(), sendm.toJson());
+                flag = true;
+                ctpage = 0;
+                content.clear();
+                msgcnt++;
+                continue;
+            }
             if ((unsigned char)cbuf[0] == 8 || (unsigned char)cbuf[0] == 127) {
                 if (content.empty()) continue;
                 int i = content.size() - 1;

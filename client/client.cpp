@@ -4,6 +4,9 @@
 #include <atomic>
 //定义数据通信伪客户端
 
+extern std::string server_ip;
+extern int server_port;
+
 Client:: Client()
     : fd_(socket(AF_INET, SOCK_STREAM, 0)),
       socket_(std::make_unique<Socket>(fd_)){}
@@ -58,7 +61,16 @@ void Client::ctlthread(){
 }
 
 
-int main(){
+int main(int argc, char* argv[]){
+  // 命令行参数解析
+  if (argc >= 2) {
+      server_ip = argv[1];
+  }
+  if (argc >= 3) {
+      server_port = std::atoi(argv[2]);
+  }
+  printf("目标服务器: %s:%d\n", server_ip.c_str(), server_port);
+
   sigset_t set;
   sigaddset(&set,SIGINT);
   sigaddset(&set,SIGQUIT);
@@ -66,7 +78,7 @@ int main(){
   int tmp = 20;
   while(client.connectToHost("10.30.0.109", CONPORT)==false){
     printf("连接服务器%d端口失败,error:%s\n",CONPORT,strerror(errno));
-    printf("正在重新连接...\n");
+    printf("正在重新连接...剩余重连次数：%d次\n", tmp);
     sleep(1);
     tmp--;
     if(tmp == 0) exit(1);

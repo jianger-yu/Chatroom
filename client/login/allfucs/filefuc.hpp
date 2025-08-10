@@ -5,6 +5,9 @@
 #include <unordered_map>
 #include <filesystem>
 
+std::string server_ip = "10.30.0.109";
+int server_port = CONPORT;
+
 std::atomic<bool> file_sending(false);
 std::atomic<bool> file_recving(false);
 Client dataclient;
@@ -66,7 +69,7 @@ std::string filefucs::GetFileName(const char arr[]){
 }
 
 bool filefucs::conntect_filepth(){
-    return dataclient.connectToHost("10.30.0.109", 5513);
+    return dataclient.connectToHost(server_ip.c_str(), 5513);
     Socket* sock = dataclient.getSocket();
     sock->setNonBlocking();
 }

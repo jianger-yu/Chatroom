@@ -39,30 +39,32 @@ void fileTransferThread() {
     readctor file_rct(5513, 4, true);  // 文件传输监听端口 5513，线程池 4 线程
 }
 
-int main(){
-  redisContext* redis = connectRedis();
+int main(int argc, char* argv[]){
+
   
+  redisContext* redis = connectRedis();
   redisReply* reply = (redisReply*)redisCommand(redis, "EXISTS newuid");
   if (reply->integer == 0) {
       freeReplyObject(reply);
       reply = (redisReply*)redisCommand(redis, "SET newuid 1000");
   }
   freeReplyObject(reply);
-
   reply = (redisReply*)redisCommand(redis, "EXISTS newgid");
   if (reply->integer == 0) {
       freeReplyObject(reply);
       reply = (redisReply*)redisCommand(redis, "SET newgid 1000");
   }
-
   reply = (redisReply*)redisCommand(redis, "EXISTS newfid");
   if (reply->integer == 0) {
       freeReplyObject(reply);
       reply = (redisReply*)redisCommand(redis, "SET newfid 1000");
   }
-
-
   freeReplyObject(reply);
+  if (redis) {
+      redisFree(redis);
+      redis = nullptr;
+  }
+
 
   // 启动文件传输监听线程
   std::thread file_thread(fileTransferThread);

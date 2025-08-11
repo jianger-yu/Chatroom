@@ -84,6 +84,8 @@ public:
 
     //根据gid注销群聊的后端数据
     void disbandgroup(std::string gid, std::string gname);
+    //处理uid注销用户的后端数据
+    void destroy_user(std::string uid, std::string uname, std::string email);
 };
 
 
@@ -458,5 +460,20 @@ void userdata::disbandgroup(std::string gid, std::string gname){
     redisReply* reply = (redisReply*)redisCommand(redis, "DEL %s", chat_key.c_str());
     freeReplyObject(reply);
     reply = (redisReply*)redisCommand(redis, "DEL groupname:%s", gname.c_str());
+    freeReplyObject(reply);
+}
+
+void userdata::destroy_user(std::string uid, std::string uname, std::string email){
+    //username对于uid的映射清除
+    redisReply* reply = (redisReply*)redisCommand(redis, "DEL username:%s", uname.c_str());
+    freeReplyObject(reply);
+    //清除该用户id的report
+    reply = (redisReply*)redisCommand(redis, "DEL report:%s", uid.c_str());
+    freeReplyObject(reply);
+    //清除关于该用户的所有聊天
+    //清除email表里该用户的email和email:%s的映射
+    reply = (redisReply*)redisCommand(redis, "DEL email:%s", email.c_str());
+    freeReplyObject(reply);
+    reply = (redisReply*)redisCommand(redis, "SREM email %s", email.c_str());
     freeReplyObject(reply);
 }

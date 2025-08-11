@@ -402,7 +402,7 @@ void groupfucs::viewlist(char c){
             std::string name = ud.name, status, identity = "成员";
             if(ud.stat == "online") status = "在线";
             else if(ud.stat == "offline") status = "离线";
-            else if(ud.stat == "deleted") status = "该账户已注销";
+            else if(ud.stat == "destroy") status = "该账户已注销";
             if(ud.uid == viewgp.owner) identity = "群主";
             else if(viewgp.managelist.count(ud.uid)) identity = "管理员";
             // 如果是在线，颜色绿色；否则灰色

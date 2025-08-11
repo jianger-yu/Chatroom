@@ -8,4 +8,5 @@ cd ..
 
 # 启动客户端
 echo "Starting client..."
-./build/client/client_app
+
+./build/client/client_app "$@"

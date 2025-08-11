@@ -126,6 +126,7 @@ void friendfucs::list(char c){
     Client* cp = (Client*) clientp;
     Socket* sock = cp->getSocket();
     if(!us.friendlist.size()){
+        system("clear");
         printf("\033[0;32m当前没有好友。\n\033[0m");
         printf("\033[0;32m请按ESC返回...\033[0m");
         return;
@@ -151,7 +152,7 @@ void friendfucs::list(char c){
             std::string name = ud.name, status;
             if(ud.stat == "online") status = "在线";
             else if(ud.stat == "offline") status = "离线";
-            else if(ud.stat == "deleted") status = "该账户已注销";
+            else if(ud.stat == "destroy") status = "该账户已注销";
 
             // 如果是在线，颜色绿色；否则灰色
             const char *color = (status == "在线") ? "\033[0;32m" : "\033[0;90m";
@@ -899,7 +900,7 @@ void friendfucs::shield_menu(char c){
             std::string name = ud.name, status;
             if(ud.stat == "online") status = "在线";
             else if(ud.stat == "offline") status = "离线";
-            else if(ud.stat == "deleted") status = "该账户已注销";
+            else if(ud.stat == "destroy") status = "该账户已注销";
 
             // 如果是在线，颜色绿色；否则灰色
             const char *color = (status == "在线") ? "\033[0;32m" : "\033[0;90m";
@@ -1107,7 +1108,7 @@ void friendfucs::searchlist(char c){
             std::string name = ud.name, status;
             if(ud.stat == "online") status = "在线";
             else if(ud.stat == "offline") status = "离线";
-            else if(ud.stat == "deleted") status = "该账户已注销";
+            else if(ud.stat == "destroy") status = "该账户已注销";
 
             // 如果是在线，颜色绿色；否则灰色
             const char *color = (status == "在线") ? "\033[0;32m" : "\033[0;90m";

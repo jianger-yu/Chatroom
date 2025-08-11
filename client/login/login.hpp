@@ -5,6 +5,8 @@
 #include <cstring>
 #include "userfuc.hpp"
 
+
+
 class login{
 private:
     char name[256];
@@ -70,6 +72,7 @@ int login::pwdlog(){
         red = EchoMsgQueue.wait_and_pop();
         if(red != "pwdfalse") {
             userfuc uf(red);
+            us = user::fromJson(red);
             if(uf.mainfuc(c) == -2) return -1;
         } else{
             printf("\033[0;31m\n用户名或密码错误，请重新输入。\033[0m\n");
@@ -130,6 +133,7 @@ int login::emaillog(){
                 str = EchoMsgQueue.wait_and_pop();
                 if(str != "false"){
                     userfuc uf(str);
+                    us = user::fromJson(red);
                     if(uf.mainfuc(c) == -2) return -1;
                 } else {
                     printf("\033[0;31m数据异常，请重试。\n\033[0m>");

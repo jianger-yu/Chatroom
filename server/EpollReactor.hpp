@@ -24,11 +24,12 @@
 
 #define MAX_EVENTS 1024     //监听上限数
 #define BUFLEN 5120
-#define SERV_PORT 1145
 #define MAX_PORT 65535      //端口上限
-#define DATASENDIP "10.30.0.109"
 #define  FILEROAD "/home/jianger/codes/ server/server/ file"
 #define max_road 4096
+
+std::string server_ip_ = "10.30.0.109";
+uint16_t server_port_ = 4413;
 
 extern std::unordered_map<int, std::unique_ptr<std::mutex>> fd_write_mutexes;
 extern std::unordered_map<int, std::unique_ptr<std::mutex>> fd_read_mutexes;
@@ -373,7 +374,7 @@ void readctor::InitListenSocket(unsigned short port){
 
     memset(&addr, 0, sizeof addr);
     //addr.sin_addr.s_addr = INADDR_ANY;    //绑定网卡上任意ip
-    inet_pton(AF_INET, DATASENDIP, &addr.sin_addr); //连接指定端口
+    inet_pton(AF_INET, server_ip_.c_str(), &addr.sin_addr); //连接指定端口
 
     addr.sin_family = AF_INET;
     addr.sin_port = htons(port);
@@ -458,7 +459,7 @@ void readctor::readctorinit(unsigned short port){
 
 // 无参构造函数
 readctor::readctor(){
-    unsigned short port = SERV_PORT;
+    unsigned short port = server_port_;
     readctorinit(port);
 }          
 // 带参构造函数

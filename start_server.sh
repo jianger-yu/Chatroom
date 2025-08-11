@@ -8,4 +8,5 @@ cd ..
 
 # 启动服务器
 echo "Starting server..."
-./build/server/server_app
+
+./build/server/server_app "$@"

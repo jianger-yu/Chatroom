@@ -20,7 +20,7 @@ public:
     //查看用户基本信息
     void ViewAccountInformation();
     //注销账号
-    void logoff();
+    int logoff();
 };
 
 void setupfucs::ViewAccountInformation(){
@@ -184,7 +184,9 @@ void setupfucs::modpwd(int fg = 2){
 }
 
 
-void setupfucs::logoff(){
+int setupfucs::logoff(){
+    Client * cp = (Client*)clientp;
+    Socket * sock = cp->getSocket();
     system("clear");
     printf("\033[0;31m确定要注销该账号？（Y/N）\033[0m\n");
     fflush(stdout);
@@ -197,7 +199,7 @@ void setupfucs::logoff(){
         if(input == 'Y' || input == 'y') off = true;
         break;
     }
-    if(!off) return ;
+    if(!off) return 0;
     off = false;   
     printf("\033[0;31m真的确定要注销该账号？（T/F）\033[0m\n");
     while(1){
@@ -207,7 +209,7 @@ void setupfucs::logoff(){
         if(input == 'T' || input == 't') off = true;
         break;
     }
-    if(!off) return ;
+    if(!off) return 0;
     //发送验证码
     printf("\033[0;32m正在为您发送验证码...\033[0m");
     fflush(stdout); // 手动刷新标准输出缓冲区
@@ -216,7 +218,7 @@ void setupfucs::logoff(){
         printf("\033[0;31m数据异常，请稍后再试。\033[0m\n");
         printf("\033[0;31m请按任意键继续...\033[0m\n");
         charget();
-        return;
+        return 0;
     }
     //输入验证码
     char yan[100];
@@ -224,14 +226,18 @@ void setupfucs::logoff(){
     do{
         chu(yan);
         int ret = enter(yan, 0);
-        if(ret == -1) return;
+        if(ret == -1) return 0;
         if(strcmp(yan, emsend.code) != 0){
             printf("\033[0;31m验证码错误，请检查并重新输入。\n\033[0m>");
             continue;
         }
         break;
     } while(1);
-    printf("正在注销；");
+    printf("\033[0;32m正在为您注销账号...\n\033[0m");
+    sock->sendMsg("dsty:" + us.uid);
+    std::string rev = EchoMsgQueue.wait_and_pop();
+    printf("\033[0;32m该账户已注销。\n\033[0m");
+    printf("\033[0;32m请按任意键继续...\033[0m\n");
     charget();
-
+    return -1;
 }

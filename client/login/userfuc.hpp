@@ -13,7 +13,6 @@ private:
 
 public:
     userfuc(std::string js):u(user::fromJson(js)){
-        us = u;
     };
 
     int mainfuc(void*p);
@@ -337,7 +336,8 @@ int userfuc::setupfuc(void){
             break;
         }
         case '2':{
-            stf.logoff();
+            if(stf.logoff() == -1)
+                return -1;
             flag = true;
             break;
         }

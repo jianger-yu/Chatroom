@@ -76,8 +76,8 @@ int main(int argc, char* argv[]){
   sigaddset(&set,SIGQUIT);
   sigprocmask(SIG_BLOCK,&set,NULL);
   int tmp = 20;
-  while(client.connectToHost("10.30.0.109", CONPORT)==false){
-    printf("连接服务器%d端口失败,error:%s\n",CONPORT,strerror(errno));
+  while(client.connectToHost(server_ip.c_str(), server_port)==false){
+    printf("连接服务器%d端口失败,error:%s\n",server_port,strerror(errno));
     printf("正在重新连接...剩余重连次数：%d次\n", tmp);
     sleep(1);
     tmp--;

@@ -2,6 +2,9 @@
 #include "EpollReactor.hpp"
 #include <thread>
 
+extern std::string server_ip_;
+extern uint16_t server_port_;
+
 server::server()
     : listenfd_(socket(AF_INET, SOCK_STREAM, 0)), socket_(nullptr) {
     }
@@ -40,7 +43,13 @@ void fileTransferThread() {
 }
 
 int main(int argc, char* argv[]){
-
+  // 命令行参数解析
+  if (argc >= 2) {
+      server_ip_ = argv[1];
+  }
+  if (argc >= 3) {
+      server_port_ = std::atoi(argv[2]);
+  }
   
   redisContext* redis = connectRedis();
   redisReply* reply = (redisReply*)redisCommand(redis, "EXISTS newuid");
@@ -70,7 +79,7 @@ int main(int argc, char* argv[]){
   std::thread file_thread(fileTransferThread);
   file_thread.detach();  // 后台运行，不阻塞主线程
 
-  readctor rct(4413, 16);
+  readctor rct(server_port_, 16);
   while(1){
     
   }

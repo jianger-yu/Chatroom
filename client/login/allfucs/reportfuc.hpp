@@ -289,6 +289,24 @@ void reportfucs::Analysisnotice(std::string &str, int i){
         }
         return;
     }
+    else if(str[0] == 'd' && str[1] == 's' && str[2] == 't' && str[3] == 'y'){
+        std::string gname;
+        bool yellow = false;
+        if(str[5] == 'n' || str[3] == 'N') yellow = true;
+        //解析命令"dsty(n):%s", uname.c_str()
+        int j = 0;
+        while(str[j] != ')') j++;
+        j++;
+        for(;j < str.size(); j++) gname.push_back(str[j]);
+        if(i == -1){
+            printf("您的好友 \033[0;34m%s\033[0m 注销了账号。\033[0;34m\n", gname.c_str());
+            return;    
+        }
+        if(!yellow) 
+            printf("[%d] %d、您的好友 \033[0;34m%s\033[0m  注销了账号。\n", i-5*page+1, i + 1, gname.c_str());
+        else
+            printf("\033[0;33m[%d] %d、您的好友 \033[0m\033[0;34m%s\033[0m\033[0;33m  注销了账号。\033[0m\033[0m\n", i-5*page+1, i + 1,  gname.c_str());
+    }
 }
 
 
@@ -371,7 +389,7 @@ void reportfucs::menu(char c, int fg){
                 std::string name = ud.name, status;
                 if(ud.stat == "online") status = "在线";
                 else if(ud.stat == "offline") status = "离线";
-                else if(ud.stat == "deleted") status = "该账户已注销";
+                else if(ud.stat == "destroy") status = "该账户已注销";
 
                 // 如果是在线，颜色绿色；否则灰色
                 const char *color = (status == "在线") ? "\033[0;32m" : "\033[0;90m";
@@ -465,6 +483,15 @@ void reportfucs::handleapply(char c){
         else sd.push_back('n');
         break;
     }
+    //xxx:user1.name:user2:uid(用户1加用户2),改数据库
+    sock->sendMsg(sd+":"+name+":"+us.uid);
+    sd = EchoMsgQueue.wait_and_pop();
+    if(sd == "dstry"){
+        printf("\033[0;31m对方已注销账号，无法添加好友。\033[0m\n");
+        printf("\033[0;31m请按任意键继续...\033[0m");
+        input = charget();
+        return ;
+    }
     //改本地
     if(input == 'Y' || input == 'y'){
         sock->sendMsg("gtud:"+name);
@@ -477,9 +504,6 @@ void reportfucs::handleapply(char c){
         }
         us.friendlist.insert(rev);
     }
-    //xxx:user1.name:user2:uid(用户1加用户2),改数据库
-    sock->sendMsg(sd+":"+name+":"+us.uid);
-    sd = EchoMsgQueue.wait_and_pop();
     if(sd == "right"){
         if(input == 'Y' || input == 'y')
             printf("\033[0;32m添加好友成功！\033[0m\n");
@@ -525,7 +549,12 @@ void reportfucs::handlegroupapply(char c){
     //adg(y:uname:gname:handler(用户加群),改数据库
     sock->sendMsg(sd+":"+name+":"+gname+":"+us.name);
     sd = EchoMsgQueue.wait_and_pop();
-    if(sd == "ingrp"){
+    if(sd == "dstry"){
+        printf("\033[0;31m对方已注销账号，无法处理。\033[0m\n");
+        printf("\033[0;31m请按任意键继续...\033[0m");
+        input = charget();
+        return ;
+    } else if(sd == "ingrp"){
         printf("\033[0;31m该申请已被处理。\033[0m\n");
         printf("\033[0;31m请按任意键继续...\033[0m");
         charget();

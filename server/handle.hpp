@@ -72,7 +72,7 @@ private:
     //处理删除好友的请求
     void rmfd();
     //处理退出群聊的请求
-    void rmgp();
+    void rmgp(std::string&, int fg = 1);
     //拉取两页聊天记录
     void ctms();
     //拉取两页群聊记录
@@ -108,7 +108,7 @@ private:
     //踢出群成员
     void kcmb();
     //解散群聊
-    void disg();
+    void disg(std::string&, int fg = 1);
     //根据uid获取用户为管理员的全部群
     void mngl();
     //根据uid获取用户所有传来的文件
@@ -136,6 +136,8 @@ public:
     //处理下载文件的请求
     void sdfl();
     void sdgf();
+    //处理注销账号的请求
+    void dsty();
     
 };
 
@@ -169,7 +171,7 @@ int handler::handle(void){
     else if(str[0] == 'r' && str[1] == 'd' && str[2] == 'n' && str[3] == 't') rdnt();
     else if(str[0] == 'r' && str[1] == 'm' && str[2] == 'n' && str[3] == 't') rmnt();
     else if(str[0] == 'r' && str[1] == 'm' && str[2] == 'f' && str[3] == 'd') rmfd();
-    else if(str[0] == 'r' && str[1] == 'm' && str[2] == 'g' && str[3] == 'p') rmgp();
+    else if(str[0] == 'r' && str[1] == 'm' && str[2] == 'g' && str[3] == 'p') rmgp(str);
     else if(str[0] == 'c' && str[1] == 't' && str[2] == 'm' && str[3] == 's') ctms();
     else if(str[0] == 'g' && str[1] == 'c' && str[2] == 't' && str[3] == 'm') gctm();
     else if(str[0] == 'c' && str[1] == 't' && str[2] == 'g' && str[3] == 'p') ctgp();
@@ -188,11 +190,16 @@ int handler::handle(void){
     else if(str[0] == 'g' && str[1] == 't' && str[2] == 'g' && str[3] == 'f') gtgf();
     else if(str[0] == 'm' && str[1] == 'n' && str[2] == 'g' && str[3] == 'l') mngl();
     else if(str[0] == 'k' && str[1] == 'c' && str[2] == 'm' && str[3] == 'b') kcmb();
-    else if(str[0] == 'd' && str[1] == 'i' && str[2] == 's' && str[3] == 'g') disg();
+    else if(str[0] == 'd' && str[1] == 'i' && str[2] == 's' && str[3] == 'g') disg(str);
     else if(str[0] == 'f' && str[1] == 'l' && str[2] == 's' && str[3] == 'z') flsz();
     else if(str[0] == 'g' && str[1] == 'f' && str[2] == 's' && str[3] == 'z') gfsz();
     else if(str[0] == 'r' && str[1] == 'v' && str[2] == 'e' && str[3] == 'd') rved();
     else if(str[0] == 'r' && str[1] == 'v' && str[2] == 'g' && str[3] == 'e') rvge();
+    else if(str[0] == 'r' && str[1] == 'v' && str[2] == 'g' && str[3] == 'e') rvge();
+    else if(str[0] == 'd' && str[1] == 's' && str[2] == 't' && str[3] == 'y'){
+        dsty();
+        //return 1;
+    }
     else if(str[0] == 'r' && str[1] == 'v' && str[2] == 'l' && str[3] == 'g') {
         rvlg();
         return 1;
@@ -270,6 +277,7 @@ void handler::pwlg(){
     printf("密码:%s\n", pwd.c_str());
     //获得uid
     std::string usuid = u.Getuid(name.c_str());
+    printf("登录时获取uid:%s\n", usuid.c_str());
     //若该用户不存在
     if(usuid == "norepeat"){
         sendMsg("echo:pwdfalse", sockfd);
@@ -392,6 +400,10 @@ void handler::adfr(){
     }
     for(int t = j + 1; t < str.size(); t++) uid2.push_back(str[t]);
     user ud = u.GetUesr(uid1), ud2 = u.GetUesr(uid2);
+    if(ud2.stat == "destroy"){
+        sendMsg("echo:false",sockfd);
+        return;
+    }
     js = u.u_report(uid2);
     if(js == "none"){
         sendMsg("echo:false",sockfd);
@@ -512,13 +524,22 @@ void handler::adfok(){
     if(js == "none"){
         printf("In fuc adfok uid2:%s report return none\n", uid2.c_str());
         sendMsg("echo:false", sockfd);
+        return;
     }
     report rpt2 = report::fromJson(js);
     rpt2.friendapply.erase(name1);
     u.svreport(uid2, rpt2.toJson());
     //拿到uid1和ud2
     uid1 = u.Getuid(name1.c_str());
+    if(uid1 == "norepeat"){
+        sendMsg("echo:dstry", sockfd);
+        return;
+    }
     user ud1 = u.GetUesr(uid1), ud2 = u.GetUesr(uid2);
+    if(ud1.stat == "destroy" || ud2.stat == "destroy"){
+        sendMsg("echo:dstry", sockfd);
+        return;
+    }
     if(flag == 'y'){
         //获取u1和u2的用户数据
         ud1.friendlist.insert(uid2);
@@ -634,21 +655,23 @@ void handler::rmfd(){
     sendMsg("echo:right", sockfd);
 }
 
-void handler::rmgp(){
+void handler::rmgp(std::string &handstr, int fg){
     //拿到数据
     std::string uid1,gid;
     int i = 0;
-    while(str[i] != ':') i++;
+    while(handstr[i] != ':') i++;
     int j = i + 1;
-    while(str[j] != ':') {
-        uid1.push_back(str[j]);
+    while(handstr[j] != ':') {
+        uid1.push_back(handstr[j]);
         j++;
     }
-    for(int t = j + 1; t < str.size(); t++) gid.push_back(str[t]);
+    for(int t = j + 1; t < handstr.size(); t++) gid.push_back(handstr[t]);
     user ud1 = u.GetUesr(uid1);
     group gp = group::fromJson(u.GetGroup(gid));
     if(ud1.uid == gp.owner){
         //调用解散函数
+        std::string argstr = "disg:"+gid;
+        disg(argstr, fg);
         return;
     }
     //1.去掉ud1群列表中的该组，给ud1发user -> 2.去掉群列表的该用户 -> 3.给全体成员广播该退群通知？
@@ -672,7 +695,8 @@ void handler::rmgp(){
     // char result[512];
     // //exgp(n)uid1:gid
     // sprintf( result, "exgp(n)%s:%s", uid1.c_str(), gid.c_str());
-    sendMsg("echo:right", sockfd);
+    if(fg == 1)
+        sendMsg("echo:right", sockfd);
 }
 
 
@@ -1017,12 +1041,47 @@ void handler::adgok(){
     while(str[i] != ':') gname.push_back(str[i++]);
     handname = str.c_str() + i + 1;
     std::string uid = u.Getuid(uname.c_str()), gid = u.Getgid(gname.c_str());
+    group gp = group::fromJson(u.GetGroup(gid));
+    if(uid == "norepeat"){
+        std::string apply = uname+":"+gname;
+        report rpt = report::fromJson(u.u_report(gp.owner));
+        rpt.groupapply.erase(apply);
+        u.svreport( gp.owner, rpt.toJson());
+
+        for(std::string mvs : gp.managelist){
+            rpt = report::fromJson(u.u_report(mvs));
+            rpt.groupapply.erase(apply);
+            u.svreport( mvs, rpt.toJson());
+            if(uid_to_socket.count(mvs)) sendMsg("rept:"+rpt.toJson(), uid_to_socket[mvs]);
+        }
+
+        sendMsg("echo:dstry", sockfd);
+        return;
+    }
     //同意：1.用户结构体中群组列表加入该群gid -> 2.该群成员中加入该用户 -> 3.去除群主管理员通知中这条申请，给他们发结果通知 ->
     //拒绝: 去除群主管理员通知中这条申请，给他们发结果通知
     user ud = u.GetUesr(uid);
-    group gp = group::fromJson(u.GetGroup(gid));
     if(gp.owner == "0"){
         sendMsg("echo:disgp", sockfd);
+        return;
+    }
+    if(ud.stat == "destroy"){
+        std::string apply = uname+":"+gname;
+        report rpt = report::fromJson(u.u_report(gp.owner));
+        rpt.groupapply.erase(apply);
+        u.svreport( gp.owner, rpt.toJson());
+
+        for(std::string mvs : gp.managelist){
+            rpt = report::fromJson(u.u_report(mvs));
+            rpt.groupapply.erase(apply);
+            u.svreport( mvs, rpt.toJson());
+            if(uid_to_socket.count(mvs)) sendMsg("rept:"+rpt.toJson(), uid_to_socket[mvs]);
+        }
+
+        rpt = report::fromJson(u.u_report(uid));
+        u.svreport( uid, rpt.toJson());
+        if(uid_to_socket.count(uid)) sendMsg("rept:"+rpt.toJson(), uid_to_socket[uid]);
+        sendMsg("echo:dstry", sockfd);
         return;
     }
     if(gp.owner == uid || gp.managelist.count(uid) || gp.memberlist.count(uid)){//已经在群内
@@ -1302,11 +1361,11 @@ void handler::kcmb(){
     sendMsg("echo:right", sockfd);
 }
 
-void handler::disg(){
+void handler::disg(std::string& handstr, int fg){
     //拿到数据
     int i = 0;
-    while(str[i] != ':') i++;
-    std::string gid = str.c_str() + i + 1, js;
+    while(handstr[i] != ':') i++;
+    std::string gid = handstr.c_str() + i + 1, js;
 
     js = u.GetGroup(gid);
     if(js == "norepeat"){
@@ -1362,8 +1421,8 @@ void handler::disg(){
         u.svreport( uid, rpt.toJson());
         if(uid_to_socket.count(uid)) sendMsg("rept:disg", uid_to_socket[uid]);
     }
-
-    sendMsg("echo:right", sockfd);
+    if(fg == 1)
+        sendMsg("echo:right", sockfd);
 }
 
 
@@ -1860,4 +1919,49 @@ void handler::rvge(){
     u.svreport( uid1, rpt.toJson());
     if(uid_to_socket.count(uid1))
         sendMsg("rept:"+rpt.toJson(), uid_to_socket[uid1]);
+}
+
+//销毁用户
+void handler::dsty(){
+    int i = 0;
+    while(str[i] != ':') i++;
+    std::string uid1 = str.c_str() + i + 1, js, uid2;
+    user ud1 = u.GetUesr(uid1);
+    std::string startname = ud1.name;
+    //user内名字加上已注销
+    char result[512];
+    sprintf(result, "dsty(n):%s", ud1.name.c_str());
+    ud1.name += "（已注销）";
+    ud1.stat = "destroy";
+
+    //轮询所有好友告知user变化
+    for(std::string uid2 : ud1.friendlist){
+        user ud2 = u.GetUesr(uid2);
+        ud2.friendlist.erase(uid1);
+        ud2.shieldlist.erase(uid1);
+        js = ud2.toJson();
+        u.setutoj( uid2, js);
+        if(uid_to_socket.count(uid2)) sendMsg("user:"+ js, uid_to_socket[uid2]);
+
+        js = u.u_report(uid2);
+        if(js == "none") continue;
+        report rpt2 = report::fromJson(js);
+        rpt2.notice.insert(rpt2.notice.begin(), std::string(result));
+        js = rpt2.toJson();
+        u.svreport( uid2, js);
+        if(uid_to_socket.count(uid2)) sendMsg("rept:"+ js, uid_to_socket[uid2]);
+    }
+    //轮询所有群聊并退出
+    for(std::string gid : ud1.grouplist){
+        std::string tmp = "rmpg:" + uid1 + ":" + gid;
+        rmgp(tmp, 2);
+    }
+
+    //username对于uid的映射清除
+    //清除该用户id的report
+    //清除关于该用户的所有聊天
+    //清除email表里该用户的email和email:%s的映射
+    u.destroy_user(uid1, startname, ud1.email);
+    u.setutoj( uid1, ud1.toJson());
+    sendMsg("echo:right", sockfd);
 }

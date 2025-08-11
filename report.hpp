@@ -33,6 +33,10 @@ struct report {
     // JSON 反序列化
     static report fromJson(const std::string& s) {
         report data;
+        if(s.size() != 0 && s[0] != '{') {
+            printf("error rpt js:%s\n", s.c_str());
+            return data;
+        }
         try {
             json j = json::parse(s);
 

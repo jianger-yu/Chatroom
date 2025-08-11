@@ -134,6 +134,7 @@ void filefucs::sendfile_touser(char c, int fg){
             sprintf(path,("%s/%s"),pa,arr);
         //若为绝对路径，直接传入路径
         else strcpy(path,arr);
+        if (pa) free(pa);
         file = fopen(path, "rb");
         if (file == NULL) {
             system("clear");

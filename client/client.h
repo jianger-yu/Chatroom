@@ -35,7 +35,7 @@ class  Client {
 
   //在当前内存位置重新构造对象
   void reinitialize() {
-        new (this) Client();
+    new (this) Client();
   }
   
   private:
@@ -43,6 +43,5 @@ class  Client {
   int fd_;
   // 通信类对象
   std::unique_ptr<Socket> socket_;
-
   
 };

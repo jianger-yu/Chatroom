@@ -1,5 +1,5 @@
 #include "../socket/socket.h"
-#include "EpollReactor.hpp"
+#include "Reactor.hpp"
 #include <thread>
 
 extern std::string server_ip_;
@@ -39,7 +39,7 @@ bool server::acceptConn() {
 
 // 文件传输服务监听函数
 void fileTransferThread() {
-    readctor file_rct(5513, 4, true);  // 文件传输监听端口 5513，线程池 4 线程
+    MainReactor file_rct(5513, 4, true);  // 文件传输监听端口 5513，线程池 4 线程
 }
 
 int main(int argc, char* argv[]){
@@ -79,7 +79,7 @@ int main(int argc, char* argv[]){
   std::thread file_thread(fileTransferThread);
   file_thread.detach();  // 后台运行，不阻塞主线程
 
-  readctor rct(server_port_, 16);
+  MainReactor rct(server_port_, 16);
   while(1){
     
   }

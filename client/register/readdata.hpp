@@ -192,7 +192,7 @@ int enter(char *arr, int key) {
             ch = tm_charget(200);
             if(ch == -1) return -5;
         }
-        if(key != 2 && i >= 20 && ch != '\b' && ch != 127 && ch != '\n' && ch != 27) continue;
+        if(key != 2 && i >= 25 && ch != '\b' && ch != 127 && ch != '\n' && ch != 27) continue;
         if(key == 2 && i >= 300 && ch != '\b' && ch != 127 && ch != '\n' && ch != 27 && ch != '[' && ch != ']') continue;
         if (ch == 27) return -1;  // ESC
         if (ch == '[') return -2;

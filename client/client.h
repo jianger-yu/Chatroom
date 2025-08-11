@@ -1,7 +1,7 @@
 #pragma once
 #include <memory>
 #include "../socket/socket.h"
-#include "../server/EpollReactor.hpp"
+#include "../server/Reactor.hpp"
 #include "./register/readdata.hpp"
 #include "../socket/socket.h"
 #include "./register/hashpwd.hpp"

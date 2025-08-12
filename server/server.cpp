@@ -16,6 +16,7 @@ void heartbeatMonitorThread() {
         {
             std::lock_guard<std::mutex> lock(map_mutex);
             for (auto it = uslast_active.begin(); it != uslast_active.end();) {
+                if(it->first <= 2) continue;
                 time_t last = it->second;
 
                 if (now - last > HEARTBEAT_TIMEOUT) {
@@ -24,6 +25,7 @@ void heartbeatMonitorThread() {
                     else 
                       std::cout << "用户[fd:" << it->first << "]" << " 心跳超时，断开连接\n";
                     close(it->first);
+                    it = uslast_active.erase(it);
                 } else {
                     ++it;
                 }
@@ -105,8 +107,8 @@ int main(int argc, char* argv[]){
   }
 
   // 启动心跳检测线程
-  // std::thread heart_thread(heartbeatMonitorThread);
-  // heart_thread.detach();  // 后台运行，不阻塞主线程
+  std::thread heart_thread(heartbeatMonitorThread);
+  heart_thread.detach();  // 后台运行，不阻塞主线程
   
   // 启动文件传输监听线程
   std::thread file_thread(fileTransferThread);

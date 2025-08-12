@@ -1,0 +1,1 @@
+/usr/bin/c++  -fsanitize=address -g CMakeFiles/client_app.dir/client.cpp.o CMakeFiles/client_app.dir/__/socket/socket.cpp.o -o client_app  -lpthread -lhiredis -lsodium -lcurl 

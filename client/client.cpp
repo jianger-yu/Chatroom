@@ -97,7 +97,7 @@ int main(int argc, char* argv[]){
   }
   recv_running = true;
   std::thread recvThread = std::thread(recv_thread, client.getSocket());
-  //std::thread hb_t(heartbeatThread);     // 心跳线程
+  std::thread hb_t(heartbeatThread);     // 心跳线程
 
   client.ctlthread();
 
@@ -111,9 +111,9 @@ int main(int argc, char* argv[]){
   if (recvThread.joinable()) {
       recvThread.join();
   }
-  // if (hb_t.joinable()) {
-  //     hb_t.join();
-  // }
+  if (hb_t.joinable()) {
+      hb_t.join();
+  }
   fflush(stdout);
   system("clear");
   fflush(stdout);

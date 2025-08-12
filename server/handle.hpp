@@ -371,6 +371,7 @@ void handler::unlg(std::string buf){
 void handler::uulg(std::string uid){
     //拿到用户信息
     user ud = u.GetUesr(uid);
+    uslast_active.erase(uid_to_socket[uid]);
     if(uid_to_socket.count(uid) && uid_to_socket[uid] != sockfd)//处理顶号问题
         return ;
     ud.stat = "offline";
@@ -379,7 +380,6 @@ void handler::uulg(std::string uid){
     socket_to_uid.erase(sockfd);
     fd_write_mutexes.erase(sockfd);
     fd_read_mutexes.erase(sockfd);
-    uslast_active.erase(uid_to_socket[uid]);
     //获取json字符串
     std::string js = ud.toJson();
     u.setutoj(uid, js);

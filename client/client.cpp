@@ -57,8 +57,20 @@ void Client::ctlthread(){
       default:continue;
     }
   };
-
 }
+
+
+void heartbeatThread() {
+    const int interval = 30; // 心跳间隔秒数
+    std::string heartbeat_msg = "PING";
+    Socket* sock = client.getSocket();
+    while (1) {
+        // 发送心跳包
+        sock->sendMsg(heartbeat_msg);
+        std::this_thread::sleep_for(std::chrono::seconds(interval));
+    }
+}
+
 
 
 int main(int argc, char* argv[]){
@@ -85,7 +97,10 @@ int main(int argc, char* argv[]){
   }
   recv_running = true;
   std::thread recvThread = std::thread(recv_thread, client.getSocket());
+  std::thread hb_t(heartbeatThread);     // 心跳线程
+
   client.ctlthread();
+
 
 
   //设置标志位为 false，让 recv_thread 自行退出
@@ -95,6 +110,9 @@ int main(int argc, char* argv[]){
   //等待线程退出
   if (recvThread.joinable()) {
       recvThread.join();
+  }
+  if (hb_t.joinable()) {
+      hb_t.join();
   }
   fflush(stdout);
   system("clear");

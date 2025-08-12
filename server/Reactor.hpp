@@ -31,6 +31,7 @@ uint16_t server_port_ = 4413;
 
 extern std::unordered_map<int, std::unique_ptr<std::mutex>> fd_write_mutexes;
 extern std::unordered_map<int, std::unique_ptr<std::mutex>> fd_read_mutexes;
+extern std::unordered_map<std::string, time_t> last_active;
 
 class WorkerReactor{
 private:
@@ -748,8 +749,12 @@ void WorkerReactor::senddata(int fd,int tmp, void * arg){
             ev->buf.erase(0, 4+slen);
             printf("处理回调取出slen:%d, str,size():%ld, str:%s\n", slen,str.size(),str.c_str());
         }
-        
-        if(datareactor && str[0] == 'r' && str[1] == 'v' && str[2] == 'f' && str[3] == 'l') rvfl(str);
+        if(str[0] == 'P' && str[1] == 'I' && str[2] == 'N' && str[3] == 'G'){
+            time_t now = time(nullptr);
+            last_active[socket_to_uid[fd]] = now;  // 插入或更新
+            std::cout << "更新用户 " << socket_to_uid[fd] << " 的活跃时间为 " << ctime(&now);
+        }
+        else if(datareactor && str[0] == 'r' && str[1] == 'v' && str[2] == 'f' && str[3] == 'l') rvfl(str);
         else if(datareactor && str[0] == 'r' && str[1] == 'v' && str[2] == 'g' && str[3] == 'f') rvgf(str);
         else {
             handler hand(str, fd);
@@ -939,7 +944,7 @@ void WorkerReactor::readctorinit(unsigned short port){
                 continue;
             
             long duration = now - r_events[chekckpos].last_active;   //计算客户端不活跃的时间
-            if(duration >= 3600){//超时，断连
+            if(duration >= 600){//超时，断连
                 printf("[fd = %d] timeout\n", r_events[chekckpos].fd);
                 pthread_mutex_lock(&event_mutex); // 加锁
                 if(!datareactor){

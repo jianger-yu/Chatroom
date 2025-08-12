@@ -8,6 +8,7 @@
 
 extern std::unordered_map<int, std::unique_ptr<std::mutex>> fd_write_mutexes;
 extern std::unordered_map<int, std::unique_ptr<std::mutex>> fd_read_mutexes;
+extern std::unordered_map<std::string, time_t> last_active;
 
 bool send_all(int sockfd,const void * buf,size_t len){
   const char*p = static_cast<const char*>(buf);

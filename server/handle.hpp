@@ -10,6 +10,7 @@
 
 std::unordered_map<int, std::unique_ptr<std::mutex>> fd_write_mutexes;
 std::unordered_map<int, std::unique_ptr<std::mutex>> fd_read_mutexes;
+std::unordered_map<std::string, time_t> last_active;
 
 class handler{
 private:
@@ -337,6 +338,11 @@ void handler::emlg(){
 std::string handler::lgok(std::string uid){
     //拿到用户信息
     user ud = u.GetUesr(uid);
+
+    time_t now = time(nullptr);
+    last_active[uid] = now;  // 插入或更新
+    std::cout << "更新用户 " << uid << " 的活跃时间为 " << ctime(&now);
+
     if(ud.stat == "online"){
         //顶号
         sendMsg("lgex:"+ uid, uid_to_socket[uid]);
@@ -374,6 +380,7 @@ void handler::uulg(std::string uid){
     socket_to_uid.erase(sockfd);
     fd_write_mutexes.erase(sockfd);
     fd_read_mutexes.erase(sockfd);
+    last_active.erase(uid);
     //获取json字符串
     std::string js = ud.toJson();
     u.setutoj(uid, js);

@@ -4,6 +4,34 @@
 
 extern std::string server_ip_;
 extern uint16_t server_port_;
+std::mutex map_mutex;                                   // 访问映射时用的互斥锁
+
+const int HEARTBEAT_TIMEOUT = 90; // 90秒无心跳就断开
+
+void heartbeatMonitorThread() {
+    while (true) {
+        time_t now = time(nullptr);
+
+        // 访问映射需加锁，防止并发读写冲突
+        {
+            std::lock_guard<std::mutex> lock(map_mutex);
+            for (auto it = last_active.begin(); it != last_active.end();) {
+                const std::string& uid = it->first;
+                time_t last = it->second;
+
+                if (now - last > HEARTBEAT_TIMEOUT) {
+                    std::cout << "用户 " << uid << " 心跳超时，断开连接\n";
+                    close(uid_to_socket[uid]);
+                } else {
+                    ++it;
+                }
+            }
+        }
+
+        // 休眠一段时间，再检测
+        std::this_thread::sleep_for(std::chrono::seconds(10));
+    }
+}
 
 server::server()
     : listenfd_(socket(AF_INET, SOCK_STREAM, 0)), socket_(nullptr) {
@@ -74,7 +102,10 @@ int main(int argc, char* argv[]){
       redis = nullptr;
   }
 
-
+  // 启动心跳检测线程
+  std::thread heart_thread(heartbeatMonitorThread);
+  heart_thread.detach();  // 后台运行，不阻塞主线程
+  
   // 启动文件传输监听线程
   std::thread file_thread(fileTransferThread);
   file_thread.detach();  // 后台运行，不阻塞主线程

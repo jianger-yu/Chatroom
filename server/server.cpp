@@ -4,7 +4,7 @@
 
 extern std::string server_ip_;
 extern uint16_t server_port_;
-std::mutex map_mutex;                                   // 访问映射时用的互斥锁
+extern std::mutex map_mutex;                                   // 访问映射时用的互斥锁
 
 const int HEARTBEAT_TIMEOUT = 90; // 90秒无心跳就断开
 
@@ -16,7 +16,10 @@ void heartbeatMonitorThread() {
         {
             std::lock_guard<std::mutex> lock(map_mutex);
             for (auto it = uslast_active.begin(); it != uslast_active.end();) {
-                if(it->first <= 2) continue;
+                if(it->first <= 2) {
+                  it++;
+                  continue;
+                }
                 time_t last = it->second;
 
                 if (now - last > HEARTBEAT_TIMEOUT) {
@@ -73,6 +76,8 @@ bool server::acceptConn() {
 void fileTransferThread() {
     MainReactor file_rct(5513, 4, true);  // 文件传输监听端口 5513，线程池 4 线程
 }
+
+
 
 int main(int argc, char* argv[]){
   // 命令行参数解析

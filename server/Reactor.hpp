@@ -32,6 +32,7 @@ uint16_t server_port_ = 4413;
 extern std::unordered_map<int, std::unique_ptr<std::mutex>> fd_write_mutexes;
 extern std::unordered_map<int, std::unique_ptr<std::mutex>> fd_read_mutexes;
 extern std::unordered_map<int, time_t> uslast_active;
+extern std::mutex map_mutex;
 
 class WorkerReactor{
 private:
@@ -751,7 +752,10 @@ void WorkerReactor::senddata(int fd,int tmp, void * arg){
         }
         if(str[0] == 'P' && str[1] == 'I' && str[2] == 'N' && str[3] == 'G'){
             time_t now = time(nullptr);
-            uslast_active[fd] = now;  // 插入或更新
+            {
+                std::lock_guard<std::mutex> lock(map_mutex);
+                uslast_active[fd] = now;  // 插入或更新
+            }
             if(socket_to_uid.count(fd))
                 std::cout << "更新用户[fd:" << fd << "]uid:" <<  socket_to_uid[fd] << " 的活跃时间为 " << ctime(&now);
             else 

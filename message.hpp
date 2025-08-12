@@ -154,7 +154,7 @@ struct file_block {
     std::string fid;             // 文件id
     std::string filename;        // 文件名 
     std::string timestamp;       // 时间戳（可使用ISO 8601格式或其他字符串）
-    int offset;
+    long long offset;
     bool is_group = false;       // 是否为群聊消息
     bool is_file = false;        // 是否为文件消息（可扩展用）
     

@@ -11,6 +11,7 @@
 std::unordered_map<int, std::unique_ptr<std::mutex>> fd_write_mutexes;
 std::unordered_map<int, std::unique_ptr<std::mutex>> fd_read_mutexes;
 std::unordered_map<int , time_t> uslast_active;
+std::mutex map_mutex;
 
 class handler{
 private:
@@ -340,8 +341,10 @@ std::string handler::lgok(std::string uid){
     user ud = u.GetUesr(uid);
 
     time_t now = time(nullptr);
-    uslast_active[uid_to_socket[uid]] = now;  // 插入或更新
-
+    {
+        std::lock_guard<std::mutex> lock(map_mutex);
+        uslast_active[uid_to_socket[uid]] = now;  // 插入或更新
+    }
     if(ud.stat == "online"){
         //顶号
         sendMsg("lgex:"+ uid, uid_to_socket[uid]);
@@ -371,7 +374,10 @@ void handler::unlg(std::string buf){
 void handler::uulg(std::string uid){
     //拿到用户信息
     user ud = u.GetUesr(uid);
-    uslast_active.erase(uid_to_socket[uid]);
+    {
+        std::lock_guard<std::mutex> lock(map_mutex);
+        uslast_active.erase(uid_to_socket[uid]);
+    }
     if(uid_to_socket.count(uid) && uid_to_socket[uid] != sockfd)//处理顶号问题
         return ;
     ud.stat = "offline";
@@ -1508,7 +1514,7 @@ void rvfl(std::string &str){
     fwrite(data.data(), 1, data.size(), f);
     fclose(f);
 
-    printf("写入 %s，偏移 %d，长度 %zu 字节\n", full_path.c_str(), fb.offset, data.size());
+    printf("写入 %s，偏移 %lld，长度 %zu 字节\n", full_path.c_str(), fb.offset, data.size());
 }
 
 void rvgf(std::string &str){
@@ -1562,7 +1568,7 @@ void rvgf(std::string &str){
     fwrite(data.data(), 1, data.size(), f);
     fclose(f);
 
-    printf("写入 %s，偏移 %d，长度 %zu 字节\n", full_path.c_str(), fb.offset, data.size());
+    printf("写入 %s，偏移 %lld，长度 %zu 字节\n", full_path.c_str(), fb.offset, data.size());
 }
 
 void handler::gtrl(){
@@ -1756,7 +1762,7 @@ void handler::sdfl(){
     const size_t block_size = 4 * 1024 * 1024; // 4MB
     std::vector<char> buf(block_size); // 改用堆内存避免栈溢出
 
-    off_t offset = 0;
+    long long offset = 0;
     size_t bytesRead;
     file_block block;
 
@@ -1830,7 +1836,7 @@ void handler::sdgf(){
     sendMsg("echo:start", sockfd2);
     const size_t block_size = 4 * 1024 * 1024; // 4MB
     std::vector<char> buf(block_size); // 用堆内存避免栈溢出
-    off_t offset = 0;
+    long long offset = 0;
     size_t bytesRead;
     file_block block;
 

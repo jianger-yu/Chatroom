@@ -188,7 +188,7 @@ void filefucs::upload_file_with_offset() {
     const size_t block_size = 4 * 1024 * 1024; // 4MB
     std::vector<char> buf(block_size); // 用堆分配避免栈溢出
 
-    off_t offset = 0;
+    long long offset = 0;
     size_t bytesRead;
     file_block block;
 

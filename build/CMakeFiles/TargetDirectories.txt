@@ -1,8 +1,0 @@
-/home/jianger/chatroom/build/CMakeFiles/edit_cache.dir
-/home/jianger/chatroom/build/CMakeFiles/rebuild_cache.dir
-/home/jianger/chatroom/build/server/CMakeFiles/server_app.dir
-/home/jianger/chatroom/build/server/CMakeFiles/edit_cache.dir
-/home/jianger/chatroom/build/server/CMakeFiles/rebuild_cache.dir
-/home/jianger/chatroom/build/client/CMakeFiles/client_app.dir
-/home/jianger/chatroom/build/client/CMakeFiles/edit_cache.dir
-/home/jianger/chatroom/build/client/CMakeFiles/rebuild_cache.dir

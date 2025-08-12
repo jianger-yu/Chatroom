@@ -10,7 +10,7 @@
 
 std::unordered_map<int, std::unique_ptr<std::mutex>> fd_write_mutexes;
 std::unordered_map<int, std::unique_ptr<std::mutex>> fd_read_mutexes;
-std::unordered_map<std::string, time_t> last_active;
+std::unordered_map<int , time_t> uslast_active;
 
 class handler{
 private:
@@ -340,8 +340,7 @@ std::string handler::lgok(std::string uid){
     user ud = u.GetUesr(uid);
 
     time_t now = time(nullptr);
-    last_active[uid] = now;  // 插入或更新
-    std::cout << "更新用户 " << uid << " 的活跃时间为 " << ctime(&now);
+    uslast_active[uid_to_socket[uid]] = now;  // 插入或更新
 
     if(ud.stat == "online"){
         //顶号
@@ -380,7 +379,7 @@ void handler::uulg(std::string uid){
     socket_to_uid.erase(sockfd);
     fd_write_mutexes.erase(sockfd);
     fd_read_mutexes.erase(sockfd);
-    last_active.erase(uid);
+    uslast_active.erase(uid_to_socket[uid]);
     //获取json字符串
     std::string js = ud.toJson();
     u.setutoj(uid, js);
@@ -408,12 +407,12 @@ void handler::adfr(){
     for(int t = j + 1; t < str.size(); t++) uid2.push_back(str[t]);
     user ud = u.GetUesr(uid1), ud2 = u.GetUesr(uid2);
     if(ud2.stat == "destroy"){
-        sendMsg("echo:false",sockfd);
+        sendMsg("echo:dstry",sockfd);
         return;
     }
     js = u.u_report(uid2);
     if(js == "none"){
-        sendMsg("echo:false",sockfd);
+        sendMsg("echo:dstry",sockfd);
         return;
     }
     report rpt2 = report::fromJson(js);

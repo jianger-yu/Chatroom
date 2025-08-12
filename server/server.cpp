@@ -15,13 +15,15 @@ void heartbeatMonitorThread() {
         // 访问映射需加锁，防止并发读写冲突
         {
             std::lock_guard<std::mutex> lock(map_mutex);
-            for (auto it = last_active.begin(); it != last_active.end();) {
-                const std::string& uid = it->first;
+            for (auto it = uslast_active.begin(); it != uslast_active.end();) {
                 time_t last = it->second;
 
                 if (now - last > HEARTBEAT_TIMEOUT) {
-                    std::cout << "用户 " << uid << " 心跳超时，断开连接\n";
-                    close(uid_to_socket[uid]);
+                    if(socket_to_uid.count(it->first))
+                      std::cout << "用户[fd:" << it->first << "]uid:" << socket_to_uid[it->first] << " 心跳超时，断开连接\n";
+                    else 
+                      std::cout << "用户[fd:" << it->first << "]" << " 心跳超时，断开连接\n";
+                    close(it->first);
                 } else {
                     ++it;
                 }
@@ -103,8 +105,8 @@ int main(int argc, char* argv[]){
   }
 
   // 启动心跳检测线程
-  std::thread heart_thread(heartbeatMonitorThread);
-  heart_thread.detach();  // 后台运行，不阻塞主线程
+  // std::thread heart_thread(heartbeatMonitorThread);
+  // heart_thread.detach();  // 后台运行，不阻塞主线程
   
   // 启动文件传输监听线程
   std::thread file_thread(fileTransferThread);

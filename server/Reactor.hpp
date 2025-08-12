@@ -31,7 +31,7 @@ uint16_t server_port_ = 4413;
 
 extern std::unordered_map<int, std::unique_ptr<std::mutex>> fd_write_mutexes;
 extern std::unordered_map<int, std::unique_ptr<std::mutex>> fd_read_mutexes;
-extern std::unordered_map<std::string, time_t> last_active;
+extern std::unordered_map<int, time_t> uslast_active;
 
 class WorkerReactor{
 private:
@@ -751,8 +751,11 @@ void WorkerReactor::senddata(int fd,int tmp, void * arg){
         }
         if(str[0] == 'P' && str[1] == 'I' && str[2] == 'N' && str[3] == 'G'){
             time_t now = time(nullptr);
-            last_active[socket_to_uid[fd]] = now;  // 插入或更新
-            std::cout << "更新用户 " << socket_to_uid[fd] << " 的活跃时间为 " << ctime(&now);
+            uslast_active[fd] = now;  // 插入或更新
+            if(socket_to_uid.count(fd))
+                std::cout << "更新用户[fd:" << fd << "]uid:" <<  socket_to_uid[fd] << " 的活跃时间为 " << ctime(&now);
+            else 
+                std::cout << "更新用户[fd:" << fd << "]" << " 的活跃时间为 " << ctime(&now);
         }
         else if(datareactor && str[0] == 'r' && str[1] == 'v' && str[2] == 'f' && str[3] == 'l') rvfl(str);
         else if(datareactor && str[0] == 'r' && str[1] == 'v' && str[2] == 'g' && str[3] == 'f') rvgf(str);

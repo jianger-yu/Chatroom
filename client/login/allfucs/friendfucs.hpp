@@ -113,6 +113,10 @@ void friendfucs::addfriend(){
             printf("\033[0;31m已对该用户发送过好友申请，请等待对方验证。\033[0m\n>");
             continue;
         }
+        else if(red == "dstry"){
+            printf("\033[0;31m该用户已注销，无法发送好友申请。\033[0m\n>");
+            continue;
+        }
         else{
             printf("\033[0;31m数据异常，请稍后再试。\033[0m\n>");
             continue;

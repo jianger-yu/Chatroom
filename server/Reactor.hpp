@@ -107,10 +107,10 @@ typedef struct event{
     void getsendstr(event* ev,unsigned short dataport, std::string &str);
 
     //处理回调
-    void senddata(int fd,int tmp, void * arg);
+    void HandleCallback(int fd,int tmp, void * arg);
     
     //读回调
-    void recvdata(int fd, int events, void*arg);
+    void RecvCallback(int fd, int events, void*arg);
 
 
     //初始化事件
@@ -218,10 +218,10 @@ typedef struct event{
     void getsendstr(event* ev,unsigned short dataport, std::string &str);
 
     //处理回调
-    void senddata(int fd,int tmp, void * arg);
+    void HandleCallback(int fd,int tmp, void * arg);
     
     //读回调
-    void recvdata(int fd, int events, void*arg);
+    void RecvCallback(int fd, int events, void*arg);
 
     //初始化事件
     void eventset(event * ev, int fd, void (MainReactor::* call_back)(int ,int , void *), void * arg);
@@ -295,7 +295,7 @@ void MainReactor::fileacceptconn(int lfd,int tmp, void * arg){
             break;
         }
 
-        eventset(&r_events[i], cfd, &MainReactor::recvdata, &r_events[i]);
+        eventset(&r_events[i], cfd, &MainReactor::RecvCallback, &r_events[i]);
         eventadd(EPOLLIN, &r_events[i]);
     }while(0);
 
@@ -335,7 +335,7 @@ void MainReactor::acceptconn(int lfd,int tmp, void * arg){
 
 
 //处理回调
-void MainReactor::senddata(int fd,int tmp, void * arg){
+void MainReactor::HandleCallback(int fd,int tmp, void * arg){
     event * ev = (event*)arg;
     int ret = 0;
     while(1){
@@ -377,7 +377,7 @@ void MainReactor::senddata(int fd,int tmp, void * arg){
         return;
     }
     //memset(ev->buf, 0, sizeof ev->buf);
-    eventset(ev,fd,&MainReactor::recvdata,ev);
+    eventset(ev,fd,&MainReactor::RecvCallback,ev);
     eventadd(EPOLLIN, ev);   
 
     pthread_mutex_unlock(&event_mutex); // 解锁
@@ -385,7 +385,7 @@ void MainReactor::senddata(int fd,int tmp, void * arg){
 
 
 //读回调
-void MainReactor::recvdata(int fd, int events, void*arg){
+void MainReactor::RecvCallback(int fd, int events, void*arg){
     event *ev = (event *) arg;
     int len;
     std::string str;
@@ -422,7 +422,7 @@ void MainReactor::recvdata(int fd, int events, void*arg){
         //ev->buf[len] ='\0';
         LOG_INFO("C[fd:" << fd << "], ev->buf.size(): " << ev->buf.size());
 
-        eventset(ev,fd,&MainReactor::senddata,ev);    //设置该fd对应的回调函数为senddata
+        eventset(ev,fd,&MainReactor::HandleCallback,ev);    //设置该fd对应的回调函数为senddata
         eventadd(EPOLLOUT, ev);         //将fd加入红黑树中，监听其写事件
 
     } else if(len == 0){//对端已关闭
@@ -675,7 +675,7 @@ void WorkerReactor::addClient(int cfd, sockaddr_in client_addr) {
         return;
     }
     fcntl(cfd, F_SETFL, O_NONBLOCK);
-    eventset(&r_events[i], cfd, &WorkerReactor::recvdata, &r_events[i]);
+    eventset(&r_events[i], cfd, &WorkerReactor::RecvCallback, &r_events[i]);
     eventadd(EPOLLIN, &r_events[i]);
     pthread_mutex_unlock(&event_mutex); // 解锁
 }
@@ -725,7 +725,7 @@ void WorkerReactor::acceptconn(int lfd,int tmp, void * arg){
             break;
         }
 
-        eventset(&r_events[i], cfd, &WorkerReactor::recvdata, &r_events[i]);
+        eventset(&r_events[i], cfd, &WorkerReactor::RecvCallback, &r_events[i]);
         eventadd(EPOLLIN, &r_events[i]);
     }while(0);
 
@@ -739,7 +739,7 @@ void WorkerReactor::acceptconn(int lfd,int tmp, void * arg){
 
 
 //处理回调
-void WorkerReactor::senddata(int fd,int tmp, void * arg){
+void WorkerReactor::HandleCallback(int fd,int tmp, void * arg){
     event * ev = (event*)arg;
     int ret = 0;
     while(1){
@@ -791,7 +791,7 @@ void WorkerReactor::senddata(int fd,int tmp, void * arg){
         return;
     }
     //memset(ev->buf, 0, sizeof ev->buf);
-    eventset(ev,fd,&WorkerReactor::recvdata,ev);
+    eventset(ev,fd,&WorkerReactor::RecvCallback,ev);
     eventadd(EPOLLIN, ev);   
 
     pthread_mutex_unlock(&event_mutex); // 解锁
@@ -799,7 +799,7 @@ void WorkerReactor::senddata(int fd,int tmp, void * arg){
 
 
 //读回调
-void WorkerReactor::recvdata(int fd, int events, void*arg){
+void WorkerReactor::RecvCallback(int fd, int events, void*arg){
     event *ev = (event *) arg;
     int len;
     std::string str;
@@ -836,7 +836,7 @@ void WorkerReactor::recvdata(int fd, int events, void*arg){
         //ev->buf[len] ='\0';
         LOG_INFO("C[fd:" << fd << "], ev->buf.size(): " << ev->buf.size());
 
-        eventset(ev,fd,&WorkerReactor::senddata,ev);    //设置该fd对应的回调函数为senddata
+        eventset(ev,fd,&WorkerReactor::HandleCallback,ev);    //设置该fd对应的回调函数为senddata
         eventadd(EPOLLOUT, ev);         //将fd加入红黑树中，监听其写事件
 
     } else if(len == 0){//对端已关闭

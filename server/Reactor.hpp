@@ -964,7 +964,7 @@ void WorkerReactor::readctorinit(unsigned short port){
                 continue;
             
             long duration = now - r_events[chekckpos].last_active;   //计算客户端不活跃的时间
-            if(duration >= 600){//超时，断连
+            if(duration >= 1800){//超时，断连
                 LOG_INFO("[fd = " << r_events[chekckpos].fd << "] timeout");
                 pthread_mutex_lock(&event_mutex); // 加锁
                 if(!datareactor){

@@ -295,74 +295,74 @@ void filefucs::download_file_with_offset(std::string sd){
     FILE* f;
     while(1){
         if(sendfileok && !buf.size()) break;
-        if(buf.size() <= 4194304) //4*1024*1024
-            datasock->recvfull(buf);
-        //printf("buf.size():%ld\n", buf.size());
-        if(buf.size() >= 4){
-            uint32_t len, slen;
-            std::memcpy(&len, buf.data(), sizeof(len));
-            slen = ntohl(len);
-            if(buf.size() < 4 + slen) {
-                //printf("buf.size():%ld < 4 + slen%d\n", buf.size(), slen);
-                continue;
-            }
-            packet = buf.substr(4, slen);
-            buf.erase(0, 4+slen);
-            //printf("取出slen:%d, packet,size():%ld, packet:%s\n", slen,packet.size(),packet.c_str());
-            if(packet == "end") {
-                sendfileok = true;
-                continue;
-            }
-        }
-        else continue;
-        //printf("read packetsize%ld, str:%s\n", packet.size() ,packet.c_str());
-        //处理
-        if (packet.size() < sizeof(uint32_t)) {
-            printf("接收失败，连接异常\n");
-            if(!first) fclose(f);
-            file_recving = false;
-            return;
-        }
-        //1. 提取前4字节，得到 JSON 字符串长度
-        uint32_t json_len;
-        std::memcpy(&json_len, packet.data(), sizeof(uint32_t));
-        json_len = ntohl(json_len);  // 网络字节序转主机序
-        //2. 检查总长度是否合法
-        if (packet.size() < sizeof(uint32_t) + json_len) {
-            printf("数据包长度不足，缺失 JSON 部分\n");
-            return;
-        }
-        //3. 提取 JSON 字符串
-        std::string json_str = packet.substr(sizeof(uint32_t), json_len);
-        //4. 解析 JSON
-        file_block fb = file_block::fromJson(json_str);
-        //5. 提取数据部分
-        size_t data_offset = sizeof(uint32_t) + json_len;
-        std::string data = packet.substr(data_offset);
-
-        if(first){
-            //构造目录路径: ./recvfile/file_<recver_uid>/
-            std::string dir_path = "./recvfile_" + fb.receiver_uid;
-            std::filesystem::create_directories(dir_path);  // 若已存在不会报错
-
-            //构造文件名: sender_uid:fid:filename
-            std::string file_name = GetFileName(fb.filename.data());
-            std::string full_path = dir_path + "/" + file_name;
-
-            //写入文件
-            f = fopen(full_path.c_str(), "r+b");
-            if (!f) {
-                f = fopen(full_path.c_str(), "wb");
-                if (!f) {
-                    perror("无法创建文件");
-                    return;
+        datasock->recvfull(buf);
+        while(1){ //4*1024*1024
+            //printf("buf.size():%ld\n", buf.size());
+            if(buf.size() >= 4){
+                uint32_t len, slen;
+                std::memcpy(&len, buf.data(), sizeof(len));
+                slen = ntohl(len);
+                if(buf.size() < 4 + slen) {
+                    //printf("buf.size():%ld < 4 + slen%d\n", buf.size(), slen);
+                    break;
+                }
+                packet = buf.substr(4, slen);
+                buf.erase(0, 4+slen);
+                //printf("取出slen:%d, packet,size():%ld, packet:%s\n", slen,packet.size(),packet.c_str());
+                if(packet == "end") {
+                    sendfileok = true;
+                    break;
                 }
             }
-            first = false;
-        }
+            else break;
+            //printf("read packetsize%ld, str:%s\n", packet.size() ,packet.c_str());
+            //处理
+            if (packet.size() < sizeof(uint32_t)) {
+                printf("接收失败，连接异常\n");
+                if(!first) fclose(f);
+                file_recving = false;
+                return;
+            }
+            //1. 提取前4字节，得到 JSON 字符串长度
+            uint32_t json_len;
+            std::memcpy(&json_len, packet.data(), sizeof(uint32_t));
+            json_len = ntohl(json_len);  // 网络字节序转主机序
+            //2. 检查总长度是否合法
+            if (packet.size() < sizeof(uint32_t) + json_len) {
+                printf("数据包长度不足，缺失 JSON 部分\n");
+                return;
+            }
+            //3. 提取 JSON 字符串
+            std::string json_str = packet.substr(sizeof(uint32_t), json_len);
+            //4. 解析 JSON
+            file_block fb = file_block::fromJson(json_str);
+            //5. 提取数据部分
+            size_t data_offset = sizeof(uint32_t) + json_len;
+            std::string data = packet.substr(data_offset);
 
-        fseek(f, fb.offset, SEEK_SET);
-        fwrite(data.data(), 1, data.size(), f);
+            if(first){
+                //构造目录路径: ./recvfile/file_<recver_uid>/
+                std::string dir_path = "./recvfile_" + fb.receiver_uid;
+                std::filesystem::create_directories(dir_path);  // 若已存在不会报错
+
+                //构造文件名: sender_uid:fid:filename
+                std::string file_name = GetFileName(fb.filename.data());
+                std::string full_path = dir_path + "/" + file_name;
+
+                //写入文件
+                f = fopen(full_path.c_str(), "r+b");
+                if (!f) {
+                    f = fopen(full_path.c_str(), "wb");
+                    if (!f) {
+                        perror("无法创建文件");
+                        return;
+                    }
+                }
+                first = false;
+            }
+            fseek(f, fb.offset, SEEK_SET);
+            fwrite(data.data(), 1, data.size(), f);
+        }
     }
 
     fclose(f);

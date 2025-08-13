@@ -34,7 +34,7 @@ struct report {
     static report fromJson(const std::string& s) {
         report data;
         if(s.size() != 0 && s[0] != '{') {
-            printf("error rpt js:%s\n", s.c_str());
+            LOG_ERROR("error rpt js: " << s);
             return data;
         }
         try {

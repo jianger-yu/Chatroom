@@ -6,6 +6,7 @@
 #include "../user.hpp"
 #include "../client/register/hashpwd.hpp"
 #include "../message.hpp"
+#include "../Logger.h"
 #include <mutex>
 
 std::unordered_map<int, std::unique_ptr<std::mutex>> fd_write_mutexes;
@@ -275,11 +276,11 @@ void handler::pwlg(){
         j++;
     }
     for(int t = j + 1; t < str.size(); t++) pwd.push_back(str[t]);
-    printf("用户名:%s\n", name.c_str());
-    printf("密码:%s\n", pwd.c_str());
-    //获得uid
+    LOG_INFO("用户名: " << name);
+    // 获得uid
     std::string usuid = u.Getuid(name.c_str());
-    printf("登录时获取uid:%s\n", usuid.c_str());
+    LOG_INFO("登录时获取uid: " << usuid);
+
     //若该用户不存在
     if(usuid == "norepeat"){
         sendMsg("echo:pwdfalse", sockfd);
@@ -311,7 +312,7 @@ void handler::fdpd(){
     for(int t = j + 1; t < str.size(); t++) pwd.push_back(str[t]);
     //拿到用户信息
     std::string id = u.EmailGetuid(email.c_str());
-    if(id == "norepeat") printf("\033[0;31mIn fuc fdpd ,EmainGetuid return norepeat\033[0m\n");
+    if(id == "norepeat") LOG_WARN("In fuc fdpd, EmainGetuid return norepeat");
     user us = u.GetUesr(id);
     //删除用户的user:uid->json信息
     u.DELUesr(id);
@@ -328,7 +329,7 @@ void handler::emlg(){
     std::string buf = str.c_str() + i + 1;
     std::string argu = u.EmailGetuid(buf.c_str());
     if(argu == "norepeat"){
-        printf("emlg argu is norepeat!\n");
+        LOG_WARN("emlg argu is norepeat!");
         sendMsg("echo:false", sockfd);
         return;
     }
@@ -534,7 +535,7 @@ void handler::adfok(){
     //清理ud2的report，并保存
     js = u.u_report(uid2);
     if(js == "none"){
-        printf("In fuc adfok uid2:%s report return none\n", uid2.c_str());
+        LOG_INFO("In fuc adfok uid2:" << uid2 << " report return none");
         sendMsg("echo:false", sockfd);
         return;
     }
@@ -564,7 +565,7 @@ void handler::adfok(){
     //获取u1的report
     js = u.u_report(uid1);
     if(js == "none"){
-        printf("In fuc adfok uid1:%s report return none\n", uid1.c_str());
+        LOG_INFO("In fuc adfok uid1:" << uid1 << " report return none");
         sendMsg("echo:false", sockfd);
         return;
     }
@@ -602,7 +603,7 @@ void handler::rdnt(){
     for(int t = j + 1; t < str.size(); t++) notice.push_back(str[t]);
     std::string js = u.u_report(uid);
     if(js == "none"){
-        printf("In fuc adfok uid1:%s report return none\n", uid.c_str());
+        LOG_INFO("In fuc adfok uid1:" << uid << " report return none");
         sendMsg("echo:false", sockfd);
         return;
     }
@@ -630,7 +631,7 @@ void handler::rmnt(){
     for(int t = j + 1; t < str.size(); t++) notice.push_back(str[t]);
     std::string js = u.u_report(uid);
     if(js == "none"){
-        printf("In fuc adfok uid1:%s report return none\n", uid.c_str());
+        LOG_INFO("In fuc adfok uid1:" << uid << " report return none");
         sendMsg("echo:false", sockfd);
         return;
     }
@@ -777,7 +778,7 @@ void handler::sdms(){
         sendm = message::fromJson(msg);
         // 继续处理
     } catch(const std::exception& e) {
-        printf("\033[0;31mmessage fromjson error !!! msg:%s\n\033[0m", msg.data());
+        LOG_ERROR("message fromjson error !!! msg: " << msg.data());
         sendMsg("ctsp:nofrd", sockfd);
         return;
     }
@@ -1304,7 +1305,7 @@ void handler::kcmb(){
     handuid = str.c_str() + i + 1;
     js = u.GetGroup(gid);
     if(js == "norepeat"){
-        printf("\033[0;31mgid:%s\n\033[0m", gid.c_str());
+        LOG_WARN("gid: " << gid);
         sendMsg("echo:false", sockfd);
         return;
     }
@@ -1381,7 +1382,7 @@ void handler::disg(std::string& handstr, int fg){
 
     js = u.GetGroup(gid);
     if(js == "norepeat"){
-        printf("\033[0;31mgid:%s\n\033[0m", gid.c_str());
+        LOG_WARN("gid: " << gid);
         sendMsg("echo:false", sockfd);
         return;
     }
@@ -1468,11 +1469,11 @@ void rvfl(std::string &str){
     int i = 0;
     while(str[i] != ':') i++;
     std::string packet = str.substr(i + 1);
-    printf("\033[0;31mrvfl内,str.size():%ld, packet.size():%ld\033[0m\n", str.size(), packet.size());
-    printf("\033[0;31mrvfl内,str:%s, packet:%s\033[0m\n", str.c_str(), packet.c_str());
+    LOG_WARN("rvfl内, str.size(): " << str.size() << ", packet.size(): " << packet.size());
+    LOG_WARN("rvfl内, str: " << str << ", packet: " << packet);
 
     if (packet.size() < sizeof(uint32_t)) {
-        printf("数据包太短，无法解析\n");
+        LOG_WARN("数据包太短，无法解析");
         return;
     }
     //1. 提取前4字节，得到 JSON 字符串长度
@@ -1481,7 +1482,7 @@ void rvfl(std::string &str){
     json_len = ntohl(json_len);  // 网络字节序转主机序
     //2. 检查总长度是否合法
     if (packet.size() < sizeof(uint32_t) + json_len) {
-        printf("数据包长度不足，缺失 JSON 部分\n");
+        LOG_WARN("数据包长度不足，缺失 JSON 部分");
         return;
     }
     //3. 提取 JSON 字符串
@@ -1505,7 +1506,7 @@ void rvfl(std::string &str){
     if (!f) {
         f = fopen(full_path.c_str(), "wb");
         if (!f) {
-            perror("无法创建文件");
+            LOG_ERROR("无法创建文件: " << strerror(errno));
             return;
         }
     }
@@ -1514,7 +1515,7 @@ void rvfl(std::string &str){
     fwrite(data.data(), 1, data.size(), f);
     fclose(f);
 
-    printf("写入 %s，偏移 %lld，长度 %zu 字节\n", full_path.c_str(), fb.offset, data.size());
+    LOG_INFO("写入 " << full_path << "，偏移 " << fb.offset << "，长度 " << data.size() << " 字节");
 }
 
 void rvgf(std::string &str){
@@ -1522,11 +1523,11 @@ void rvgf(std::string &str){
     int i = 0;
     while(str[i] != ':') i++;
     std::string packet = str.substr(i + 1);
-    printf("\033[0;31mrvgf内,str.size():%ld, packet.size():%ld\033[0m\n", str.size(), packet.size());
-    printf("\033[0;31mrvgf内,str:%s, packet:%s\033[0m\n", str.c_str(), packet.c_str());
+    LOG_WARN("rvgf内, str.size(): " << str.size() << ", packet.size(): " << packet.size());
+    LOG_WARN("rvgf内, str: " << str << ", packet: " << packet);
 
     if (packet.size() < sizeof(uint32_t)) {
-        printf("数据包太短，无法解析\n");
+        LOG_WARN("数据包太短，无法解析");
         return;
     }
     //1. 提取前4字节，得到 JSON 字符串长度
@@ -1535,7 +1536,7 @@ void rvgf(std::string &str){
     json_len = ntohl(json_len);  // 网络字节序转主机序
     //2. 检查总长度是否合法
     if (packet.size() < sizeof(uint32_t) + json_len) {
-        printf("数据包长度不足，缺失 JSON 部分\n");
+        LOG_WARN("数据包长度不足，缺失 JSON 部分");
         return;
     }
     //3. 提取 JSON 字符串
@@ -1559,7 +1560,7 @@ void rvgf(std::string &str){
     if (!f) {
         f = fopen(full_path.c_str(), "wb");
         if (!f) {
-            perror("无法创建文件");
+            LOG_ERROR("无法创建文件: " << strerror(errno));
             return;
         }
     }
@@ -1568,7 +1569,7 @@ void rvgf(std::string &str){
     fwrite(data.data(), 1, data.size(), f);
     fclose(f);
 
-    printf("写入 %s，偏移 %lld，长度 %zu 字节\n", full_path.c_str(), fb.offset, data.size());
+    LOG_INFO("写入 " << full_path << "，偏移 " << fb.offset << "，长度 " << data.size() << " 字节");
 }
 
 void handler::gtrl(){
@@ -1631,7 +1632,7 @@ void handler::fled(){
     js1 = u.u_report(ud1.uid);
     js2 = u.u_report(ud2.uid);
     if(js1 == "none" || js2 == "none"){
-        printf("fled, js1:%s, js2:%s\n", js1.c_str(), js2.c_str());
+        LOG_INFO("fled, js1: " << js1 << ", js2: " << js2);
         sendMsg("echo:uidfs", sockfd);
         return;
     }
@@ -1656,7 +1657,7 @@ void handler::gfed(){
     user ud1 = u.GetUesr(block.sender_uid);
     js2 = u.GetGroup(block.receiver_uid);
     if(js2 == "norepeat"){
-        printf("gfed, js2:%s\n", js2.c_str());
+        LOG_INFO("gfed, js2: " << js2);
         sendMsg("echo:gidfs", sockfd);
         return;
     }
@@ -1747,17 +1748,17 @@ void handler::sdfl(){
     struct stat st;
     int sockfd2 = uid_to_socket[uid1];
     if(lstat(path.c_str(),&st) == -1){//获取文件状态
-        printf("lstat error\n");
+        LOG_ERROR("lstat error");
         sendMsg("echo:error", sockfd2);
         return ;
     }
     FILE* file = fopen(path.c_str(), "rb");
     if (file == NULL) {
-        printf("fopen error\n");
+        LOG_ERROR("fopen error");
         sendMsg("echo:error", sockfd2);
         return;
     }
-    printf("sdfl start\n");
+    LOG_INFO("sdfl start");
     sendMsg("echo:start", sockfd2);
     const size_t block_size = 4 * 1024 * 1024; // 4MB
     std::vector<char> buf(block_size); // 改用堆内存避免栈溢出
@@ -1787,8 +1788,8 @@ void handler::sdfl(){
         packet.append(json_str);
         packet.append(buf.data(), bytesRead);
 
-        printf("[%d]\njson_len:%ld packet.size():%ld\njson_str:%s\n", ++i, json_str.size(), packet.size(), json_str.c_str());
-        printf("\n");
+        LOG_INFO("[" << ++i << "]\njson_len: " << json_str.size() << " packet.size(): " << packet.size() << "\njson_str: " << json_str);
+
 
         if (sendFILE(packet, sockfd) == -1) {
             sendMsg("error", sockfd);
@@ -1800,7 +1801,7 @@ void handler::sdfl(){
     }
 
     fclose(file);
-    printf("文件内容已经发完\n");
+    LOG_INFO("文件内容已经发完");
     sendMsg("end", sockfd);
 }
 
@@ -1821,18 +1822,18 @@ void handler::sdgf(){
     std::string path = dir_path + "/" + filename;
     struct stat st;
     int sockfd2 = uid_to_socket[uid1];
-    if(lstat(path.c_str(),&st) == -1){//获取文件状态
-        printf("lstat error\n");
-        sendMsg("echo:error", sockfd2);
-        return ;
-    }
-    FILE* file = fopen(path.c_str(), "rb");
-    if (file == NULL) {
-        printf("fopen error\n");
+    if (lstat(path.c_str(), &st) == -1) { // 获取文件状态
+        LOG_ERROR("lstat error");
         sendMsg("echo:error", sockfd2);
         return;
     }
-    printf("sdgf start\n");
+    FILE* file = fopen(path.c_str(), "rb");
+    if (file == NULL) {
+        LOG_ERROR("fopen error");
+        sendMsg("echo:error", sockfd2);
+        return;
+    }
+    LOG_INFO("sdgf start");
     sendMsg("echo:start", sockfd2);
     const size_t block_size = 4 * 1024 * 1024; // 4MB
     std::vector<char> buf(block_size); // 用堆内存避免栈溢出
@@ -1861,9 +1862,9 @@ void handler::sdgf(){
         packet.append(json_str);
         packet.append(buf.data(), bytesRead);
 
-        printf("[%d]\njson_len:%ld packet.size():%ld\njson_str:%s\n",
-            ++i, json_str.size(), packet.size(), json_str.c_str());
-        printf("\n");
+        LOG_INFO("[" << ++i << "]\njson_len: " << json_str.size()
+         << " packet.size(): " << packet.size()
+         << "\njson_str: " << json_str);
 
         if (sendFILE(packet, sockfd) == -1) {
             sendMsg("error", sockfd);
@@ -1873,7 +1874,7 @@ void handler::sdgf(){
         offset += bytesRead;
     }
 
-    printf("文件内容已经发完\n");
+    LOG_INFO("文件内容已经发完");
     sendMsg("end", sockfd);
 }
 

@@ -13,7 +13,7 @@ target_include_directories(client_app PRIVATE
     ${PROJECT_SOURCE_DIR}
 )
 
-target_link_libraries(client_app pthread hiredis sodium curl)
+target_link_libraries(client_app pthread hiredis sodium curl glog)
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=address -g")
 set(CMAKE_LINKER_FLAGS "${CMAKE_LINKER_FLAGS} -fsanitize=address")

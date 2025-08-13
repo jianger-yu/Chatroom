@@ -22,6 +22,7 @@
 #include "ThreadPool.hpp"
 #include "./server/server.h"
 #include "handle.hpp"
+#include "../Logger.h"
 
 #define MAX_EVENTS 1024     //监听上限数
 #define MAX_PORT 65535      //端口上限
@@ -275,7 +276,7 @@ void MainReactor::fileacceptconn(int lfd,int tmp, void * arg){
         if(errno != EAGAIN && errno != EINTR){
             //暂时不做出错处理
         }
-        printf("accept, %s",strerror(errno));
+        LOG_ERROR("accept error: " << strerror(errno));
         return;
     }
     do{
@@ -284,13 +285,13 @@ void MainReactor::fileacceptconn(int lfd,int tmp, void * arg){
                 break;
 
         if(i == MAX_EVENTS){
-            printf("max connect limit[%d]\n",MAX_EVENTS);
+            LOG_INFO("max connect limit[" << MAX_EVENTS << "]");
             break;
         }
 
         int flag = 0;
         if((flag = fcntl(cfd, F_SETFL, O_NONBLOCK)) < 0){       //将cfd也设置为非阻塞
-            printf("fcntl nonblocking failed, %s\n",strerror(errno));
+            LOG_ERROR("fcntl nonblocking failed, " << strerror(errno));
             break;
         }
 
@@ -301,15 +302,15 @@ void MainReactor::fileacceptconn(int lfd,int tmp, void * arg){
     pthread_mutex_unlock(&event_mutex); // 解锁
 
 
-    printf("new connect [%s:%d][time:%ld], pos[%d]\n",
-    inet_ntoa(caddr.sin_addr),ntohs(caddr.sin_port), r_events[i].last_active, i);
+    LOG_INFO("new connect [" << inet_ntoa(caddr.sin_addr) << ":" << ntohs(caddr.sin_port) 
+         << "][time:" << r_events[i].last_active << "], pos[" << i << "]");
     return;
 }
 
 //监听回调
 void MainReactor::acceptconn(int lfd,int tmp, void * arg){
     event* ev = (event*) arg;
-    printf("监听回调被触发\n");
+    LOG_INFO("监听回调被触发");
     ev->poolrs = false;
     struct sockaddr_in caddr;
     socklen_t len = sizeof caddr;
@@ -328,8 +329,8 @@ void MainReactor::acceptconn(int lfd,int tmp, void * arg){
     next_worker = (next_worker + 1) % WORKER_COUNT;
     workers[idx]->addClient(cfd, caddr);
 
-    printf("MainReactor 分配 fd:%d 给 Worker %d [%s:%d]\n",
-    cfd, idx, inet_ntoa(caddr.sin_addr), ntohs(caddr.sin_port));
+    LOG_INFO("MainReactor 分配 fd:" << cfd << " 给 Worker " << idx
+         << " [" << inet_ntoa(caddr.sin_addr) << ":" << ntohs(caddr.sin_port) << "]");
 }
 
 
@@ -350,7 +351,10 @@ void MainReactor::senddata(int fd,int tmp, void * arg){
             if(ev->buf.size() < 4 + slen) break;
             str = ev->buf.substr(4, slen);
             ev->buf.erase(0, 4+slen);
-            printf("处理回调取出slen:%d, str,size():%ld, str:%s\n", slen,str.size(),str.c_str());
+            LOG_INFO("处理回调取出slen:" << slen 
+                    << ", str.size():" << str.size() 
+                    << ", str:" << str);
+
         }
         
         if(datareactor && str[0] == 'r' && str[1] == 'v' && str[2] == 'f' && str[3] == 'l') rvfl(str);
@@ -362,12 +366,12 @@ void MainReactor::senddata(int fd,int tmp, void * arg){
             else ret = hand.handle();
         }
     }
-    printf("handle处理完毕\n");
+    LOG_INFO("handle处理完毕");
     pthread_mutex_lock(&event_mutex); // 修改红黑树公共区域，加事件锁
 
     eventdel(ev);
     if(ret == 1) {
-        printf("fd:%d 被关闭!\n", fd);
+        LOG_INFO("fd:" << fd << " 被关闭!");
         close(fd);
         pthread_mutex_unlock(&event_mutex); // 解锁
         return;
@@ -389,7 +393,7 @@ void MainReactor::recvdata(int fd, int events, void*arg){
     if(ret == 10){
         if(!datareactor){
             std::string uid = socket_to_uid[fd];
-            printf("\033[0;31mrecvfull 判定 uid:%s断连, 正在关闭对应fd:%d\033[0m\n", uid.c_str(), fd);
+            LOG_WARN("recvfull 判定 uid:" << uid << " 断连, 正在关闭对应fd:" << fd);
             str = "rvlg:" + uid;
             uint32_t slen = htonl(str.size());
             str.insert(0, reinterpret_cast<const char*>(&slen), sizeof(slen));
@@ -399,7 +403,7 @@ void MainReactor::recvdata(int fd, int events, void*arg){
 
     if(ret == -1){//失败处理
         close(ev->fd);
-        printf("recvMsg[fd = %d] error[%d]:%s\n",fd,errno,strerror(errno));
+        LOG_ERROR("recvMsg[fd = " << fd << "] error[" << errno << "]: " << strerror(errno));
         pthread_mutex_unlock(&event_mutex); // 解锁
         return;
     }
@@ -416,17 +420,17 @@ void MainReactor::recvdata(int fd, int events, void*arg){
     if(len > 0){
         ev->len = len;
         //ev->buf[len] ='\0';
-        printf("C[fd:%d], ev->buf,size():%ld\n",fd,ev->buf.size());
+        LOG_INFO("C[fd:" << fd << "], ev->buf.size(): " << ev->buf.size());
 
         eventset(ev,fd,&MainReactor::senddata,ev);    //设置该fd对应的回调函数为senddata
         eventadd(EPOLLOUT, ev);         //将fd加入红黑树中，监听其写事件
 
     } else if(len == 0){//对端已关闭
         close(ev->fd);
-        printf("[fd = %d] pos[%ld], closed\n", fd, ev-r_events);
+        LOG_INFO("[fd = " << fd << "] pos[" << (ev - r_events) << "], closed");
     }else{
         close(ev->fd);
-        printf("recv[fd = %d] str.size() == [%d] error[%d]:%s\n",fd,len,errno,strerror(errno));
+        LOG_ERROR("recv[fd = " << fd << "] str.size() == [" << len << "] error[" << errno << "]: " << strerror(errno));
     }
 
     pthread_mutex_unlock(&event_mutex); // 解锁
@@ -479,17 +483,20 @@ void MainReactor::eventadd(int events, event * ev){
         op = EPOLL_CTL_ADD;
         ev -> status = 1;
     }
-    else{
-        if(epoll_ctl(epfd,op,ev -> fd, &epv) < 0)
-            printf("epoll_ctl  mod is error :[fd = %d], events[%d]\n", ev->fd, combined_events);
+    else {
+        if (epoll_ctl(epfd, op, ev->fd, &epv) < 0)
+            LOG_ERROR("epoll_ctl mod is error :[fd = " << ev->fd << "], events[" << combined_events << "]");
         else
-            printf("epoll_ctl mod sccess on [fd = %d], [op = %d] events[%0X]\n",ev->fd, op, combined_events);
+            LOG_INFO("epoll_ctl mod success on [fd = " << ev->fd << "], [op = " << op << "] events[0x" 
+                    << std::hex << combined_events << std::dec << "]");
         return;
     }
-    if(epoll_ctl(epfd, op, ev -> fd, &epv) < 0)
-        printf("epoll_ctl is error :[fd = %d], events[%d]\n", ev->fd, combined_events);
+    if (epoll_ctl(epfd, op, ev->fd, &epv) < 0)
+        LOG_ERROR("epoll_ctl is error :[fd = " << ev->fd << "], events[" << combined_events << "]");
     else
-        printf("epoll_ctl sccess on [fd = %d], [op = %d] events[%0X]\n",ev->fd, op, combined_events);
+        LOG_INFO("epoll_ctl success on [fd = " << ev->fd << "], [op = " << op << "] events[0x" 
+                << std::hex << combined_events << std::dec << "]");
+
 }
 
 //初始化监听socket
@@ -528,12 +535,12 @@ void MainReactor::readctorinit(unsigned short port){
     pthread_mutex_init(&event_mutex,NULL);
     signal(SIGPIPE, SIG_IGN); 
     epfd = epoll_create(MAX_EVENTS + 1);            //定义最大节点数为MAX_EVENTS + 1的红黑树
-    if(epfd <= 0)
-        printf("epfd create is error, epfd : %d\n", epfd);
-    InitListenSocket(port);                         //初始化套接字
+    if (epfd <= 0)
+        LOG_ERROR("epfd create is error, epfd: " << epfd);
+    InitListenSocket(port);  // 初始化套接字
+    struct epoll_event events[MAX_EVENTS + 1];  // 保存已经满足就绪事件的文件描述符
+    LOG_INFO("server running port: [" << port << "]");
 
-    struct epoll_event events[MAX_EVENTS + 1];      //保存已经满足就绪事件的文件描述符
-    printf("server running port:[%d]\n", port);
     int chekckpos = 0, i;
 
     if(!datareactor){
@@ -559,7 +566,7 @@ void MainReactor::readctorinit(unsigned short port){
             
             long duration = now - r_events[chekckpos].last_active;   //计算客户端不活跃的时间
             if(duration >= 3600){//超时，断连
-                printf("[fd = %d] timeout\n", r_events[chekckpos].fd);
+                LOG_INFO("[fd = " << r_events[chekckpos].fd << "] timeout");
                 pthread_mutex_lock(&event_mutex); // 加锁
                 if(!datareactor){
                     std::string uid = socket_to_uid[r_events[chekckpos].fd];
@@ -575,7 +582,7 @@ void MainReactor::readctorinit(unsigned short port){
         //监听红黑树epfd，将满足的事件的文件描述符加至events数组中，1秒没有文件满足，则返回0
         int nfd = epoll_wait(epfd, events, MAX_EVENTS + 1, 1000); 
         if(nfd < 0){
-            printf("epoll_wait error :%s\n",strerror(errno));
+            LOG_ERROR("epoll_wait error: " << strerror(errno));
             continue;
         }
 
@@ -663,7 +670,7 @@ void WorkerReactor::addClient(int cfd, sockaddr_in client_addr) {
         if (r_events[i].status == 0) break;
     }
     if (i == MAX_EVENTS) {
-        printf("Worker max connect limit\n");
+        LOG_WARN("Worker max connect limit");
         close(cfd);
         return;
     }
@@ -699,7 +706,7 @@ void WorkerReactor::acceptconn(int lfd,int tmp, void * arg){
         if(errno != EAGAIN && errno != EINTR){
             //暂时不做出错处理
         }
-        printf("accept, %s",strerror(errno));
+        LOG_ERROR("accept error: " << strerror(errno));
         return;
     }
     do{
@@ -708,13 +715,13 @@ void WorkerReactor::acceptconn(int lfd,int tmp, void * arg){
                 break;
 
         if(i == MAX_EVENTS){
-            printf("max connect limit[%d]\n",MAX_EVENTS);
+            LOG_WARN("max connect limit[" << MAX_EVENTS << "]");
             break;
         }
 
         int flag = 0;
         if((flag = fcntl(cfd, F_SETFL, O_NONBLOCK)) < 0){       //将cfd也设置为非阻塞
-            printf("fcntl nonblocking failed, %s\n",strerror(errno));
+            LOG_ERROR("fcntl nonblocking failed, " << strerror(errno));
             break;
         }
 
@@ -725,8 +732,8 @@ void WorkerReactor::acceptconn(int lfd,int tmp, void * arg){
     pthread_mutex_unlock(&event_mutex); // 解锁
 
 
-    printf("new connect [%s:%d][time:%ld], pos[%d]\n",
-    inet_ntoa(caddr.sin_addr),ntohs(caddr.sin_port), r_events[i].last_active, i);
+    LOG_INFO("new connect [" << inet_ntoa(caddr.sin_addr) << ":" << ntohs(caddr.sin_port)
+             << "][time:" << r_events[i].last_active << "], pos[" << i << "]");
     return;
 }
 
@@ -748,7 +755,9 @@ void WorkerReactor::senddata(int fd,int tmp, void * arg){
             if(ev->buf.size() < 4 + slen) break;
             str = ev->buf.substr(4, slen);
             ev->buf.erase(0, 4+slen);
-            printf("处理回调取出slen:%d, str,size():%ld, str:%s\n", slen,str.size(),str.c_str());
+            LOG_INFO("处理回调取出slen:" << slen
+                     << ", str.size():" << str.size()
+                     << ", str:" << str);
         }
         if(str[0] == 'P' && str[1] == 'I' && str[2] == 'N' && str[3] == 'G'){
             time_t now = time(nullptr);
@@ -756,10 +765,11 @@ void WorkerReactor::senddata(int fd,int tmp, void * arg){
                 std::lock_guard<std::mutex> lock(map_mutex);
                 uslast_active[fd] = now;  // 插入或更新
             }
-            if(socket_to_uid.count(fd))
-                std::cout << "更新用户[fd:" << fd << "]uid:" <<  socket_to_uid[fd] << " 的活跃时间为 " << ctime(&now);
-            else 
-                std::cout << "更新用户[fd:" << fd << "]" << " 的活跃时间为 " << ctime(&now);
+            if (socket_to_uid.count(fd))
+                LOG_INFO("更新用户[fd:" << fd << "] uid:" << socket_to_uid[fd]
+                         << " 的活跃时间为 " << ctime(&now));
+            else
+                LOG_INFO("更新用户[fd:" << fd << "] 的活跃时间为 " << ctime(&now));
         }
         else if(datareactor && str[0] == 'r' && str[1] == 'v' && str[2] == 'f' && str[3] == 'l') rvfl(str);
         else if(datareactor && str[0] == 'r' && str[1] == 'v' && str[2] == 'g' && str[3] == 'f') rvgf(str);
@@ -770,12 +780,12 @@ void WorkerReactor::senddata(int fd,int tmp, void * arg){
             else ret = hand.handle();
         }
     }
-    printf("handle处理完毕\n");
+    LOG_INFO("handle处理完毕");
     pthread_mutex_lock(&event_mutex); // 修改红黑树公共区域，加事件锁
 
     eventdel(ev);
     if(ret == 1) {
-        printf("fd:%d 被关闭!\n", fd);
+        LOG_INFO("fd:" << fd << " 被关闭!");
         close(fd);
         pthread_mutex_unlock(&event_mutex); // 解锁
         return;
@@ -797,7 +807,7 @@ void WorkerReactor::recvdata(int fd, int events, void*arg){
     if(ret == 10){
         if(!datareactor){
             std::string uid = socket_to_uid[fd];
-            printf("\033[0;31mrecvfull 判定 uid:%s断连, 正在关闭对应fd:%d\033[0m\n", uid.c_str(), fd);
+            LOG_WARN("recvfull 判定 uid:" << uid << " 断连, 正在关闭对应fd:" << fd);
             str = "rvlg:" + uid;
             uint32_t slen = htonl(str.size());
             str.insert(0, reinterpret_cast<const char*>(&slen), sizeof(slen));
@@ -807,7 +817,7 @@ void WorkerReactor::recvdata(int fd, int events, void*arg){
 
     if(ret == -1){//失败处理
         close(ev->fd);
-        printf("recvMsg[fd = %d] error[%d]:%s\n",fd,errno,strerror(errno));
+        LOG_ERROR("recvMsg[fd = " << fd << "] error[" << errno << "]: " << strerror(errno));
         pthread_mutex_unlock(&event_mutex); // 解锁
         return;
     }
@@ -824,17 +834,17 @@ void WorkerReactor::recvdata(int fd, int events, void*arg){
     if(len > 0){
         ev->len = len;
         //ev->buf[len] ='\0';
-        printf("C[fd:%d], ev->buf,size():%ld\n",fd,ev->buf.size());
+        LOG_INFO("C[fd:" << fd << "], ev->buf.size(): " << ev->buf.size());
 
         eventset(ev,fd,&WorkerReactor::senddata,ev);    //设置该fd对应的回调函数为senddata
         eventadd(EPOLLOUT, ev);         //将fd加入红黑树中，监听其写事件
 
     } else if(len == 0){//对端已关闭
         close(ev->fd);
-        printf("[fd = %d] pos[%ld], closed\n", fd, ev-r_events);
+        LOG_INFO("[fd = " << fd << "] pos[" << (ev - r_events) << "], closed");
     }else{
         close(ev->fd);
-        printf("recv[fd = %d] str.size() == [%d] error[%d]:%s\n",fd,len,errno,strerror(errno));
+        LOG_ERROR("recv[fd = " << fd << "] str.size() == [" << len << "] error[" << errno << "]: " << strerror(errno));
     }
 
     pthread_mutex_unlock(&event_mutex); // 解锁
@@ -887,17 +897,20 @@ void WorkerReactor::eventadd(int events, event * ev){
         op = EPOLL_CTL_ADD;
         ev -> status = 1;
     }
-    else{
-        if(epoll_ctl(epfd,op,ev -> fd, &epv) < 0)
-            printf("epoll_ctl  mod is error :[fd = %d], events[%d]\n", ev->fd, combined_events);
+    else {
+        if (epoll_ctl(epfd, op, ev->fd, &epv) < 0)
+            LOG_ERROR("epoll_ctl mod is error :[fd = " << ev->fd << "], events[" << combined_events << "]");
         else
-            printf("epoll_ctl mod sccess on [fd = %d], [op = %d] events[%0X]\n",ev->fd, op, combined_events);
+            LOG_INFO("epoll_ctl mod success on [fd = " << ev->fd << "], [op = " << op << "] events[0x"
+                    << std::hex << combined_events << std::dec << "]");
         return;
     }
-    if(epoll_ctl(epfd, op, ev -> fd, &epv) < 0)
-        printf("epoll_ctl is error :[fd = %d], events[%d]\n", ev->fd, combined_events);
+
+    if (epoll_ctl(epfd, op, ev->fd, &epv) < 0)
+        LOG_ERROR("epoll_ctl is error :[fd = " << ev->fd << "], events[" << combined_events << "]");
     else
-        printf("epoll_ctl sccess on [fd = %d], [op = %d] events[%0X]\n",ev->fd, op, combined_events);
+        LOG_INFO("epoll_ctl success on [fd = " << ev->fd << "], [op = " << op << "] events[0x"
+                << std::hex << combined_events << std::dec << "]");
 }
 
 //初始化监听socket
@@ -906,7 +919,7 @@ void WorkerReactor::InitListenSocket(unsigned short port){
     int lfd = socket(AF_INET, SOCK_STREAM, 0);
     int opt = 1;
     if (setsockopt(lfd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt)) == -1) {//端口复用
-        perror("setsockopt failed");
+        LOG_ERROR("setsockopt failed: " << strerror(errno));
         close(lfd);
         return ;
     }
@@ -933,12 +946,12 @@ void WorkerReactor::readctorinit(unsigned short port){
     pthread_mutex_init(&event_mutex,NULL);
     signal(SIGPIPE, SIG_IGN); 
     epfd = epoll_create(MAX_EVENTS + 1);            //定义最大节点数为MAX_EVENTS + 1的红黑树
-    if(epfd <= 0)
-        printf("epfd create is error, epfd : %d\n", epfd);
-    InitListenSocket(port);                         //初始化套接字
+    if (epfd <= 0)
+        LOG_ERROR("epfd create is error, epfd: " << epfd);
+    InitListenSocket(port);  // 初始化套接字
+    struct epoll_event events[MAX_EVENTS + 1];  // 保存已经满足就绪事件的文件描述符
+    LOG_INFO("server running port: [" << port << "]");
 
-    struct epoll_event events[MAX_EVENTS + 1];      //保存已经满足就绪事件的文件描述符
-    printf("server running port:[%d]\n", port);
     int chekckpos = 0, i;
 
     while(1){
@@ -952,7 +965,7 @@ void WorkerReactor::readctorinit(unsigned short port){
             
             long duration = now - r_events[chekckpos].last_active;   //计算客户端不活跃的时间
             if(duration >= 600){//超时，断连
-                printf("[fd = %d] timeout\n", r_events[chekckpos].fd);
+                LOG_INFO("[fd = " << r_events[chekckpos].fd << "] timeout");
                 pthread_mutex_lock(&event_mutex); // 加锁
                 if(!datareactor){
                     std::string uid = socket_to_uid[r_events[chekckpos].fd];
@@ -968,7 +981,7 @@ void WorkerReactor::readctorinit(unsigned short port){
         //监听红黑树epfd，将满足的事件的文件描述符加至events数组中，1秒没有文件满足，则返回0
         int nfd = epoll_wait(epfd, events, MAX_EVENTS + 1, 1000); 
         if(nfd < 0){
-            printf("epoll_wait error :%s\n",strerror(errno));
+            LOG_ERROR("epoll_wait error: " << strerror(errno));
             continue;
         }
 

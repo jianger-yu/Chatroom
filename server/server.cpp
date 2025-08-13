@@ -80,6 +80,8 @@ void fileTransferThread() {
 
 
 int main(int argc, char* argv[]){
+  Logger::init(argv[0]);  // 第一步调用日志初始化
+
   // 命令行参数解析
   if (argc >= 2) {
       server_ip_ = argv[1];
@@ -121,7 +123,7 @@ int main(int argc, char* argv[]){
 
   MainReactor rct(server_port_, 16);
   while(1){
-    
+    std::this_thread::sleep_for(std::chrono::seconds(1));
   }
   return 0;
 }

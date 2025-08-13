@@ -8,6 +8,7 @@
 #include "report.hpp"
 #include "../message.hpp"
 #include "sendrecv.hpp"
+#include "../Logger.h"
 
 class userdata{
 private:
@@ -94,7 +95,7 @@ std::string userdata::newuser(std::string str){
     int i = 0;
     while(str[i] != ':') i++;
     std::string s = str.c_str() + i + 1;
-    printf("拿到json:%s\n",s.c_str());
+    LOG_INFO("拿到json: " << s);
     user ud = user::fromJson(s);  
     //生成用户uid
     std::string nuid = newuid();
@@ -191,7 +192,7 @@ bool userdata::RepeatEmail(const char * buf){
     int i = 0;
     while(buf[i] != ':') i++;
     std::string s = buf + i + 1;
-    printf("拿到email:%s\n",s.c_str());
+    LOG_INFO("拿到email: " << s);
     redisReply* reply = (redisReply*)redisCommand(redis, "SISMEMBER email %s", s.c_str());
     bool ret = false;
     if(reply->integer == 1) ret = true;//存在
@@ -201,7 +202,7 @@ bool userdata::RepeatEmail(const char * buf){
 
 //根据用户名返回用户id，若用户不存在则返回“norepeat”
 std::string userdata::Getuid(const char * buf){
-    printf("拿到username:%s\n",buf);
+    LOG_INFO("拿到username: " << buf);
     redisReply* reply = (redisReply*)redisCommand(redis, "GET username:%s", buf);
     if(reply->type == REDIS_REPLY_NIL){
         freeReplyObject(reply);
@@ -250,7 +251,7 @@ std::string userdata::Getfid(std::string &uid, std::string &path, bool isgroupfi
 
 
 std::string userdata::EmailGetuid(const char * buf){
-    printf("拿到email:%s\n",buf);
+    LOG_INFO("拿到email: " << buf);
     redisReply* reply = (redisReply*)redisCommand(redis, "GET email:%s", buf);
     if(reply->type == REDIS_REPLY_NIL){
         freeReplyObject(reply);
@@ -345,11 +346,11 @@ bool userdata::jguid(std::string uid){
 
 std::string userdata::u_report(std::string uid){
     redisReply* reply = (redisReply*)redisCommand(redis, "GET report:%s",uid.c_str());
-    printf("\033[0;31mGET uid:%s\033[0m\n", uid.c_str());
+    LOG_WARN("GET uid: " << uid);
 
     if(reply == NULL || reply->type == REDIS_REPLY_NIL || reply->type != REDIS_REPLY_STRING){
         freeReplyObject(reply);
-        printf("\033[0;31mreturn none, reply->str:%s\033[0m\n", reply->str);
+        LOG_WARN("return none, reply->str: " << reply->str);
         return "none";
     }
     std::string ret = reply->str;

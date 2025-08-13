@@ -2,6 +2,7 @@
 #include <memory>
 #include "../socket/socket.h"
 #include <unordered_map>
+#include "../Logger.h"
 
 class server {
   public:

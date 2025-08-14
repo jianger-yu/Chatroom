@@ -54,7 +54,7 @@ cd Chatroom
 * CLI界面，连接服务器指定地址及端口
 ---
 ## 项目架构
-![alt text](server.drawio(3).png)
+![alt text](server_client.drawio.png)
 
 ---
 

@@ -7,13 +7,20 @@
 ### 1. 环境准备
 
 * Linux系统（推荐 Ubuntu、CentOS 等）
-* 安装Redis服务并启动
+* 安装Redis服务并以项目内redis.conf配置文件启动
 * 确保C++编译环境（支持C++11及以上）
 * 若缺少依赖，请运行项目根目录下的安装依赖脚本：
 
 ```bash
 ./install_dependencies.sh
 ```
+**该脚本提供以下依赖：**
+* **build-essential**：提供编译工具，支持C++代码编译。
+* **libc6-dev**：C语言标准库开发包。
+* **libhiredis-dev**：与 Redis 进行通信的客户端库。
+* **libsodium-dev**：用于加密和解密功能的库。
+* **libcurl4-openssl-dev**：用于发送邮件的网络请求库。
+* **libgoogle-glog-dev**：Google的日志库，用于记录日志信息。
 
 ---
 
@@ -45,6 +52,9 @@ cd Chatroom
 ```
 
 * CLI界面，连接服务器指定地址及端口
+---
+## 项目架构
+![alt text](server.drawio(3).png)
 
 ---
 

@@ -55,7 +55,6 @@ cd Chatroom
 ---
 ## 项目架构
 ![alt text](server_client.drawio.png)
-
 ---
 
 ## 1. 系统环境与架构

@@ -15,7 +15,6 @@ class server {
    */
   Socket* getSocket() const { return socket_.get(); }
 
-
   /**
    * @brief 设置服务器监听端口
    * @param port 监听的端口号

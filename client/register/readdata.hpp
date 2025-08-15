@@ -163,8 +163,6 @@ std::string tm_read_all_input(int timeout_ms) {
     return result;
 }
 
-
-
 // 判断 UTF-8 首字节，获取字符字节长度
 int utf8_char_length(unsigned char c) {
     if ((c & 0x80) == 0x00) return 1;
@@ -252,50 +250,11 @@ int enter(char *arr, int key) {
     return i;
 }
 
-
-
-
-//key为0显式输入，为1隐式输入,返回读取字符的长度，返回-1说明用户需要ESC
-// int enter(char *arr, int key){
-//     char a = 0;
-//     int i;
-//     for (i = 0; i < 20; i++){
-//         arr[i] = charget();
-//         if(arr[i] == 27) return -1;
-//         if (arr[i] == '\n'){
-//             arr[i] = '\0';
-//             break;
-//         }
-//         else if (arr[i] == '\b'||arr[i] == 127){
-//             if (i>0){
-//                 i--;
-//                 printf("\b \b");
-//             }
-//             i--;
-//             continue;
-//         }
-//         else if (i == 19){
-//             arr[i] = a;
-//             i--;
-//         }
-//         else{
-//             if(key == 1)
-//                 putchar('*');
-//             else printf("%c",arr[i]);
-//         }
-//         a = arr[i];
-//     }
-//     printf("\n");
-//     return i;
-// }
-
 //初始化数组内元素
 template <size_t N>
 void chu(char (&arr)[N]) {
     memset(arr, 0, N);
 }
-
-
 
 // 判断一个 UTF-8 字符是否为英文字母、数字或中文（常见汉字范围）
 int is_valid_utf8_char(const unsigned char *p, int len) {

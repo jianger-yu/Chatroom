@@ -56,7 +56,7 @@ void Client::ctlthread(){
       }
       default:continue;
     }
-  };
+  }
 }
 
 
@@ -70,7 +70,6 @@ void heartbeatThread() {
         std::this_thread::sleep_for(std::chrono::seconds(interval));
     }
 }
-
 
 
 int main(int argc, char* argv[]){

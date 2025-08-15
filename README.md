@@ -20,7 +20,7 @@
 * **libhiredis-dev**：与 Redis 进行通信的客户端库。
 * **libsodium-dev**：用于加密和解密功能的库。
 * **libcurl4-openssl-dev**：用于发送邮件的网络请求库。
-* **libgoogle-glog-dev**：Google的日志库，用于记录日志信息。
+* **libgoogle-glog-dev**：clog日志库，用于记录日志信息。
 
 ---
 

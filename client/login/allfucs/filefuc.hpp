@@ -54,7 +54,6 @@ public:
     void downloadfile();
     void downloadgfile();
     void download(char, int fg);
-
 };
 
 std::string filefucs::GetFileName(const char arr[]){
@@ -149,7 +148,6 @@ void filefucs::sendfile_touser(char c, int fg){
     //获取fid
     sock->sendMsg("gtfi:"+us.uid+":"+path);
     fid = EchoMsgQueue.wait_and_pop();
-
 
     //获取数据传输套接字
     Socket* datasock = dataclient.getSocket();
@@ -276,7 +274,6 @@ void filefucs::upload_gfile_with_offset() {
 }
 
 
-
 void filefucs::download_file_with_offset(std::string sd){
     std::string buf;
     Client * cp = (Client*)clientp;
@@ -372,6 +369,7 @@ void filefucs::download_file_with_offset(std::string sd){
     datasock->sendMsg("rved:"+uuid+":"+sd);  // 通知结束
     file_recving = false;
 }
+
 
 void filefucs::download_gfile_with_offset(std::string sd){
     std::string buf;
@@ -570,6 +568,7 @@ void filefucs::list(char c, int fg){
     printf("\033[0;36m==========================================================\033[0m\n");
 }
 
+
 void filefucs::listfriend(){
     system("clear");
     page = 0;
@@ -723,6 +722,7 @@ void filefucs::listgroup(){
     return ;
 }
 
+
 void filefucs::filelist(char c, int fg){
     Client* cp = (Client*) clientp;
     Socket* sock = cp->getSocket();
@@ -789,6 +789,7 @@ void filefucs::filelist(char c, int fg){
     printf("                                \033[0;32m[%d/%d]\033[0m\n",page+1,maxpage);
     printf("\033[0;36m==========================================================\033[0m\n");
 }
+
 
 std::string filefucs::formatFileSize(uint64_t size_bytes) {
     const char* units[] = {"B", "KB", "MB", "GB", "TB", "PB"};
@@ -874,6 +875,7 @@ void filefucs::download(char c, int fg = 1){
     charget();
 }
 
+
 void filefucs::downloadfile(){
     //向服务器获取数据
     Client * cp = (Client*)clientp;
@@ -890,7 +892,6 @@ void filefucs::downloadfile(){
         return;
     }
     fnl = friendnamelist::fromJson(frl);
-
 
     system("clear");
     page = 0;
@@ -966,6 +967,7 @@ void filefucs::downloadfile(){
     }
     return ;
 }
+
 
 void filefucs::downloadgfile(){
     //向服务器获取数据

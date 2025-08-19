@@ -98,7 +98,6 @@ void recv_thread(Socket* sock) {
             printf("\033[0;31m读到消息msg:%s\033[0m\n", msg.c_str());
             continue;
             std::cerr << "连接断开\n";
-            sleep(100);
             break;
         }
     }

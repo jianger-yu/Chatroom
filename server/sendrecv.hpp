@@ -116,7 +116,20 @@ bool send_allfile(int sockfd, const void* buf, size_t len) {
             retry = 0;
         } else if (errno == EAGAIN || errno == EWOULDBLOCK) {
             if (++retry > MAX_RETRY) return false;
-            usleep(1000); // 等待缓冲区腾出空间
+            
+            // 使用 select 等待 socket 可写
+            fd_set write_fds;
+            FD_ZERO(&write_fds);
+            FD_SET(sockfd, &write_fds);
+
+            struct timeval timeout = {0, 1000};  // 1ms timeout
+            int ret = select(sockfd + 1, NULL, &write_fds, NULL, &timeout);
+
+            if (ret <= 0) {
+                // 如果 select 返回 0 或者出错，继续重试
+                continue;
+            }
+            
             //printf("重试次数:%d", retry);
         } else {
             return false; // 连接异常

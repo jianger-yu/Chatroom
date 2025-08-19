@@ -749,7 +749,6 @@ int groupfucs::handlechat(char c, int fg){
                     system("clear");
                     printf("\033[0;31m发送超时！\033[0m\n");
                     printf("\033[0;31m请按任意键继续...\033[0m\n");
-                    sleep(5);
                     charget();
                     CtspMsgQueue.clear();
                     return 0;

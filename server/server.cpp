@@ -1,10 +1,11 @@
 #include "../socket/socket.h"
-#include "Reactor.hpp"
 #include <thread>
+#include "server.h"
 
 extern std::string server_ip_;
 extern uint16_t server_port_;
 extern std::mutex map_mutex;                                   // 访问映射时用的互斥锁
+
 
 const int HEARTBEAT_TIMEOUT = 90; // 90秒无心跳就断开
 

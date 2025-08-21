@@ -3,6 +3,7 @@
 #include "../socket/socket.h"
 #include <unordered_map>
 #include "../Logger.h"
+#include "Reactor.h"
 
 class server {
   public:
@@ -40,5 +41,5 @@ class server {
   std::unique_ptr<Socket> socket_;
 };
 
-std::unordered_map<std::string, int> uid_to_socket;
-std::unordered_map<int, std::string> socket_to_uid;
+extern std::unordered_map<std::string, int> uid_to_socket;
+extern std::unordered_map<int, std::string> socket_to_uid;

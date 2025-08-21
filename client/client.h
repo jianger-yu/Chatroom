@@ -1,13 +1,14 @@
 #pragma once
 #include <memory>
 #include "../socket/socket.h"
-#include "../server/Reactor.hpp"
-#include "./register/readdata.hpp"
+#include "../server/Reactor.h"
+#include "./register/readdata.h"
 #include "../socket/socket.h"
-#include "./register/hashpwd.hpp"
+#include "./register/hashpwd.h"
 #include <algorithm>
 #include <cstring>
 #include <stdlib.h>
+
 #define CONPORT 4413
 
 

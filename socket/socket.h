@@ -22,7 +22,7 @@
 #include <sys/epoll.h>
 #include <ctype.h>
 #include <time.h>
-#include "../user.hpp"
+#include "../user.h"
 
 class Socket {
   public:

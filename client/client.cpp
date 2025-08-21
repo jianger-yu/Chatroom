@@ -1,6 +1,6 @@
 #include "client.h"
-#include "register/register.hpp"
-#include "login/login.hpp"
+#include "register/register.h"
+#include "login/login.h"
 #include <atomic>
 //定义数据通信伪客户端
 
@@ -58,6 +58,7 @@ void Client::ctlthread(){
     }
   }
 }
+
 
 
 void heartbeatThread() {
